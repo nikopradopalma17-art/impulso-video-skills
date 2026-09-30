@@ -18,6 +18,8 @@ if hasattr(sys.stdout, "reconfigure"):
 
 BASE = Path(__file__).resolve().parent.parent
 SKILLS_JSON = BASE / "docs" / "fuente" / "skills.json"
+TRADUCCIONES = BASE / "datos" / "traducciones.json"
+ESTILOS = BASE / "datos" / "estilos.json"
 
 CATEGORIAS = {
     "general": {"carpeta": "01-frameworks", "nombre": "Frameworks y toolkits", "emoji": "🧱"},
@@ -41,6 +43,8 @@ def main() -> int:
 
     data = json.loads(SKILLS_JSON.read_text(encoding="utf-8"))
     skills = data["skills"]
+    trads = json.loads(TRADUCCIONES.read_text(encoding="utf-8")) if TRADUCCIONES.exists() else {}
+    estilos_meta = {e["id"]: e for e in json.loads(ESTILOS.read_text(encoding="utf-8"))["estilos"]} if ESTILOS.exists() else {}
 
     repos = []
     conteo = {k: {"clonado": 0, "pendiente": 0, "externo": 0} for k in CATEGORIAS}
@@ -69,6 +73,7 @@ def main() -> int:
             "estado": estado,
             "stars": e.get("stars") or 0,
             "descripcion": e.get("description"),
+            "descripcion_es": trads.get(repo),
             "seguridad": e.get("security_grade"),
             "lenguaje": e.get("language"),
             "licencia": e.get("license"),
@@ -87,6 +92,7 @@ def main() -> int:
             "catalogo_generado": data.get("generated"),
         },
         "generado": str(date.today()),
+        "estilos": list(estilos_meta.values()),
         "resumen": {
             "total": len(repos),
             "clonados": clonados,

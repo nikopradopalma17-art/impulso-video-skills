@@ -23,6 +23,8 @@ Son **101 repos (~2.4 GB)** de frameworks, explainers, edición, shorts y motion
 
 Sin humo: no vendemos diapositivas, construimos resultados. Este catálogo existe para que cualquier equipo monte su pipeline de video con agentes en una tarde, no en un trimestre.
 
+**¿No sabes qué estilo usar?** Abre el landing: la **Galería de estilos** (sección 00) muestra cada lenguaje visual de IMPULSO IA animado en un GIF — *pizarra blanca, pizarra negra, ciencia animada, gráfico de datos, isométrico, Bauhaus y linograbado* — con la explicación de qué hace a cada uno y cuándo usarlo. Pídelos por su nombre en tu brief y el motor de estilos los reproduce. Además, las descripciones del catálogo están traducidas al español.
+
 ---
 
 ## 01 · Estructura del repo
@@ -34,7 +36,8 @@ impulso-video-skills/
 ├── 03-edicion/      ✂️  34 repos ·  497 MB   Edición de video
 ├── 04-shorts/       📱  11 repos ·  285 MB   Shorts y social
 ├── 05-motion/       🎞  10 repos ·  185 MB   Motion graphics
-├── brand/                        Logos IMPULSO IA
+├── brand/                        Logos IMPULSO IA + GIFs de la galería de estilos
+├── datos/                        traducciones.json (ES) + estilos.json (metadatos de la galería)
 ├── docs/                         Sitio para GitHub Pages (/docs) + fuente/ con el catálogo original
 ├── scripts/                      clonar_repos.py · generar_indice.py · preparar_pages.py
 ├── index.html                    Landing navegable del catálogo

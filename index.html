@@ -135,6 +135,38 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
 .empty p{margin:0 0 18px;font-family:var(--font-serif);font-style:italic;font-size:1.05rem}
 .load-error{padding:60px 20px;text-align:center;color:var(--amber);font-family:var(--font-mono);font-size:.85rem}
 
+/* ---------- galería de estilos ---------- */
+.estilos{margin:34px 0 0;animation:fadeUp .35s ease both}
+.estilos-lede{margin:16px 0 4px;max-width:680px;font-family:var(--font-serif);font-style:italic;font-size:.98rem;color:var(--muted)}
+.estilos-note{margin:0 0 20px;font-family:var(--font-mono);font-size:.72rem;color:var(--muted)}
+.estilos-note::before{content:'▸ ';color:var(--accent)}
+.estilos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.estilo-card{gap:12px}
+.estilo-media{position:relative;aspect-ratio:16/9;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel-2)}
+.estilo-media img{width:100%;height:100%;object-fit:cover;display:block}
+.estilo-media .estilo-fallback{display:none}
+.estilo-media.no-gif .estilo-fallback{
+  display:flex;align-items:center;justify-content:center;position:absolute;inset:0;
+  font-family:var(--font-mono);font-weight:600;font-size:2.4rem;color:var(--accent);
+  background:var(--accent-soft);
+}
+.estilo-nombre{margin:0;font-size:1rem;font-weight:600;line-height:1.3}
+.estilo-resumen{margin:0;font-size:.88rem;color:var(--muted)}
+.estilo-toggle{
+  align-self:flex-start;display:inline-flex;align-items:center;gap:7px;padding:0;
+  border:none;background:transparent;cursor:pointer;
+  font-family:var(--font-mono);font-size:.76rem;font-weight:600;color:var(--accent);
+  transition:color var(--t);
+}
+.estilo-toggle:hover{color:var(--ink)}
+.estilo-toggle .chev{display:inline-block;font-size:.72rem;transition:transform var(--t)}
+.estilo-toggle[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.estilo-panel{border-top:1px solid var(--line);margin-top:2px;padding-top:11px;animation:fadeUp .25s ease both}
+.estilo-detalle{margin:0;font-size:.84rem;color:var(--ink)}
+.estilo-cuando{margin:9px 0 0;font-size:.82rem;color:var(--muted)}
+.estilo-cuando .lbl{display:block;font-family:var(--font-mono);font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin-bottom:3px}
+.estilo-panel .chip-cat{margin-top:10px}
+
 /* ---------- footer ---------- */
 .site-footer{margin-top:70px;border-top:1px solid var(--line);padding:28px 0 46px;color:var(--muted)}
 .f-brand{margin:0 0 10px;font-size:.95rem;color:var(--ink)}
@@ -181,6 +213,18 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
 </header>
 
 <main class="container">
+  <section class="estilos" id="estilos" aria-labelledby="estilos-title">
+    <header class="group-head">
+      <span class="gnum">00</span>
+      <span class="gsep">·</span>
+      <h2 class="gtitle" id="estilos-title">Galería de estilos</h2>
+      <span class="gcount" id="estilos-count">—</span>
+    </header>
+    <p class="estilos-lede">Elige el estilo que quieres replicar: cada miniatura está animada con el lenguaje visual real del estilo.</p>
+    <p class="estilos-note">Estos estilos se producen con el motor de estilos de IMPULSO IA — pídelos por su nombre en tu brief.</p>
+    <div class="estilos-grid" id="estilos-grid"></div>
+  </section>
+
   <section class="controls" id="controls" aria-label="Filtros del catálogo">
     <input type="search" id="search-input" placeholder="Buscar por nombre o descripción…" aria-label="Buscar repos por nombre o descripción" autocomplete="off" spellcheck="false">
     <div class="chip-row" id="cat-chips" role="group" aria-label="Filtrar por categoría"></div>
@@ -382,7 +426,8 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
     var cinfo = catById(r.categoria_id);
     card.appendChild(el('span', 'chip-cat', cinfo.emoji + ' ' + cinfo.nombre));
 
-    card.appendChild(el('p', 'card-desc', truncate(r.descripcion || 'Sin descripción.', 160)));
+    var desc = r.descripcion_es || r.descripcion || 'Sin descripción.';
+    card.appendChild(el('p', 'card-desc', truncate(desc, 160)));
 
     var badges = el('div', 'card-badges');
     badges.appendChild(estadoBadge(r));
@@ -442,12 +487,112 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
     return section;
   }
 
+  /* ---------- galería de estilos ---------- */
+
+  function slugId(prefix, raw) {
+    return prefix + String(raw || '').replace(/[^a-zA-Z0-9_-]/g, '-');
+  }
+
+  function makeEstiloCard(s) {
+    var card = el('article', 'card estilo-card');
+
+    var media = el('div', 'estilo-media');
+    var inicial = (String(s.nombre || s.id || '?').trim().charAt(0) || '?').toUpperCase();
+    var fallback = el('span', 'estilo-fallback', inicial);
+    fallback.setAttribute('aria-hidden', 'true');
+    media.appendChild(fallback);
+    if (s.gif) {
+      var img = document.createElement('img');
+      img.src = s.gif;
+      img.alt = 'Animación del estilo ' + (s.nombre || s.id);
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.width = 640;
+      img.height = 360;
+      img.addEventListener('error', function () {
+        media.classList.add('no-gif');
+        if (img.parentNode) { img.parentNode.removeChild(img); }
+      });
+      media.appendChild(img);
+    } else {
+      media.classList.add('no-gif');
+    }
+    card.appendChild(media);
+
+    card.appendChild(el('h3', 'estilo-nombre', s.nombre || s.id || 'Estilo'));
+    card.appendChild(el('p', 'estilo-resumen', s.resumen || ''));
+
+    var btnId = slugId('estilo-btn-', s.id);
+    var panelId = slugId('estilo-panel-', s.id);
+
+    var btn = el('button', 'estilo-toggle');
+    btn.type = 'button';
+    btn.id = btnId;
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-controls', panelId);
+    btn.appendChild(document.createTextNode('¿Cuándo usarlo?'));
+    btn.appendChild(el('span', 'chev', '▾'));
+    card.appendChild(btn);
+
+    var panel = el('div', 'estilo-panel');
+    panel.id = panelId;
+    panel.hidden = true;
+    if (s.detalle) { panel.appendChild(el('p', 'estilo-detalle', s.detalle)); }
+    if (s.cuando) {
+      var cuando = el('p', 'estilo-cuando');
+      cuando.appendChild(el('span', 'lbl', 'Ideal para:'));
+      cuando.appendChild(document.createTextNode(s.cuando));
+      panel.appendChild(cuando);
+    }
+    if (s.referencia) {
+      panel.appendChild(el('span', 'chip-cat', '↳ ' + s.referencia));
+    }
+    card.appendChild(panel);
+
+    btn.addEventListener('click', function () {
+      var estabaAbierto = btn.getAttribute('aria-expanded') === 'true';
+      closeEstiloPanels();
+      if (!estabaAbierto) {
+        btn.setAttribute('aria-expanded', 'true');
+        panel.hidden = false;
+      }
+    });
+
+    return card;
+  }
+
+  function closeEstiloPanels() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.estilo-toggle[aria-expanded="true"]'),
+      function (b) {
+        b.setAttribute('aria-expanded', 'false');
+        var p = document.getElementById(b.getAttribute('aria-controls'));
+        if (p) { p.hidden = true; }
+      }
+    );
+  }
+
+  function buildEstilos() {
+    var sec = $id('estilos');
+    var estilos = (DATA && DATA.estilos) ? DATA.estilos : [];
+    if (!estilos.length) {
+      if (sec) { sec.hidden = true; }
+      return;
+    }
+    var count = $id('estilos-count');
+    if (count) { count.textContent = estilos.length + (estilos.length === 1 ? ' estilo' : ' estilos'); }
+    var grid = $id('estilos-grid');
+    var frag = document.createDocumentFragment();
+    estilos.forEach(function (s) { frag.appendChild(makeEstiloCard(s)); });
+    grid.appendChild(frag);
+  }
+
   function visibleRepos() {
     var q = norm(state.q.trim());
     var list = repos.filter(function (r) {
       if (state.cat && (r.categoria_id || '_otros') !== state.cat) { return false; }
       if (state.estado && r.estado !== state.estado) { return false; }
-      if (q && norm(r.repo + ' ' + (r.descripcion || '')).indexOf(q) === -1) { return false; }
+      if (q && norm(r.repo + ' ' + (r.descripcion_es || '') + ' ' + (r.descripcion || '')).indexOf(q) === -1) { return false; }
       return true;
     });
     if (state.sort === 'name') {
@@ -569,6 +714,7 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
     $id('foot-gen').textContent = marca.catalogo_generado || DATA.generado || '—';
     $id('foot-year').textContent = String(new Date().getFullYear());
 
+    buildEstilos();
     buildChips();
     syncChips();
 
@@ -602,6 +748,8 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
   }
 
   if (!DATA || !DATA.repos) {
+    var secEstilos = $id('estilos');
+    if (secEstilos) { secEstilos.hidden = true; }
     $id('controls').hidden = true;
     $id('results-info').textContent = '';
     var catalog = $id('catalog');

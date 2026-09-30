@@ -1,0 +1,67 @@
+{
+ "estilos": [
+  {
+   "id": "pizarra-blanca",
+   "nombre": "Pizarra blanca",
+   "resumen": "Un rotulador dibuja tu explicación en vivo mientras la cuentas.",
+   "detalle": "Papel cálido con grano, tinta negra y un solo acento rojo. Cada trazo aparece progresivamente con temblor de mano que lo hace humano, y lo ya dibujado respira sin dejar de quieto. La mano que dibuja sostiene la atención de principio a fin.",
+   "cuando": "Para explicar paso a paso cómo funciona o se hace algo: tutoriales, procesos, definiciones que se construyen en pantalla.",
+   "referencia": "RSAnimate / whiteboard storytelling",
+   "gif": "brand/estilos/pizarra-blanca.gif"
+  },
+  {
+   "id": "pizarra-negra",
+   "nombre": "Pizarra negra",
+   "resumen": "La lección se escribe a tiza en una pizarra de aula que da calidez y autoridad.",
+   "detalle": "Pizarra verde-negra con marco de madera y tiza en blanco hueso y amarillo. La escritura avanza a triple pasada con polvo en las puntas, marcos garabateados con estrellas y subrayados a golpes. Todo se mueve lento y mineral, como un profesor que remata su punto.",
+   "cuando": "Para reglas, definiciones y recordatorios que no deben olvidarse: el momento didáctico que frena el ritmo del video.",
+   "referencia": "Pizarra de aula clásica / lección a tiza tipo Khan Academy",
+   "gif": "brand/estilos/pizarra-negra.gif"
+  },
+  {
+   "id": "ciencia-animada",
+   "nombre": "Ciencia Animada",
+   "resumen": "Divulgación tipo Kurzgesagt: espacio nocturno, colores planos y glow que convierten una idea en un mundo vivo.",
+   "detalle": "Vector plano saturado sobre azul noche con estrellas titilantes, curvas planetarias con rim-light, partículas con estela y tipografía redonda Fredoka. Se mueve con overshoot suave, flotación lenta y zoom de cámara sutil. Emociona asombro y claridad: vuelve hermoso lo que parece difícil.",
+   "cuando": "Para abrir un video con gancho o explicar conceptos científicos y abstractos que necesitan un mundo visual propio.",
+   "referencia": "Kurzgesagt – In a Nutshell",
+   "gif": "brand/estilos/ciencia-animada.gif"
+  },
+  {
+   "id": "grafico-datos",
+   "nombre": "Gráfico de Datos",
+   "resumen": "La evidencia animada: barras que crecen, números que rulletan y un óvalo a mano sobre el dato que gana.",
+   "detalle": "Gráfico editorial sobre papel blanco, tinta gris y un solo acento naranja, con ejes que se dibujan, overshoot medido y callout con línea guía y óvalo dibujado a mano. Se mueve limpio y preciso: nada rebota, todo cuenta. Emociona credibilidad: el argumento se vuelve medible.",
+   "cuando": "Para probar algo con números: comparaciones antes/después, resultados medidos y el 'los datos lo confirman' de tu video.",
+   "referencia": "Gráfico editorial de prensa económica (The Economist / Financial Times)",
+   "gif": "brand/estilos/grafico-datos.gif"
+  },
+  {
+   "id": "izometrico",
+   "nombre": "Estilo isométrico",
+   "resumen": "Tu sistema convertido en una maqueta animada donde la cámara panea y los datos viajan de estación en estación.",
+   "detalle": "Bloques 2:1 de tres caras sombreadas sobre papel crema que caen a su sitio con overshoot. La cámara solo panea lateral entre estaciones mientras etiquetas-chip numeradas y burbujas con cola recorren el sistema en arcos. Emociona la satisfacción de ver cómo todo encaja: orden, proceso, ingenio.",
+   "cuando": "Para explicar cómo funciona algo por dentro cuando tiene pasos o piezas conectadas: flujos, logística, viajes de datos, arquitectura de un servicio.",
+   "referencia": "Ilustración isométrica de infographic explainer, mundo miniatura tipo maqueta de juguete",
+   "gif": "brand/estilos/izometrico.gif"
+  },
+  {
+   "id": "bauhaus",
+   "nombre": "Estilo Bauhaus",
+   "resumen": "Tu mensaje como cartel modernista: formas primarias que se estampan con impacto mecánico.",
+   "detalle": "Cartel geométrico sobre crema con retícula de imprenta y cruces de registro; cada idea cae y se estampa con anillo, confeti y sacudida, y la retícula se reorganiza entre sellos. Se mueve seco y mecánico, sin blandura. Emociona orden y contundencia: reglas que se sienten como golpes de sello.",
+   "cuando": "Para enumerar reglas, pasos o principios y rematar mensajes contundentes: listas numeradas, manifiestos, anuncios secos.",
+   "referencia": "Cartel modernista de la Bauhaus (Joost Schmidt, 1923)",
+   "gif": "brand/estilos/bauhaus.gif"
+  },
+  {
+   "id": "linograbado",
+   "nombre": "Estilo linograbado",
+   "resumen": "Tu frase golpea como un sello estampado: tipografía gigante tallada, rodillo mecánico y solo tres tintas.",
+   "detalle": "Grabado en linóleo con negro dominante, papel crema y un único rojo bermellón. Cada palabra se entinta con rodillo y se estampa con caída, sacudida seca y virutas de tinta; gubias y muescas dejan la talla a la vista. Emociona autoridad cruda: un manifiesto que no pide permiso.",
+   "cuando": "Para un mensaje único y rotundo: abrir el video con una frase-manifiesto o cerrarlo sin réplica. No sirve para explicaciones de varios pasos.",
+   "referencia": "Afiche de protesta grabado en linóleo, cartel manifiesto de xilografía",
+   "gif": "brand/estilos/linograbado.gif"
+  }
+ ]
+}

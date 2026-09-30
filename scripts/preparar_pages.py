@@ -68,6 +68,10 @@ def main() -> int:
         origen = BASE / "brand" / nombre
         if origen.exists():
             shutil.copy2(origen, brand / nombre)
+    estilos = docs / "brand" / "estilos"
+    estilos.mkdir(parents=True, exist_ok=True)
+    for gif in sorted((BASE / "brand" / "estilos").glob("*.gif")):
+        shutil.copy2(gif, estilos / gif.name)
     (docs / ".nojekyll").write_text("", encoding="utf-8")
 
     gestionados = ["index.html", "indice.js", "indice.json", "brand", ".nojekyll"]
