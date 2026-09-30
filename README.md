@@ -11,6 +11,8 @@
 ![Catálogo fuente](https://img.shields.io/badge/catálogo_fuente-204-orange)
 ![Tamaño](https://img.shields.io/badge/tamaño-~2.4_GB-informational)
 
+**🌐 Landing navegable:** [online en GitHub Pages](https://nikopradopalma17-art.github.io/impulso-video-skills/) · o abre [`index.html`](index.html) en local
+
 </div>
 
 ---
@@ -33,8 +35,8 @@ impulso-video-skills/
 ├── 04-shorts/       📱  11 repos ·  285 MB   Shorts y social
 ├── 05-motion/       🎞  10 repos ·  185 MB   Motion graphics
 ├── brand/                        Logos IMPULSO IA
-├── docs/fuente/                  README original + skills.json del catálogo fuente
-├── scripts/                      clonar_repos.py (clonador reanudable) + generar_indice.py
+├── docs/                         Sitio para GitHub Pages (/docs) + fuente/ con el catálogo original
+├── scripts/                      clonar_repos.py · generar_indice.py · preparar_pages.py
 ├── index.html                    Landing navegable del catálogo
 ├── indice.js                     Datos del índice para el landing
 └── indice.json                   Índice maestro: 204 repos (101 clonados + 103 externos)
