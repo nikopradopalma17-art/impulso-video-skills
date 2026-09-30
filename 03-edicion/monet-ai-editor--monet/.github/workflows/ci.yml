@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify
+        run: npm run ci:verify
+
+  mac-package-smoke:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build macOS release smoke artifact
+        env:
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          MONET_APTABASE_APP_KEY: A-US-2017866354
+          MONET_SENTRY_DSN: https://e056de5fd28df1a630359f45cbd7f18e@o4511253642215424.ingest.us.sentry.io/4511253644902400
+          VITE_MONET_SENTRY_DSN: https://e056de5fd28df1a630359f45cbd7f18e@o4511253642215424.ingest.us.sentry.io/4511253644902400
+        run: npm run dist:mac

@@ -1,0 +1,435 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import {
+  CAPABILITY_DESCRIPTORS, NATIVE_EXEC_INPUT_SCHEMA, NATIVE_EXEC_REGISTRY_DIGEST, PRIMITIVES,
+} from './native_exec.generated.mjs';
+import {
+  ERROR_POLICIES, LIMITS, decodeFrame, encodeFrame, schemaAccepts, selectWireVersion,
+  strictParseJson,
+} from './conformance.mjs';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const schema = JSON.parse(fs.readFileSync(path.join(here, 'aegp-rpc.schema.json'), 'utf8'));
+const sessionId = '11111111-1111-4111-8111-111111111111';
+const locator = {
+  kind: 'composition', hostInstanceId: '22222222-2222-4222-8222-222222222222',
+  sessionId, projectId: '44444444-4444-4444-8444-444444444444', generation: 1,
+  objectId: '66666666-6666-4666-8666-666666666666',
+};
+
+function nativeRequest(argumentsValue) {
+  return {
+    wireVersion: 1, kind: 'request', sessionId, requestId: 'native-program', method: 'invoke',
+    params: { capabilityId: 'ae.native.exec', capabilityVersion: 1, arguments: argumentsValue },
+  };
+}
+
+test('native program is the sole invoke wire shape', () => {
+  const valid = nativeRequest({
+    operations: [{ op: 'composition.resolve', args: { locator }, saveAs: 'composition' }],
+  });
+  assert.equal(schemaAccepts(schema.$defs.request, valid, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.request, nativeRequest({
+    operationKey: 'read-program-key-0001',
+    operations: [{ op: 'project.items.list', args: { offset: 0, limit: 1 } }],
+  }), schema), false);
+  assert.equal(schemaAccepts(schema.$defs.request, nativeRequest({
+    undoGroup: 'Read must not open Undo',
+    operations: [{ op: 'project.items.list', args: { offset: 0, limit: 1 } }],
+  }), schema), false);
+  assert.equal(schemaAccepts(schema.$defs.request, nativeRequest({
+    operationKey: 'write-program-key-0001',
+    undoGroup: 'Task 5 write',
+    operations: [
+      { op: 'composition.resolve', args: { locator }, saveAs: 'composition' },
+      {
+        op: 'composition.time.set',
+        args: {
+          composition: { ref: 'composition' },
+          targetTime: { value: 1, scale: 24 },
+        },
+      },
+    ],
+  }), schema), true);
+  const legacy = nativeRequest({});
+  legacy.params.capabilityId = 'ae.retired.direct';
+  assert.equal(schemaAccepts(schema.$defs.request, legacy, schema), false);
+  const unknown = nativeRequest({ operations: [{ op: 'unknown.op', args: {} }] });
+  assert.equal(schemaAccepts(schema.$defs.request, unknown, schema), false);
+});
+
+test('generated primitive projection is the reference-typing source', () => {
+  assert.equal(PRIMITIVES.length, 23);
+  const layerResolve = PRIMITIVES.find(({ id }) => id === 'layer.resolve');
+  const layerProperties = PRIMITIVES.find(({ id }) => id === 'layer.properties.list');
+  assert.deepEqual(layerResolve.referenceArguments.composition,
+    { kind: 'CompositionHandle', required: true });
+  assert.deepEqual(layerProperties.referenceArguments.parentProperty,
+    { kind: 'PropertyHandle', required: false });
+  assert.equal(NATIVE_EXEC_INPUT_SCHEMA.properties.operations.maxItems, 64);
+});
+
+test('all 23 primitive result contracts accept representative executor output', () => {
+  const projectLocator = { ...locator, kind: 'project' };
+  const layerLocator = { ...locator, kind: 'layer' };
+  const propertyLocator = { ...locator, kind: 'stream' };
+  const exactTime = { value: 0, scale: 24, secondsRational: '0' };
+  const laterTime = { value: 1, scale: 24, secondsRational: '1/24' };
+  const scalar = { kind: 'scalar', value: '1' };
+  const compositionSettings = {
+    compositionLocator: locator,
+    name: 'Task 9 fixture',
+    width: 1920,
+    height: 1080,
+    duration: { value: 240, scale: 24, secondsRational: '10' },
+    frameDuration: { value: 1, scale: 24, secondsRational: '1/24' },
+    frameRate: { numerator: 24, denominator: 1, rational: '24' },
+    pixelAspectRatio: { numerator: 1, denominator: 1, rational: '1' },
+    backgroundColor: { red: 0, green: 0, blue: 0, alpha: 255 },
+    workArea: {
+      start: exactTime,
+      duration: { value: 240, scale: 24, secondsRational: '10' },
+    },
+    displayStartTime: exactTime,
+    layerCount: 0,
+  };
+  const keyframeDetails = {
+    propertyLocator,
+    time: exactTime,
+    temporalDimensionality: 1,
+    valueType: 'one-d',
+    value: scalar,
+    inInterpolation: 'linear',
+    outInterpolation: 'linear',
+    temporalEaseDimensions: [{
+      dimension: 0,
+      inEase: { speed: '0', influence: '33.333' },
+      outEase: { speed: '0', influence: '33.333' },
+    }],
+    behaviors: {
+      temporalContinuous: false,
+      temporalAutoBezier: false,
+      spatialContinuous: false,
+      spatialAutoBezier: false,
+      roving: false,
+    },
+  };
+  const samples = {
+    'composition.resolve': {
+      handle: { kind: 'composition', value: 1 }, exportable: false,
+    },
+    'layer.resolve': {
+      handle: { kind: 'layer', value: 2 }, exportable: false,
+    },
+    'property.resolve': {
+      handle: { kind: 'property', value: 3 }, exportable: false,
+    },
+    'project.items.list': {
+      projectLocator, total: 0, offset: 0, limit: 50, returned: 0,
+      hasMore: false, nextOffset: null, items: [],
+    },
+    'composition.layers.list': {
+      compositionLocator: locator, compositionName: 'Task 9 fixture',
+      total: 0, offset: 0, limit: 25, returned: 0, hasMore: false,
+      nextOffset: null, layers: [],
+    },
+    'composition.selectedLayers.list': {
+      compositionLocator: locator, compositionName: 'Task 9 fixture',
+      total: 0, offset: 0, limit: 25, returned: 0, hasMore: false,
+      nextOffset: null, layers: [],
+    },
+    'composition.time.read': {
+      compositionLocator: locator, currentTime: exactTime,
+    },
+    'composition.time.set': {
+      changed: true, compositionLocator: locator,
+      beforeTime: exactTime, afterTime: laterTime,
+    },
+    'composition.settings.read': compositionSettings,
+    'composition.duration.set': {
+      changed: true, compositionLocator: locator,
+      before: compositionSettings, after: compositionSettings,
+    },
+    'composition.frameRate.set': {
+      changed: true, compositionLocator: locator,
+      before: compositionSettings, after: compositionSettings,
+    },
+    'composition.pixelAspectRatio.set': {
+      changed: true, compositionLocator: locator,
+      before: compositionSettings, after: compositionSettings,
+    },
+    'composition.displayStartTime.set': {
+      changed: true, compositionLocator: locator,
+      before: compositionSettings, after: compositionSettings,
+    },
+    'layer.properties.list': {
+      layerLocator, parentPropertyLocator: null, layerName: 'Layer 1',
+      sampleTime: { value: 0, scale: 24, mode: 'comp-time' },
+      total: 0, offset: 0, limit: 25, returned: 0, hasMore: false,
+      nextOffset: null, properties: [],
+    },
+    'property.keyframes.list': {
+      propertyLocator, valueType: 'one-d', total: 0, offset: 0,
+      limit: 25, returned: 0, hasMore: false, nextOffset: null,
+      keyframes: [],
+    },
+    'property.value.set': {
+      changed: true, layerLocator, propertyLocator, valueType: 'one-d',
+      beforeValue: { kind: 'scalar', value: '0' }, afterValue: scalar,
+    },
+    'property.keyframe.details.read': keyframeDetails,
+    'property.keyframe.add': {
+      changed: true, layerLocator, propertyLocator, time: exactTime,
+      keyframeCountBefore: 0, keyframeCountAfter: 1,
+      beforeKeyframe: null, afterKeyframe: keyframeDetails,
+    },
+    'property.keyframe.value.set': {
+      changed: true, layerLocator, propertyLocator, time: exactTime,
+      keyframeCountBefore: 1, keyframeCountAfter: 1,
+      beforeKeyframe: keyframeDetails, afterKeyframe: keyframeDetails,
+    },
+    'property.keyframe.interpolation.set': {
+      changed: true, layerLocator, propertyLocator, time: exactTime,
+      keyframeCountBefore: 1, keyframeCountAfter: 1,
+      beforeKeyframe: keyframeDetails, afterKeyframe: keyframeDetails,
+    },
+    'property.keyframe.temporalEase.set': {
+      changed: true, layerLocator, propertyLocator, time: exactTime,
+      keyframeCountBefore: 1, keyframeCountAfter: 1,
+      beforeKeyframe: keyframeDetails, afterKeyframe: keyframeDetails,
+    },
+    'property.keyframe.behavior.set': {
+      changed: true, layerLocator, propertyLocator, time: exactTime,
+      keyframeCountBefore: 1, keyframeCountAfter: 1,
+      beforeKeyframe: keyframeDetails, afterKeyframe: keyframeDetails,
+    },
+    'property.keyframe.delete': {
+      changed: true, layerLocator, propertyLocator, time: exactTime,
+      keyframeCountBefore: 1, keyframeCountAfter: 0,
+      beforeKeyframe: keyframeDetails, afterKeyframe: null,
+    },
+  };
+  assert.deepEqual(
+    Object.keys(samples).sort(),
+    PRIMITIVES.map(({ id }) => id).sort(),
+  );
+  for (const primitive of PRIMITIVES) {
+    const resultSchema = primitive.resultSchema.$ref
+      ? { $ref: primitive.resultSchema.$ref.slice(
+        primitive.resultSchema.$ref.indexOf('#'),
+      ) }
+      : primitive.resultSchema;
+    assert.equal(
+      schemaAccepts(resultSchema, samples[primitive.id], schema),
+      true,
+      primitive.id,
+    );
+  }
+});
+
+test('native program schema rejects extra envelope and operation fields', () => {
+  const valid = nativeRequest({
+    operations: [{ op: 'composition.resolve', args: { locator }, saveAs: 'composition' }],
+  });
+  const extraEnvelope = structuredClone(valid);
+  extraEnvelope.params.arguments.extra = true;
+  assert.equal(schemaAccepts(schema.$defs.request, extraEnvelope, schema), false);
+  const extraOperation = structuredClone(valid);
+  extraOperation.params.arguments.operations[0].loop = true;
+  assert.equal(schemaAccepts(schema.$defs.request, extraOperation, schema), false);
+});
+
+test('native program terminal schema has one common success and failure shape', () => {
+  const evidence = {
+    engine: 'native-aegp',
+    hostInstanceId: locator.hostInstanceId,
+    sessionId,
+    requestId: 'native-program-terminal',
+    capabilityId: 'ae.native.exec',
+    capabilityVersion: 1,
+    startedAtUnixMs: 1900000000000,
+    completedAtUnixMs: 1900000000025,
+    effect: 'committed',
+    requestDigest: 'a'.repeat(64),
+    postcondition: {
+      verified: true,
+      kind: 'native-program',
+      algorithm: 'sha256-rfc8785-jcs-v1',
+      digest: 'b'.repeat(64),
+    },
+  };
+  const undo = { available: true, verified: false, groupLabel: 'Task 5 write' };
+  const result = {
+    capabilityId: 'ae.native.exec',
+    operationKey: 'native-program-write-key',
+    outputs: { currentTime: { value: 12, scale: 24 } },
+    operations: [
+      { index: 0, op: 'composition.resolve', status: 'completed' },
+      { index: 1, op: 'composition.time.set', status: 'completed' },
+    ],
+    evidence,
+    undo,
+  };
+  const success = {
+    wireVersion: 1,
+    kind: 'response',
+    sessionId,
+    requestId: evidence.requestId,
+    method: 'invoke',
+    ok: true,
+    replayed: false,
+    result,
+  };
+  assert.equal(schemaAccepts(schema.$defs.nativeProgramInvokeResult, result, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.response, success, schema), true);
+  const missingWriteKey = structuredClone(result);
+  delete missingWriteKey.operationKey;
+  assert.equal(
+    schemaAccepts(schema.$defs.nativeProgramInvokeResult, missingWriteKey, schema),
+    false,
+  );
+  const readResult = structuredClone(missingWriteKey);
+  readResult.evidence.effect = 'none';
+  readResult.undo = { available: false, verified: false };
+  assert.equal(schemaAccepts(schema.$defs.nativeProgramInvokeResult, readResult, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.nativeProgramInvokeResult, {
+    ...readResult,
+    operationKey: 'invented-read-operation-key',
+  }, schema), false);
+  assert.equal(schemaAccepts(schema.$defs.nativeProgramInvokeResult, {
+    ...result,
+    handle: { kind: 'CompositionHandle', raw: 1 },
+  }, schema), false);
+
+  const details = {
+    capabilityId: 'ae.native.exec',
+    operationKey: 'native-program-write-key',
+    disposition: 'possibly-side-effecting',
+    completedOperations: [
+      { index: 0, op: 'composition.resolve', status: 'completed' },
+    ],
+    failedOperation: { index: 1, op: 'composition.time.set', status: 'failed' },
+    outputs: {},
+    evidence: {
+      ...evidence,
+      effect: 'may-have-occurred',
+      postcondition: { ...evidence.postcondition, verified: false },
+    },
+    undo,
+  };
+  const failure = {
+    wireVersion: 1,
+    kind: 'response',
+    sessionId,
+    requestId: evidence.requestId,
+    method: 'invoke',
+    ok: false,
+    replayed: false,
+    error: {
+      code: 'POSSIBLY_SIDE_EFFECTING_FAILURE',
+      message: 'write outcome requires reconciliation',
+      retryable: false,
+      sideEffect: 'may-have-occurred',
+      recovery: {
+        action: 'inspect-state',
+        hint: 'Inspect After Effects state before retrying.',
+      },
+      details,
+    },
+  };
+  assert.equal(schemaAccepts(schema.$defs.nativeProgramFailureDetails, details, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.response, failure, schema), true);
+  const safeWriteFailure = structuredClone(failure);
+  safeWriteFailure.error.code = 'PRECONDITION_FAILED';
+  safeWriteFailure.error.sideEffect = 'completed';
+  safeWriteFailure.error.details.disposition = 'completed';
+  safeWriteFailure.error.details.evidence.effect = 'none';
+  assert.equal(schemaAccepts(schema.$defs.response, safeWriteFailure, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.nativeProgramFailureDetails, {
+    ...details,
+    undo: { ...undo, groupId: 'invented-undo-id' },
+  }, schema), false);
+});
+
+test('framing and independent control-plane schemas remain closed', () => {
+  const hello = { wireVersion: 1, kind: 'request', requestId: 'hello-1', method: 'hello',
+    params: { supportedWireVersions: { minimum: 1, maximum: 1 },
+      client: { component: 'core-broker', version: 'test', instanceId: sessionId },
+      nonce: 'abcdefghijklmnopqrstuvwxyzABCDEF' } };
+  assert.equal(decodeFrame(encodeFrame(hello)).params.client.component, 'core-broker');
+  assert.equal(schemaAccepts(schema.$defs.cancelParams, { targetRequestId: 'request-1' }, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.invalidateGraphParams, { reason: 'cep-jsx' }, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.capabilitiesParams, { detail: 'summary', limit: 1 }, schema), true);
+  const cancel = { wireVersion: 1, kind: 'request', sessionId, requestId: 'cancel-1', method: 'cancel',
+    params: { targetRequestId: 'native-program' } };
+  const invalidate = { wireVersion: 1, kind: 'request', sessionId, requestId: 'invalidate-1',
+    method: 'invalidateGraph', params: { reason: 'cep-jsx' } };
+  assert.equal(schemaAccepts(schema.$defs.request, cancel, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.request, invalidate, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.request, {
+    ...cancel, params: { ...cancel.params, extra: true },
+  }, schema), false);
+  assert.equal(schemaAccepts(schema.$defs.request, {
+    ...invalidate, params: { ...invalidate.params, extra: true },
+  }, schema), false);
+  assert.equal(schemaAccepts(schema.$defs.request, {
+    ...nativeRequest({ operations: [{ op: 'project.items.list', args: { offset: 0, limit: 1 } }] }),
+    sessionId: undefined,
+  }, schema), false);
+  assert.equal(schemaAccepts(schema.$defs.request, {
+    ...cancel, deadlineUnixMs: 0,
+  }, schema), false);
+  assert.equal(schemaAccepts(schema.$defs.capabilitiesParams, { limit: 101 }, schema), false);
+});
+
+test('strict framing and JSON limits remain independently covered', () => {
+  assert.throws(() => decodeFrame(Buffer.from([0, 0, 0, 0])));
+  assert.throws(() => strictParseJson('{"x":1,"x":2}'));
+  assert.throws(() => strictParseJson('{"x":"\ud800"}'));
+  assert.equal(LIMITS.maxFrameBytes, 524288);
+});
+
+test('hello/session/version negotiation remains closed independently of invoke', () => {
+  const hello = { wireVersion: 1, kind: 'request', requestId: 'hello-1', method: 'hello',
+    params: { supportedWireVersions: { minimum: 1, maximum: 1 },
+      client: { component: 'core-broker', version: 'test', instanceId: sessionId },
+      nonce: 'abcdefghijklmnopqrstuvwxyzABCDEF' } };
+  assert.equal(schemaAccepts(schema.$defs.helloRequest, hello, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.helloRequest, { ...hello, sessionId }, schema), false);
+  assert.equal(selectWireVersion({ minimum: 1, maximum: 1 }, { minimum: 1, maximum: 1 }), 1);
+});
+
+test('generated capabilities summary/full and generic error policy remain valid', () => {
+  for (const detail of ['summary', 'full']) {
+    for (const descriptor of CAPABILITY_DESCRIPTORS[detail]) {
+      assert.equal(schemaAccepts(schema.$defs.nativePrimitiveDescriptor, descriptor, schema), true);
+    }
+    const result = { detail, items: CAPABILITY_DESCRIPTORS[detail],
+      nextCursor: null, queryDigest: 'a'.repeat(64), capabilitiesDigest: NATIVE_EXEC_REGISTRY_DIGEST };
+    const response = { wireVersion: 1, kind: 'response', ok: true, method: 'capabilities',
+      requestId: `capabilities-${detail}`, sessionId, replayed: false, result };
+    assert.equal(schemaAccepts(schema.$defs.capabilitiesResult, result, schema), true, detail);
+    assert.equal(schemaAccepts(schema.$defs.response, response, schema), true, detail);
+    result.items = CAPABILITY_DESCRIPTORS[detail === 'summary' ? 'full' : 'summary'];
+    assert.equal(schemaAccepts(schema.$defs.capabilitiesResult, result, schema), false, `${detail} binding`);
+  }
+  const retryableError = {
+    code: 'NATIVE_UNAVAILABLE', message: 'executor absent', retryable: true,
+    sideEffect: 'not-started', recovery: { action: 'reconnect', hint: 'native executor is unavailable' },
+  };
+  assert.equal(schemaAccepts(schema.$defs.rpcError, retryableError, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.rpcError, { ...retryableError, extra: true }, schema), false);
+  assert.equal(schemaAccepts(schema.$defs.cancelResult, {
+    targetRequestId: 'native-program', state: 'queued-cancelled', terminalResponseExpected: true,
+  }, schema), true);
+  assert.equal(schemaAccepts(schema.$defs.invalidateGraphResult, { generation: 1, invalidated: true }, schema), true);
+  for (const [code, [retryable, sideEffect, action]] of Object.entries(ERROR_POLICIES)) {
+    assert.equal(typeof retryable, 'boolean', code);
+    assert.ok(['not-started', 'completed', 'possibly-side-effecting', 'may-have-occurred'].includes(sideEffect), code);
+    assert.equal(typeof action, 'string', code);
+  }
+});

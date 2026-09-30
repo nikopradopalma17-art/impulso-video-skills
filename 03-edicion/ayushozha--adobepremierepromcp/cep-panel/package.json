@@ -1,0 +1,44 @@
+{
+  "name": "premierpro-mcp-bridge-cep",
+  "version": "1.0.0",
+  "description": "CEP panel for PremierPro MCP - bridges WebSocket commands to ExtendScript inside Premiere Pro",
+  "private": true,
+  "main": "src/panel.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node ../scripts/run-node-tests.mjs scripts",
+    "build:dev": "node scripts/build.js --dev",
+    "package": "node scripts/build.js --package",
+    "check:commands": "npm test && node scripts/check-command-coverage.js && node scripts/check-proxy-workflow.js && node scripts/check-social-workflow.js && node scripts/check-delivery-workflow.js",
+    "check:proxies": "node scripts/check-proxy-workflow.js",
+    "check:social": "node scripts/check-social-workflow.js",
+    "check:delivery": "node scripts/check-delivery-workflow.js",
+    "install-deps": "npm install",
+    "setup-csinterface": "node scripts/setup-csinterface.js",
+    "link-panel:mac": "ln -sf \"$(pwd)\" \"$HOME/Library/Application Support/Adobe/CEP/extensions/com.premierpro.mcp.bridge\"",
+    "link-panel:win": "echo 'Run as Admin: mklink /D \"%APPDATA%\\Adobe\\CEP\\extensions\\com.premierpro.mcp.bridge\" \"%CD%\"'",
+    "unlink-panel:mac": "rm -f \"$HOME/Library/Application Support/Adobe/CEP/extensions/com.premierpro.mcp.bridge\"",
+    "enable-debug:mac": "defaults write com.adobe.CSXS.11 PlayerDebugMode 1 && echo 'Debug mode enabled. Restart Premiere Pro.'",
+    "enable-debug:win": "echo 'Add DWORD PlayerDebugMode=1 to HKEY_CURRENT_USER\\Software\\Adobe\\CSXS.11'",
+    "disable-debug:mac": "defaults write com.adobe.CSXS.11 PlayerDebugMode 0 && echo 'Debug mode disabled.'",
+    "setup": "npm install && npm run setup-csinterface && npm run enable-debug:mac && npm run link-panel:mac",
+    "validate": "node scripts/validate.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "acorn": "8.15.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "adobe",
+    "cep",
+    "premiere-pro",
+    "mcp",
+    "extendscript"
+  ],
+  "license": "MIT"
+}

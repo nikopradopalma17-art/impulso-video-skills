@@ -1,0 +1,970 @@
+# How Vex Works
+
+This document explains Vex end to end: what it does, how it is structured, how user requests flow through the system, how each editing capability works, and how project state is kept reliable across sessions.
+
+If `README.md` is the public landing page, this file is the deeper technical map.
+
+## What Vex Is
+
+Vex is a terminal-first AI video editing agent.
+
+At a high level, it combines:
+
+- a conversational CLI built with Typer and Rich
+- a provider-agnostic LLM loop
+- a structured project state layer
+- a library of editing tools
+- an FFmpeg and MoviePy execution engine
+
+The design goal is simple:
+
+1. let the user speak naturally
+2. keep the real editing state outside the model
+3. execute deterministic video operations on a working copy
+4. persist everything needed to resume, undo, redo, and export later
+
+## What Vex Does
+
+Vex currently supports all of the following.
+
+### Conversational video editing
+
+- understand natural-language editing requests
+- detect video file paths directly from user messages
+- detect YouTube links and bootstrap projects by downloading the source video
+- auto-create or auto-load projects when a path is referenced
+- keep the user inside a continuous REPL session
+
+### Video editing operations
+
+- inspect metadata
+- trim clips
+- merge clips
+- adjust speed
+- apply fade in / fade out / fade-through-black transitions
+- add timed text overlays
+- remove silent gaps
+- extract selected highlight segments
+- auto color grade with sampled-frame exposure, contrast, saturation, and white-balance correction
+
+### Audio operations
+
+- extract audio
+- replace audio
+- mix new audio with original audio
+- mute specific segments
+
+### Transcript and subtitle workflows
+
+- transcribe video with local Whisper
+- generate `transcript.txt`
+- generate `transcript.srt`
+- burn subtitles into video
+- summarize a long clip into highlights using transcript-aware LLM selection
+- auto-create ranked vertical shorts with captions, metadata, and a manifest bundle
+
+### Auto shorts packaging
+
+The auto shorts flow is intentionally separate from normal timeline editing.
+
+- it transcribes the full working video when transcript artifacts do not already exist
+- it builds a full-video context profile from the transcript: thesis/opening, core repeated terms, main keywords, and phrases
+- it rebuilds the transcript into stable semantic units without arbitrary word-count or duration cuts
+- it divides long videos into overlapping story chapters and asks the reasoning model to propose complete cold-viewer stories using exact semantic unit IDs
+- it deterministically compiles proposals into chronological source ranges and rejects incomplete boundaries, unresolved context, disconnected stitches, and invented units before rendering
+- it scores every surviving candidate with explainable viral, context, story-completeness, continuity, and source-faithfulness dimensions
+- it runs a global candidate tournament, records model and fallback provenance, avoids near-duplicate topics, and keeps prevalidated reserves
+- it promotes a reserve when a primary candidate fails pre-render or final transcript QA instead of failing the complete run immediately
+- it generates B-roll suggestions and punch-in plans alongside the edited deliverables
+- it writes packaged outputs to the project's output directory instead of replacing the working file
+- each generated short gets a raw clip, vertical captioned render, local transcript, metadata JSON, and notes
+- the run also writes a manifest bundle and stores the latest manifest path inside project artifacts
+
+### Auto visuals pipeline
+
+The auto visuals subsystem is the main new capability in Vex.
+
+It exists for custom explanatory inserts, not just stock footage retrieval.
+
+The pipeline is:
+
+1. transcribe the current working cut when transcript artifacts are missing
+2. turn transcript sentences into candidate visual cards with timing, keywords, and evidence signals
+3. score those cards for visualizability, replace safety, process and contrast cues, and genericness
+4. build a video-level visual narrative program with chapters, concept memory, continuity groups, episode beats, and transition intent
+5. plan only the strongest beats with the active reasoning model, using the visual narrative program as the global director
+6. normalize the plan into renderer-aware visual specs
+7. prefer Hyperframes for premium full-screen HTML/CSS motion slides and sequence templates, use Blender only for typed deterministic 3D assets, and reserve Manim for specialist math and geometry
+8. validate, lint, and render generated scenes before the final composite
+9. composite the accepted visuals back into the working video with transition-aware full-screen replacement when the program asks for it
+
+The rerun behavior matters a lot here:
+
+- Vex refreshes prior auto visual and auto B-roll overlay passes before replanning
+- previously used visual cards are penalized or fully excluded when enough fresh candidates exist
+- deterministic fast-plan shortcuts are disabled on history-heavy reruns so the same old beats do not keep coming back
+- the Hyperframes path keeps compositions self-contained, seekable, and linted before final MP4 rendering
+- the Blender path accepts only typed specs such as `three_d_title`, `floating_3d_label`, `screen_pointer_3d`, `data_tunnel`, and `product_model_spin`; Vex compiles those specs internally and never runs arbitrary LLM-authored Blender Python
+- the visual program carries recurring concepts, episode context, visual beats, and transition contracts into manifests and renderer metadata
+- the Manim runtime still includes compatibility shims for common generated-scene issues such as numeric counters, route path aliases, and rate-function naming differences
+
+### Project and workflow features
+
+- persistent saved projects
+- working copy protection
+- timeline history
+- undo / redo via rebuild
+- export presets
+- direct CLI exports
+- streaming terminal feedback
+- multi-provider support
+
+## Product Philosophy
+
+The key architectural idea in Vex is that the model is not the source of truth.
+
+The LLM decides which tool to call and with what arguments, but the important state lives in structured Python objects and project JSON:
+
+- current working file
+- source file path
+- current metadata
+- timeline of applied operations
+- redo stack
+- session log
+- selected provider and model
+
+That is why Vex is much more reliable than a pure "chat and hope" workflow. The model can drift in wording, but the project state stays explicit.
+
+## The Main Runtime Flow
+
+When a user runs `vex`, the system goes through this flow.
+
+### 1. Startup and configuration
+
+Vex loads configuration from environment variables and `.env`.
+
+Important settings:
+
+- `PROVIDER`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL`
+- `ANTHROPIC_API_KEY`
+- `CLAUDE_MODEL`
+- `PEXELS_API_KEY`
+- `PIXABAY_API_KEY`
+- `COVERR_API_KEY`
+- `AUTO_BROLL_PROVIDERS`
+- `AGENT_PROJECTS_DIR`
+- `FFMPEG_PATH`
+- `ENCODE_VALIDATION_TIMEOUT_SEC`
+- `WHISPER_MODEL`
+
+At startup, Vex validates:
+
+- provider value
+- required API key for the selected provider
+- FFmpeg availability
+- project storage directory existence
+
+### 2. CLI entry
+
+The Typer app exposes:
+
+- `vex`
+- `vex start`
+- `vex repl`
+- `vex run`
+- `vex projects`
+- `vex export`
+- `vex color-grade`
+- `vex shorts`
+- `vex youtube-shorts`
+- `vex --version`
+
+The default mode is `vex` with no subcommand.
+
+Behavior:
+
+- if exactly one saved project exists, Vex resumes it automatically
+- otherwise, Vex opens a clean conversational prompt
+
+### 3. Path detection inside the REPL
+
+Before any user message is sent to the agent, Vex scans it for a video path.
+
+It supports:
+
+- Windows paths like `D:\videos\clip.mp4`
+- Unix paths like `/home/user/video.mp4`
+- quoted paths
+- whitespace-separated path tokens
+
+Supported video extensions:
+
+- `.mp4`
+- `.mov`
+- `.avi`
+- `.mkv`
+- `.webm`
+- `.m4v`
+- `.flv`
+
+If a referenced file already belongs to a saved project, that project is loaded.
+
+If not, Vex creates a new project automatically and copies the source video into the project working directory.
+
+Vex now also scans for YouTube URLs.
+
+If it finds one:
+
+- it checks whether that URL already maps to a saved project
+- if not, it downloads the video into a new project workspace using `yt-dlp`
+- it stores the original source URL in project artifacts
+- it then continues with the user's original natural-language command against the downloaded project
+
+### 4. Agent loop
+
+Once a project is loaded, `VideoAgent` runs the core tool loop.
+
+That loop works like this:
+
+1. append the user message to the session conversation
+2. build a system prompt from the current project state
+3. send conversation + tool schemas to the selected provider
+4. if the provider returns tool calls:
+   - execute tools one by one
+   - update project state
+   - append tool results back into the conversation
+   - loop again
+5. if the provider returns text:
+   - save it as the assistant response
+   - persist the full session log
+   - return control to the REPL
+
+This loop is capped at 10 iterations to avoid runaway tool recursion.
+
+## The System Prompt
+
+Vex does not send a blank prompt to the model.
+
+Each turn includes a system prompt that injects current project context:
+
+- project name
+- provider and model
+- working file path
+- duration
+- resolution
+- fps
+- number of timeline operations
+- last operation description
+
+The prompt also instructs the model to:
+
+- inspect metadata before making decisions if needed
+- break complex requests into sequential tool calls
+- keep responses concise
+- preserve original files
+- use suggestions in a specific format
+
+This is one of the main reasons Vex holds together better than a naive chat wrapper.
+
+## Provider Layer
+
+Vex supports two LLM backends behind a shared interface.
+
+### Gemini
+
+Gemini support is implemented with `google-genai`.
+
+What the Gemini adapter does:
+
+- creates a `genai.Client`
+- converts Vex tool schemas into Gemini function declarations
+- sanitizes JSON schema fields for Gemini compatibility
+- translates neutral conversation messages into Gemini content parts
+- preserves Gemini function call parts so tool follow-up messages keep their required metadata
+- streams partial text responses and accumulates tool calls across all stream chunks
+- conditionally enables Gemini thinking features only for models that actually support them
+
+### Claude
+
+Claude support is implemented with Anthropic's SDK.
+
+What the Claude adapter does:
+
+- creates an `Anthropic` client
+- translates Vex tool schemas into Claude tool definitions
+- converts neutral messages into Claude-native text, tool use, and tool result messages
+- supports streaming text output
+- extracts tool calls from final Claude responses
+
+### Default provider behavior
+
+Gemini is the default provider.
+
+Claude is supported only when explicitly selected.
+
+The clip summarizer follows the active provider now as well, so Gemini users are not forced into a Claude-specific path.
+
+## Project State Model
+
+Every project is represented by `ProjectState`.
+
+Stored fields include:
+
+- `project_id`
+- `project_name`
+- `created_at`
+- `updated_at`
+- `source_files`
+- `working_file`
+- `working_dir`
+- `output_dir`
+- `timeline`
+- `redo_stack`
+- `session_log`
+- `metadata`
+- `provider`
+- `model`
+
+### Why this matters
+
+This state is what makes Vex reliable.
+
+Instead of asking the model to “remember” the edit history, Vex stores the actual edit history explicitly and persists it to disk as JSON.
+
+### What gets persisted
+
+For each project, Vex stores:
+
+- the original source path
+- the current working file path
+- current video metadata
+- every timeline operation
+- redo information
+- the saved conversation history
+
+### What does not happen
+
+Vex does not edit the original source file directly.
+
+Every destructive-looking operation is actually performed against the current working copy in the project directory.
+
+## Working Copy Safety Model
+
+When a new project is created:
+
+1. Vex creates a unique project directory
+2. it copies the original video into that directory
+3. it probes the copied file for metadata
+4. it sets that copied file as `working_file`
+
+From then on, every edit generates a new output file with a unique filename.
+
+So the flow looks like:
+
+- original source file stays untouched
+- project source copy becomes the first working file
+- each edit creates another derived file
+- `working_file` is updated to point to the newest output
+
+## Timeline and Undo / Redo
+
+Every state-changing tool records a timeline operation.
+
+Each operation stores:
+
+- operation name
+- normalized params
+- timestamp
+- result file
+- human-readable description
+
+Undo is not implemented as “delete the last file and hope”.
+
+Instead, Vex rebuilds the project by replaying the timeline from the original source file, excluding the undone step.
+
+That makes undo and redo much more deterministic.
+
+### How undo rebuild works
+
+The rebuild logic:
+
+1. start from the original source file
+2. iterate through the saved timeline
+3. re-run each operation in order with stored params
+4. produce a fresh working file
+5. update metadata
+6. save project state
+
+Supported replayed operations currently include:
+
+- `trim_clip`
+- `merge_clips`
+- `adjust_speed`
+- `add_transition`
+- `add_text_overlay`
+- `replace_audio`
+- `mute_segment`
+- `trim_silence`
+- `auto_color_grade`
+- `burn_subtitles`
+- `summarize_clip`
+- `add_auto_effects`
+- `add_auto_broll`
+- `add_auto_visuals`
+
+## The Execution Engine
+
+The low-level editing work happens in `engine.py`.
+
+This layer is intentionally deterministic and mostly FFmpeg-based.
+
+### Shared engine behavior
+
+Most engine functions:
+
+- generate a unique output path in the project working directory
+- call FFmpeg or MoviePy
+- raise `VideoEngineError` on failure
+- return the new output path on success
+
+### Metadata probing
+
+`probe_video()` uses `ffprobe` to extract:
+
+- duration
+- fps
+- width
+- height
+- codec
+- whether audio exists
+- file size
+- container format
+
+### Timestamp parsing
+
+`parse_timestamp()` is the common parser used by tools.
+
+It supports:
+
+- raw seconds like `30`
+- suffixed seconds like `30s`
+- `MM:SS`
+- `HH:MM:SS`
+- decimal seconds
+
+### Trim
+
+`trim()` uses FFmpeg input seeking and duration clipping.
+
+Output:
+
+- H.264 video
+- AAC audio
+- `+faststart` enabled
+
+### Merge
+
+`merge()` first normalizes inputs so concat is safe.
+
+That normalization step:
+
+- scales videos to a common resolution
+- pads with black bars if needed
+- normalizes fps
+- resamples audio
+- synthesizes silent audio if a clip has no audio
+
+Then Vex writes a concat list file and uses FFmpeg concat demuxing to merge the clips.
+
+### Extract segments
+
+`extract_segments()` is the highlight-cut helper.
+
+It:
+
+- trims each requested segment to a temp file
+- returns a single trim directly if only one segment exists
+- otherwise merges the trimmed segments together
+
+This is what powers `summarize_clip`.
+
+### Speed changes
+
+`adjust_speed()` supports:
+
+- full-clip speed changes
+- segment-only speed changes
+
+Audio tempo changes are split into chained `atempo` filters so FFmpeg stays within supported ranges.
+
+### Transitions
+
+Vex currently supports:
+
+- `fade_in`
+- `fade_out`
+- fade-through-black behavior when the tool requests `crossfade` on a single clip
+
+Single-clip “crossfade” is implemented as a fade out followed by a fade in.
+
+### Text overlays
+
+Text overlays use MoviePy rather than raw FFmpeg drawing filters.
+
+This makes it easier to support:
+
+- caption-style wrapping
+- multiple anchor positions
+- timed overlays
+- optional translucent background blocks
+
+### Audio extraction
+
+`extract_audio()` can output:
+
+- `mp3`
+- `wav`
+- `aac`
+
+### Audio replacement and mixing
+
+`replace_audio()` supports two modes:
+
+- full replacement
+- mixing external audio with the original
+
+Mixing uses FFmpeg volume filters plus `amix`.
+
+### Muting
+
+`mute_segment()` uses an FFmpeg volume filter with time-based enable logic.
+
+### Silence trimming
+
+`trim_silence()` works in two phases:
+
+1. run FFmpeg’s `silencedetect` filter
+2. parse the reported `silence_start` and `silence_end` timestamps
+
+From there, it constructs “keep” segments representing all non-silent ranges and then reuses `extract_segments()` to build the final cut.
+
+### Subtitle burning
+
+`burn_subtitles()` compiles SRT captions into a styled ASS file and burns that file with FFmpeg's `ass` filter.
+
+It handles:
+
+- production style presets such as `clean_pop`, `creator_bold`, `cinematic`, `glass`, `karaoke_focus`, and `minimal`
+- responsive font sizing and margins
+- primary, outline, emphasis, and backplate color overrides
+- caption chunking for readable word counts
+- subtitle position and safe margins
+- path escaping for FFmpeg filter syntax
+
+### Auto color grading
+
+`auto_color_grade()` probes the current working file, samples a bounded number of frames, builds a reusable filter plan in `color_grading.py`, and applies that plan with FFmpeg.
+
+The planner keeps the analysis deterministic and conservative:
+
+- it skips black, white, or nearly-flat transition frames when better samples exist
+- it estimates luma percentiles, median exposure, saturation, and RGB channel balance
+- it weights frames by contrast, clipping, and usable midtone coverage
+- it computes an explicit correction-need score from exposure, contrast, saturation, clipping, and color cast
+- it scales correction strength from subtle to aggressive instead of using a fixed adjustment amount
+- it estimates white balance from neutral midtone pixels before falling back to a conservative gray-world estimate
+- it detects skin-tone-like pixels and reduces risky saturation or channel shifts
+- it bounds exposure, contrast, saturation, gamma, and channel-gain changes
+- it can add guarded `colorlevels` normalization and subtle `curves` shaping for flat footage
+- it samples the rendered output again and records a validation score plus warnings
+- it supports looks such as `natural`, `vibrant`, `cinematic`, `warm`, `cool`, `documentary`, and `punchy`
+- it stores the exact FFmpeg filter graph in the timeline so rebuilds do not need to re-analyze footage
+
+### Export
+
+`export()` applies preset-driven output settings and streams progress by parsing FFmpeg time markers from stderr.
+
+It supports:
+
+- video exports with codec, bitrate, resolution, fps, and faststart
+- audio-only exports
+- progress callbacks
+
+### Utility helpers
+
+The engine also contains helpers for:
+
+- frame extraction
+- output size estimation
+- disk space checks
+- generating silent audio clips
+- applying transcript-timed stock B-roll cutaways while preserving source audio
+
+## Tool Execution Model
+
+Tools are thin wrappers around engine functions and state updates.
+
+Each tool returns a standard result payload with:
+
+- `success`
+- `message`
+- `suggestion`
+- `updated_state`
+- `tool_name`
+
+This standardization makes provider integration much easier.
+
+### Tool-by-tool breakdown
+
+#### `get_video_info`
+
+What it does:
+
+- probes the current working video
+- refreshes metadata in state
+- saves the state
+
+#### `trim_clip`
+
+What it does:
+
+- parses timestamps
+- trims the current working video
+- updates `working_file`
+- refreshes metadata
+- appends a timeline operation
+
+#### `merge_clips`
+
+What it does:
+
+- resolves and validates external file paths
+- merges the current working file with them
+- warns if auto-scaling was needed
+- stores the operation in timeline
+
+#### `adjust_speed`
+
+What it does:
+
+- validates speed factor
+- optionally parses segment timestamps
+- calls engine speed adjustment
+- records the operation
+
+#### `add_transition`
+
+What it does:
+
+- chooses fade behavior based on requested transition and position
+- updates the working file
+- records the operation
+
+#### `add_text_overlay`
+
+What it does:
+
+- validates overlay position
+- parses start and end timestamps
+- applies MoviePy text rendering
+- stores the result in timeline
+
+#### `extract_audio`
+
+What it does:
+
+- extracts audio from the current working file
+- optionally moves it to a user-provided path
+
+This tool does not mutate the video project timeline.
+
+#### `replace_audio`
+
+What it does:
+
+- validates the provided audio file
+- replaces or mixes audio
+- updates working file and metadata
+- records the operation
+
+#### `mute_segment`
+
+What it does:
+
+- parses timestamps
+- silences the selected range
+- records the operation
+
+#### `trim_silence`
+
+What it does:
+
+- reads silence thresholds plus pacing controls from params
+- detects silent gaps with FFmpeg
+- preserves speech padding around each cut
+- merges nearby silence cuts to avoid micro-jumps
+- preserves edge pauses by default unless the user explicitly trims them
+- updates the working file
+- records the operation
+
+#### `auto_color_grade`
+
+What it does:
+
+- samples frames from the working video
+- builds a color correction plan outside the model
+- applies the generated FFmpeg filter graph
+- updates the working file and metadata
+- stores analysis, adjustments, warnings, and the exact filter graph in project state
+- records the operation so undo and redo can rebuild it exactly
+
+#### `add_auto_effects`
+
+What it does:
+
+1. ensures subtitle/transcript timing exists, auto-transcribing if needed
+2. builds subtitle cards from caption windows, word timing, pauses, scene cuts, and nearby context
+3. scores each subtitle beat for hooks, questions, numeric claims, contrast turns, payoff language, focus words, and emphasis words
+4. plans a bounded set of camera and style effects: punch-in, punch-out, slow push, micro pan, snap reframe, impact pulse, freeze accent, subtle shake, vignette, flash, focus, and subtitle highlight
+5. normalizes timing so effects do not overlap or stack too densely
+6. compiles the whole effect plan into one FFmpeg `filter_complex`
+7. validates output duration and resolution
+8. stores the effect plan, filtergraph, notes, validation, and manifest
+9. records the operation so undo and redo replay the stored plan instead of replanning
+
+#### `transcribe_video`
+
+What it does:
+
+- loads local Whisper
+- transcribes the current working file
+- writes `transcript.txt`
+- writes `transcript.srt`
+- returns a transcript preview
+
+It does not modify the video itself.
+
+#### `add_auto_broll`
+
+What it does:
+
+1. ensures `transcript.srt` exists, auto-transcribing if needed
+2. builds a local Video Understanding Graph from the transcript, metadata, and scene cuts
+3. asks the active reasoning model for candidate B-roll beats, then lets B-roll Director v2 convert them into typed visual intents
+4. falls back to deterministic graph-scored beat selection if the model output is unusable
+5. applies timeline spacing, continuity-risk, visual-opportunity, and minimum-duration policy before any stock search
+6. searches configured stock video providers such as Pexels, Pixabay, and Coverr with provider-specific query packs
+7. normalizes candidates and verifies visual fit against must-show, must-not-show, orientation, duration, preview/source metadata, and generic-stock risk
+8. reranks the returned candidates against subtitle text, nearby transcript context, provider intent, and verification score
+9. runs a final QA gate that can reject abrupt or weak inserts before rendering
+10. picks the best MP4 asset for the project orientation and resolution
+11. caches the downloaded stock clips in a writable project or fallback cache directory
+12. splices approved clips over the selected time ranges while preserving original audio
+13. writes a manifest, Director plan, final QA report, notes, and `stock_attribution.md` into an output bundle
+14. records the operation on the project timeline
+
+#### `burn_subtitles`
+
+What it does:
+
+- resolves the SRT path
+- defaults to the project’s `transcript.srt`
+- validates subtitle position
+- resolves the subtitle style preset and optional overrides
+- compiles SRT to ASS for typography, backplates, fades, and readable wrapping
+- burns subtitles into a new video file
+- records the operation
+
+#### `summarize_clip`
+
+What it does:
+
+1. ensure transcript artifacts exist
+2. auto-run transcription first if needed
+3. parse `transcript.srt` into timestamped transcript chunks
+4. ask the active LLM provider to return a JSON array of highlight segments
+5. merge overlapping segments
+6. extract and merge those segments into a shorter cut
+7. update state and timeline
+
+This tool is one of the more “agentic” parts of Vex because it combines:
+
+- local preprocessing
+- LLM selection
+- deterministic media operations
+
+#### `export_video`
+
+What it does:
+
+- loads preset settings
+- applies custom overrides if provided
+- checks disk space
+- exports the current working file
+
+This tool produces a final deliverable but does not change the active working timeline.
+
+#### `plan_encode` and `run_pending_encode`
+
+What they do:
+
+- translate plain-English encode, conversion, and compression requests into structured intent
+- probe the working video and local FFmpeg encoder support
+- build an argv-based FFmpeg command instead of trusting raw shell text from the model
+- store the command as `pending_encode` in project artifacts
+- run the exact pending plan only after confirmation
+- validate the encoded output with `ffprobe`, deterministic expectations, and a full FFmpeg decode pass before reporting success
+
+These tools produce deliverables in the output directory and do not change the active working timeline.
+
+#### `undo` and `redo`
+
+What they do:
+
+- manipulate `timeline` and `redo_stack`
+- rebuild project state by replaying operations
+
+## Export Presets
+
+Vex ships with named export presets for common targets:
+
+- `youtube_1080p`
+- `youtube_4k`
+- `instagram_reels`
+- `instagram_square`
+- `tiktok`
+- `twitter_x`
+- `podcast_audio`
+- `custom`
+
+Each preset can define:
+
+- resolution
+- video codec
+- audio codec
+- video bitrate
+- audio bitrate
+- fps
+- output format
+- audio-only behavior
+
+## Streaming User Experience
+
+The REPL is designed to feel alive while work is happening.
+
+Vex uses Rich for:
+
+- the startup banner
+- project info panels
+- timeline tables
+- project tables
+- streaming assistant output
+- tool progress spinners
+- export progress bars
+
+During a tool-based agent turn:
+
+- the terminal shows a live spinner and the active tool name
+- detailed activity can still be inspected later through saved trace artifacts
+- tool start and finish events update progress feedback
+- the final assistant response is printed once the loop completes
+
+## Suggestions
+
+Vex supports a lightweight suggestion system.
+
+If the assistant includes lines in the form:
+
+`[SUGGESTION]: ...`
+
+the agent extracts them separately and the REPL displays them in a highlighted panel.
+
+This is used for follow-up guidance such as:
+
+- warning about mismatched clip resolutions
+- warning about aggressive speed changes
+- offering caption-related next steps
+
+## Reliability Model
+
+Vex does not try to solve reliability purely with prompting.
+
+It combines several safeguards:
+
+- structured project state
+- explicit tool schemas
+- deterministic engine functions
+- standardized tool result payloads
+- JSON-persisted timeline history
+- replay-based undo / redo
+- source file protection
+- provider abstraction instead of provider-specific application logic everywhere
+
+## Memory and Context Handling
+
+Vex does not yet implement a retrieval-ranked long-term memory layer.
+
+What it does instead:
+
+- persists session log
+- rebuilds context from structured project state each turn
+- injects authoritative project facts into the system prompt
+
+This means:
+
+- edit state remains reliable
+- long conversational preference memory can still degrade in very long sessions
+
+That tradeoff is intentional for now. The system favors explicit state over hidden memory magic.
+
+## Limitations
+
+Current limitations include:
+
+- FFmpeg must be installed
+- subtitle burning depends on FFmpeg subtitle filter support
+- Whisper must be installed for transcription
+- MoviePy text rendering on Windows may require ImageMagick
+- very long conversation threads can still drift on non-structured preferences
+- undo replay depends on required source assets still existing
+
+## Why the Architecture Works
+
+Vex works well because it separates concerns cleanly:
+
+- the CLI owns interaction
+- the provider layer owns model-specific protocol details
+- the agent loop owns reasoning + tool orchestration
+- the tools own validation + state updates
+- the engine owns deterministic media processing
+- the state layer owns persistence and recoverability
+
+That split is what makes the system understandable, debuggable, and extensible.
+
+## How to Extend Vex
+
+If you want to add a new capability, the pattern is straightforward:
+
+1. add an engine function in `engine.py`
+2. add a tool executor in `tools/`
+3. register its schema in `prompts.py`
+4. register its executor in `tools/__init__.py`
+5. add replay support in `tools/undo.py` if it mutates the project timeline
+
+That is the main extension contract across the codebase.
+
+## Short Version
+
+Vex is not just “an LLM hooked up to FFmpeg”.
+
+It is a structured editing system where:
+
+- the model plans
+- tools validate
+- the engine executes
+- state persists
+- the timeline makes everything recoverable
+
+That is the core of how the whole project works.

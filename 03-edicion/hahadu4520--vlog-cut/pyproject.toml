@@ -1,0 +1,33 @@
+[project]
+name = "vlog-cut"
+version = "0.1.0"
+description = "Narration-driven video editing pipeline for Claude Code"
+readme = "README.md"
+license = { text = "PolyForm-Noncommercial-1.0.0" }
+requires-python = ">=3.10"
+dependencies = [
+    "edge-tts>=6.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+]
+
+[project.scripts]
+vlog-cut-tts        = "skills.tts_from_script.tts:cli"
+vlog-cut-align      = "skills.align_narration.align:cli"
+vlog-cut-index      = "skills.video_asset_index.index:cli"
+vlog-cut-plan       = "skills.narration_cut.plan:cli"
+vlog-cut-validate   = "skills.narration_cut.validate:cli"
+vlog-cut-render     = "skills.narration_cut.render:cli"
+vlog-cut-subs-split = "skills.burn_subtitles_cn.split:cli"
+vlog-cut-subs-build = "skills.burn_subtitles_cn.build:cli"
+vlog-cut-subs-burn  = "skills.burn_subtitles_cn.burn:cli"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["skills*", "shared*"]

@@ -1,0 +1,13 @@
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+work/
+outputs/
+renders/
+*.mp4
+*.mov
+*.wav
+*.mp3

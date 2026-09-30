@@ -1,0 +1,4 @@
+interface:
+  display_name: "图书短视频生产"
+  short_description: "为抖音等平台制作图书短视频、独立封面、书籍配图与轻缓配乐"
+  default_prompt: "使用 $book-video-production 为一本书制作带独立封面、书籍配图和轻缓配乐的抖音短视频。"

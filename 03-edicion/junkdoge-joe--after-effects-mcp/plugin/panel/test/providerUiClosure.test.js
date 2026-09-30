@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+
+const app = () => readFileSync(new URL('../src/app/App.jsx', import.meta.url), 'utf8');
+const settings = () => readFileSync(new URL('../src/screens/SettingsScreen.jsx', import.meta.url), 'utf8');
+const providerManager = () => readFileSync(
+  new URL('../src/components/settings/ProviderManagerSection.jsx', import.meta.url),
+  'utf8',
+);
+
+test('Provider Manager is OpenCode-only and has no platform helper entry point', () => {
+  const source = app();
+  assert.match(source, /createOpenCodeProviderStore/);
+  assert.match(source, /<ProviderManagerSection/);
+  assert.doesNotMatch(source, /createHostSecretStore/);
+  assert.doesNotMatch(source, /repairPlatformHelper/);
+  assert.doesNotMatch(source, /createLegacyApiKeyStore/);
+});
+
+test('Provider Manager does not import or migrate legacy provider credentials', () => {
+  const source = app();
+  assert.doesNotMatch(source, /legacyProviderStore/);
+  assert.doesNotMatch(source, /importLegacyProviders/);
+  assert.doesNotMatch(source, /providerSecretService/);
+  assert.doesNotMatch(source, /aemcp-secret:\/\/provider/);
+});
+
+test('saving a provider refreshes the OpenCode configuration process', () => {
+  const source = app();
+  assert.match(source, /openCodeProviderStore\.save\(draft, \{ apiKey, currentId: draft\.id \}\)/);
+  assert.match(source, /openCodeBackend\.reset\(\);[\s\S]*runOpenCodeProbe\(\);/);
+  assert.match(source, /getProviders: \(\) => providersRef\.current/);
+  assert.match(source, /providersRef\.current = nextProviders;[\s\S]*setProviders\(nextProviders\);[\s\S]*openCodeBackend\.reset\(\);/);
+  assert.match(source, /providerSensitiveValuesRef\.current = Array\.from\(new Set/);
+});
+
+test('Provider Manager exposes per-model context presets and a custom value path', () => {
+  const source = providerManager();
+  assert.match(source, /OPEN_CODE_CONTEXT_WINDOW_PRESETS/);
+  assert.match(source, /openCodeContextPresetValue/);
+  assert.match(source, /contextCustom/);
+  assert.match(source, /reconcileDraftModelContexts/);
+  assert.match(source, /probeRunRef/);
+  assert.match(source, /setDraft\(\(current\) =>/);
+  assert.match(source, /probeRunRef\.current !== runId/);
+  assert.match(source, /maxHeight: 240, overflowY: 'auto'/);
+});
+
+test('Provider Manager cannot reset OpenCode while a real task is streaming', () => {
+  assert.match(app(), /disabled=\{providerInit\.state !== 'ready' \|\| chatStreaming\}/);
+});
+
+test('Settings makes OpenCode selectable and removes custom Claude/Codex API routes', () => {
+  const source = settings();
+  assert.match(source, /value: 'opencode', label: t\.backendOpenCode/);
+  assert.match(source, /backend === 'opencode'[\s\S]*channels\.opencode/);
+  assert.doesNotMatch(source, /channel\.channel === 'api'/);
+  assert.doesNotMatch(source, /channel\.channel === 'custom'/);
+});
+
+test('OpenCode remains the embedded backend with host-owned write approval', () => {
+  const source = readFileSync(new URL('../src/cep/openCodeBackend.js', import.meta.url), 'utf8');
+  assert.match(source, /permission: \{ '\*': 'allow' \}/);
+  assert.match(source, /Host conversation approval/);
+  assert.match(source, /openCodeProviderDefinitions\(getProviders\(\)\)/);
+});

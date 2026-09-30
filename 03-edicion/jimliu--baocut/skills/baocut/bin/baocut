@@ -1,0 +1,488 @@
+#!/bin/sh
+set -eu
+
+skill_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+skill_md="$skill_root/SKILL.md"
+cli_release_json="$skill_root/cli-release.json"
+required_spec='>=1.31,<2.0'
+
+metadata_value() {
+    key=$1
+    sed -n "s/^[[:space:]]*$key:[[:space:]]*[\"']*\\([^\"']*\\)[\"']*[[:space:]]*$/\\1/p" "$skill_md" | head -n 1
+}
+
+# cli-release.json is a flat, one-key-per-line object written by the release
+# builder, so a prefix strip is enough; no python or jq dependency.
+cli_release_value() {
+    sed -n "s/^[[:space:]]*\"$1\"[[:space:]]*:[[:space:]]*//p" "$cli_release_json" \
+        | head -n 1 \
+        | sed 's/,[[:space:]]*$//; s/^"//; s/"$//'
+}
+
+skill_version=$(metadata_value version)
+min_app_version=$(metadata_value minAppVersion)
+test -n "$skill_version" && test -n "$min_app_version" || {
+    echo "BaoCut skill metadata is incomplete; reinstall the baocut skill." >&2
+    exit 3
+}
+
+# CLI resolution order:
+#   1. Explicit override: BAOCUT_CLI / BCUT_EXECUTABLE / BAOCUT_BIN.
+#   2. Development checkout: when this skill directory lives inside a BaoCut
+#      source tree, use the workspace build. Long local inference commands
+#      automatically prepare an optimized release build instead of running a
+#      newer debug binary; other commands use the newest release/debug build.
+#      Only builds for the host architecture count (core/target/{release,debug}
+#      and core/target/<host-triple>/{release,debug}); a foreign-architecture
+#      build such as an x86_64 binary on Apple Silicon is never picked up.
+#   3. Released install: the CLI embedded in BaoCut.app (system or per-user
+#      Applications; every App release ships its matching baocut-cli).
+#   4. A `bcut` on PATH.
+#   5. The cached CLI pinned by this skill's cli-release.json.
+#   6. Download that pinned CLI (SHA-256 verified) into the cache. Disable with
+#      BAOCUT_SKILL_NO_DOWNLOAD=1.
+# An explicit override or a development checkout is never silently replaced by
+# a download: those choices are deliberate, so a failure there must be fixed
+# where it was made.
+cli=
+cargo_manifest=
+cli_source=
+dev_root_found=
+long_local_inference=0
+heavy_local_work=0
+introspection_command=0
+
+# Host architecture, normalized to the Rust target-arch spelling so it can be
+# compared with the `target` reported by `bcut --json version`.
+host_arch=$(uname -m 2>/dev/null || echo unknown)
+case "$host_arch" in
+    arm64|aarch64) host_arch=aarch64 ;;
+    x86_64|amd64) host_arch=x86_64 ;;
+esac
+host_os=$(uname -s 2>/dev/null || echo unknown)
+case "$host_os" in
+    Darwin) host_triple=$host_arch-apple-darwin ;;
+    Linux) host_triple=$host_arch-unknown-linux-gnu ;;
+    *) host_triple= ;;
+esac
+
+# cargo is frequently absent from a non-interactive shell's PATH even though
+# rustup is installed (observed: the resolver fell back to an outdated
+# BaoCut.app CLI and reported "Update BaoCut.app" inside a source checkout).
+# Look in the standard rustup/homebrew locations before giving up on it.
+ensure_cargo_on_path() {
+    command -v cargo >/dev/null 2>&1 && return 0
+    for cargo_dir in \
+        "${CARGO_HOME:-${HOME:-/nonexistent}/.cargo}/bin" \
+        /opt/homebrew/opt/rustup/bin \
+        /usr/local/opt/rustup/bin
+    do
+        if test -x "$cargo_dir/cargo"; then
+            PATH="$cargo_dir:$PATH"
+            export PATH
+            return 0
+        fi
+    done
+    for toolchain_bin in "${RUSTUP_HOME:-${HOME:-/nonexistent}/.rustup}"/toolchains/stable-*/bin; do
+        if test -x "$toolchain_bin/cargo"; then
+            PATH="$toolchain_bin:$PATH"
+            export PATH
+            return 0
+        fi
+    done
+    return 1
+}
+for argument in "$@"; do
+    case "$argument" in
+        auto|transcribe) long_local_inference=1; heavy_local_work=1 ;;
+        # MP4 export is not ML inference, so the foreign-arch refusal below does
+        # not apply to it, but a debug build is just as ruinous: the encode loop
+        # and the subtitle rasteriser are both hot Rust.
+        export) heavy_local_work=1 ;;
+        spec|version|doctor|-h|--help) introspection_command=1 ;;
+    esac
+done
+if test "$introspection_command" = 1; then
+    long_local_inference=0
+    heavy_local_work=0
+fi
+for variable in BAOCUT_CLI BCUT_EXECUTABLE BAOCUT_BIN; do
+    case "$variable" in
+        BAOCUT_CLI) candidate=${BAOCUT_CLI:-} ;;
+        BCUT_EXECUTABLE) candidate=${BCUT_EXECUTABLE:-} ;;
+        BAOCUT_BIN) candidate=${BAOCUT_BIN:-} ;;
+    esac
+    if test -n "$candidate" && test -x "$candidate"; then
+        cli=$candidate
+        cli_source=env
+        break
+    fi
+done
+if test -z "$cli" && test "${BAOCUT_SKILL_NO_DEV:-0}" != 1; then
+    dev_root=$skill_root
+    while test "$dev_root" != / && test -n "$dev_root"; do
+        if test -f "$dev_root/core/Cargo.toml" && test -d "$dev_root/apps/cli"; then
+            dev_root_found=$dev_root
+            release=$dev_root/core/target/release/bcut
+            debug=$dev_root/core/target/debug/bcut
+            # `cargo build --target <host-triple>` lands under a triple
+            # subdirectory; accept those too, but only for the host triple —
+            # a foreign-architecture build is not a usable workspace CLI.
+            if test -n "$host_triple"; then
+                triple_release=$dev_root/core/target/$host_triple/release/bcut
+                triple_debug=$dev_root/core/target/$host_triple/debug/bcut
+                if test -x "$triple_release" && { ! test -x "$release" || test "$triple_release" -nt "$release"; }; then
+                    release=$triple_release
+                fi
+                if test -x "$triple_debug" && { ! test -x "$debug" || test "$triple_debug" -nt "$debug"; }; then
+                    debug=$triple_debug
+                fi
+            fi
+            debug_is_newest=0
+            if test -x "$debug" && { ! test -x "$release" || test "$debug" -nt "$release"; }; then
+                debug_is_newest=1
+            fi
+            # Both `cargo run` and scripts/dev/prepare-bcut.sh need cargo.
+            ensure_cargo_on_path || true
+            # Use the newest workspace binary so Agent discovery never reads a
+            # stale contract after a debug-only development build. Long local
+            # work is the exception: debug Rust roughly doubles runtime, so
+            # prepare the release CLI before a long media command.
+            if test "$heavy_local_work" = 1 \
+                && test "${BAOCUT_ALLOW_DEBUG_INFERENCE:-0}" != 1 \
+                && { test "$debug_is_newest" = 1 || ! test -x "$release"; }
+            then
+                prepare=$dev_root/scripts/dev/prepare-bcut.sh
+                if ! test -x "$prepare"; then
+                    echo "baocut skill: optimized release CLI is required for this command, but $prepare is unavailable" >&2
+                    exit 3
+                fi
+                echo "baocut skill: preparing optimized release CLI for long local work" >&2
+                cli=$("$prepare")
+            elif test "$debug_is_newest" = 1; then
+                cli=$debug
+                echo "baocut skill: WARNING using debug build; transcription and video export will be much slower. Build release with scripts/dev/prepare-bcut.sh" >&2
+            elif test -x "$release"; then
+                cli=$release
+            elif command -v cargo >/dev/null 2>&1; then
+                cargo_manifest=$dev_root/core/Cargo.toml
+                echo "baocut skill: no workspace CLI is built under $dev_root/core/target; running the sources via 'cargo run' (a full compile can take many minutes — build once with $dev_root/scripts/dev/prepare-bcut.sh, or point BAOCUT_CLI at a native bcut, to skip it)" >&2
+            else
+                echo "baocut skill: development checkout detected at $dev_root, but no workspace CLI is built (core/target/{release,debug}/bcut) and cargo is not available; falling back to the installed BaoCut CLI. Build with $dev_root/scripts/dev/prepare-bcut.sh or set BAOCUT_CLI to use the checkout." >&2
+            fi
+            if test -n "$cli$cargo_manifest"; then
+                cli_source=dev
+                echo "baocut skill: development checkout detected at $dev_root" >&2
+            fi
+            break
+        fi
+        dev_root=$(dirname "$dev_root")
+    done
+fi
+if test -z "$cli$cargo_manifest"; then
+    for app_cli in \
+        /Applications/BaoCut.app/Contents/MacOS/baocut-cli \
+        "${HOME:-/nonexistent}/Applications/BaoCut.app/Contents/MacOS/baocut-cli"
+    do
+        if test -x "$app_cli"; then
+            cli=$app_cli
+            cli_source=app
+            break
+        fi
+    done
+fi
+if test -z "$cli$cargo_manifest" && command -v bcut >/dev/null 2>&1; then
+    cli=$(command -v bcut)
+    cli_source=path
+fi
+
+cli_release_version=
+cli_release_build=
+cli_release_url=
+cli_release_sha=
+cli_release_entry=bcut
+cli_release_metallib=
+cache_dir=
+cache_bin=
+cache_metallib=
+if test -f "$cli_release_json"; then
+    cli_release_version=$(cli_release_value version)
+    cli_release_build=$(cli_release_value build)
+    cli_release_url=$(cli_release_value url)
+    cli_release_sha=$(cli_release_value sha256)
+    entry=$(cli_release_value entry)
+    test -z "$entry" || cli_release_entry=$entry
+    cli_release_metallib=$(cli_release_value metallib)
+    cache_home=${XDG_CACHE_HOME:-}
+    if test -z "$cache_home" && test -n "${HOME:-}"; then
+        cache_home=$HOME/.cache
+    fi
+    if test -n "$cli_release_version" && test -n "$cli_release_url" \
+        && test -n "$cli_release_sha" && test -n "$cache_home"
+    then
+        # Key on version *and* build: the marketing version stays put while the
+        # build number moves, and the handshake cannot tell two builds apart.
+        cache_dir=$cache_home/baocut/cli/$cli_release_version-build.$cli_release_build
+        cache_bin=$cache_dir/bcut
+        if test -n "$cli_release_metallib"; then
+            cache_metallib=$cache_dir/mlx.metallib
+        fi
+    fi
+fi
+
+cached_cli_is_complete() {
+    test -n "$cache_bin" && test -x "$cache_bin" \
+        && { test -z "$cache_metallib" || test -s "$cache_metallib"; }
+}
+
+use_cached_cli() {
+    cli=$cache_bin
+    cargo_manifest=
+    cli_source=cache
+}
+
+if test -z "$cli$cargo_manifest" && cached_cli_is_complete; then
+    use_cached_cli
+fi
+
+run_cli() {
+    if test -n "$cargo_manifest"; then
+        cargo run --quiet --locked --manifest-path "$cargo_manifest" -p bcut -- "$@"
+    else
+        "$cli" "$@"
+    fi
+}
+
+version_at_least() {
+    awk -v current="$1" -v minimum="$2" 'BEGIN {
+        split(current, a, /[.-]/); split(minimum, b, /[.-]/)
+        for (i = 1; i <= 3; i++) {
+            av = a[i] + 0; bv = b[i] + 0
+            if (av > bv) exit 0
+            if (av < bv) exit 1
+        }
+        exit 0
+    }'
+}
+
+app_version=
+handshake_failure=
+handshake_exit=3
+handshake() {
+    handshake_failure=
+    handshake_exit=3
+    handshake_json=$(
+        BAOCUT_SKILL_VERSION="$skill_version" \
+        BAOCUT_SKILL_MIN_APP="$min_app_version" \
+        run_cli --require-spec "$required_spec" --json version
+    ) || {
+        handshake_exit=$?
+        handshake_failure=spec
+        return 1
+    }
+    app_version=$(printf '%s\n' "$handshake_json" | sed -n 's/.*"appVersion":"\([^"]*\)".*/\1/p')
+    if test -z "$app_version"; then
+        handshake_failure=legacy
+        return 1
+    fi
+    if ! version_at_least "$app_version" "$min_app_version"; then
+        handshake_failure=old
+        return 1
+    fi
+    cli_target=$(printf '%s\n' "$handshake_json" | sed -n 's/.*"target":"\([^"]*\)".*/\1/p')
+    # `rosetta` is reported by current CLIs; older ones omit it and the
+    # target-vs-host comparison alone still catches the foreign build.
+    case "$handshake_json" in
+        *'"rosetta":true'*) cli_rosetta=true ;;
+        *) cli_rosetta=false ;;
+    esac
+    return 0
+}
+
+# A CLI built for another architecture still runs on macOS (Rosetta 2) but
+# local ASR/VAD inference under binary translation is an order of magnitude
+# slower and it cannot use MLX: an x86_64 debug build once sat 40+ minutes in
+# VAD on a 100-second clip that the native build finished in about three.
+# Refuse long local inference on such a binary unless the user opts in; warn
+# for every other command so the mismatch is visible in the transcript.
+cli_target=
+cli_rosetta=
+check_cli_architecture() {
+    cli_arch=
+    case "$cli_target" in
+        aarch64-*|arm64-*) cli_arch=aarch64 ;;
+        x86_64-*) cli_arch=x86_64 ;;
+        *) return 0 ;;
+    esac
+    if test "$cli_arch" = "$host_arch" && test "$cli_rosetta" != true; then
+        return 0
+    fi
+    origin=$cli
+    test -n "$cargo_manifest" && origin="cargo run ($cargo_manifest)"
+    if test "$long_local_inference" = 1 && test "${BAOCUT_ALLOW_FOREIGN_ARCH:-0}" != 1; then
+        echo "baocut skill: refusing local inference on a $cli_target bcut ($origin) — this host is $host_arch$( test "$cli_rosetta" = true && printf ' and the CLI is running under Rosetta' ). Use a native build (BaoCut.app's bundled CLI, core/target/{release,debug}/bcut from a native cargo build, or the pinned release CLI), or set BAOCUT_ALLOW_FOREIGN_ARCH=1 to run it anyway (expect >10x slower transcription)." >&2
+        exit 3
+    fi
+    echo "baocut skill: WARNING the resolved bcut ($origin) targets $cli_target but this host is $host_arch; local inference on it would be very slow. Prefer a native build." >&2
+}
+
+report_failure() {
+    case "$handshake_failure" in
+        missing)
+            echo "BaoCut CLI was not found. Install BaoCut.app or set BAOCUT_CLI to a bcut executable." >&2
+            ;;
+        legacy)
+            echo "This BaoCut CLI predates the skill handshake. Update BaoCut.app or the standalone bcut CLI." >&2
+            ;;
+        old)
+            # The remedy depends on where the CLI came from: a stale development
+            # build must be rebuilt (updating BaoCut.app changes nothing for it),
+            # an explicit override must be repointed, everything else updates
+            # the app.
+            case "$cli_source" in
+                dev)
+                    echo "BaoCut skill v$skill_version requires BaoCut App >= $min_app_version; the development CLI at $cli reports $app_version. Rebuild it: $dev_root/scripts/dev/prepare-bcut.sh (or 'cargo build -p bcut --release' in $dev_root/core)." >&2
+                    ;;
+                env)
+                    echo "BaoCut skill v$skill_version requires BaoCut App >= $min_app_version; the CLI at $cli (from BAOCUT_CLI/BCUT_EXECUTABLE/BAOCUT_BIN) reports $app_version. Point the override at a newer bcut or unset it." >&2
+                    ;;
+                *)
+                    echo "BaoCut skill v$skill_version requires BaoCut App >= $min_app_version; found $app_version. Update BaoCut.app." >&2
+                    if test -n "$dev_root_found"; then
+                        echo "baocut skill: (a development checkout at $dev_root_found was detected but had no usable workspace CLI; build it with $dev_root_found/scripts/dev/prepare-bcut.sh or set BAOCUT_CLI to a native bcut instead of updating the App)" >&2
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
+    if test -n "$cli_release_url"; then
+        echo "baocut skill: the CLI pinned by this skill is $cli_release_url" >&2
+        if test -n "$cli_release_metallib"; then
+            echo "baocut skill: download it, unzip '$cli_release_entry' and '$cli_release_metallib' together, then set BAOCUT_CLI to '$cli_release_entry'." >&2
+        else
+            echo "baocut skill: download it, unzip its '$cli_release_entry' entry, then set BAOCUT_CLI to that file." >&2
+        fi
+    fi
+}
+
+download_pinned_cli() {
+    for tool in curl unzip shasum; do
+        command -v "$tool" >/dev/null 2>&1 || {
+            echo "baocut skill: $tool is required to download the pinned BaoCut CLI." >&2
+            report_failure
+            exit 3
+        }
+    done
+    mkdir -p "$cache_dir" || {
+        echo "baocut skill: cannot create the CLI cache directory $cache_dir" >&2
+        report_failure
+        exit 3
+    }
+    # Stage inside the cache directory so the final move is a same-filesystem
+    # rename rather than a cross-device copy.
+    download_zip=$cache_dir/.bcut-download.$$.zip
+    download_bin=$cache_dir/.bcut-extract.$$
+    download_metallib=$cache_dir/.mlx-metallib-extract.$$
+    trap 'rm -f "$download_zip" "$download_bin" "$download_metallib"' EXIT HUP INT TERM
+    echo "baocut skill: downloading BaoCut CLI $cli_release_version (build $cli_release_build) from $cli_release_url to $cache_bin" >&2
+    curl -fsSL "$cli_release_url" -o "$download_zip" || {
+        echo "baocut skill: download failed: $cli_release_url" >&2
+        report_failure
+        exit 3
+    }
+    actual_sha=$(shasum -a 256 "$download_zip" | awk '{print $1}')
+    if test "$actual_sha" != "$cli_release_sha"; then
+        rm -f "$download_zip"
+        echo "baocut skill: SHA-256 mismatch for $cli_release_url" >&2
+        echo "baocut skill: expected $cli_release_sha but got $actual_sha; the download was deleted." >&2
+        exit 3
+    fi
+    unzip -p "$download_zip" "$cli_release_entry" > "$download_bin" 2>/dev/null || {
+        echo "baocut skill: cannot extract '$cli_release_entry' from the downloaded CLI archive." >&2
+        report_failure
+        exit 3
+    }
+    test -s "$download_bin" || {
+        echo "baocut skill: the downloaded CLI archive has no '$cli_release_entry' entry." >&2
+        report_failure
+        exit 3
+    }
+    if test -n "$cli_release_metallib"; then
+        unzip -p "$download_zip" "$cli_release_metallib" > "$download_metallib" 2>/dev/null || {
+            echo "baocut skill: cannot extract '$cli_release_metallib' from the downloaded CLI archive." >&2
+            report_failure
+            exit 3
+        }
+        test -s "$download_metallib" || {
+            echo "baocut skill: the downloaded CLI archive has no '$cli_release_metallib' entry." >&2
+            report_failure
+            exit 3
+        }
+    fi
+    rm -f "$download_zip"
+    chmod 755 "$download_bin"
+    if test -n "$cli_release_metallib"; then
+        chmod 644 "$download_metallib"
+        mv -f "$download_metallib" "$cache_metallib" || {
+            echo "baocut skill: cannot install the MLX runtime at $cache_metallib" >&2
+            report_failure
+            exit 3
+        }
+    fi
+    mv -f "$download_bin" "$cache_bin" || {
+        echo "baocut skill: cannot install the downloaded CLI at $cache_bin" >&2
+        report_failure
+        exit 3
+    }
+    trap - EXIT HUP INT TERM
+    cli=$cache_bin
+    cargo_manifest=
+    cli_source=download
+}
+
+if test -n "$cli$cargo_manifest"; then
+    handshake || true
+else
+    handshake_failure=missing
+fi
+if test -n "$handshake_failure"; then
+    case "$cli_source" in
+        env|dev)
+            report_failure
+            exit "$handshake_exit"
+            ;;
+    esac
+    # App and PATH remain ahead of the pinned cache during normal resolution,
+    # but an incompatible install must not force a fresh archive download when
+    # this exact version/build is already cached. Validate the cache before
+    # consulting BAOCUT_SKILL_NO_DOWNLOAD or entering the downloader.
+    if test "$cli_source" != cache && cached_cli_is_complete; then
+        use_cached_cli
+        handshake || true
+    fi
+fi
+if test -n "$handshake_failure"; then
+    if test -z "$cache_bin" || test "${BAOCUT_SKILL_NO_DOWNLOAD:-0}" = 1; then
+        report_failure
+        exit "$handshake_exit"
+    fi
+    download_pinned_cli
+    handshake || true
+    if test -n "$handshake_failure"; then
+        report_failure
+        exit "$handshake_exit"
+    fi
+fi
+check_cli_architecture
+
+export BAOCUT_SKILL_VERSION="$skill_version"
+export BAOCUT_SKILL_MIN_APP="$min_app_version"
+if test -n "$cargo_manifest"; then
+    exec cargo run --quiet --locked --manifest-path "$cargo_manifest" -p bcut -- \
+        --require-spec "$required_spec" "$@"
+fi
+cli_metallib=$(dirname "$cli")/mlx.metallib
+if test -z "${PMETAL_METALLIB_PATH:-}" && test -s "$cli_metallib"; then
+    export PMETAL_METALLIB_PATH="$cli_metallib"
+fi
+exec "$cli" --require-spec "$required_spec" "$@"

@@ -1,0 +1,150 @@
+> [!IMPORTANT]
+> This project is no longer maintained. Please visit [motionface.cc](https://motionface.cc).
+
+<p align="right">
+  <a href="./README.md">简体中文</a> | English
+</p>
+
+## Installation
+
+```bash
+npx skills add vibe-motion/skills
+```
+
+> Note: This is an interactive installer. Use `Space` to select skills (installing all is recommended), and make sure to choose the target agent (for example, Claude Code), since different agents use different skill directories.
+
+## Available Skills
+
+### ruler-progress-render
+
+Creates a ruler progress animation. Trigger keyword: 尺子进度动画; supports configurable parameters such as text and progress.
+
+<img src="https://img.laosunwendao.com/skill-uploads/916118e2be5c4b33a8c16f35a3b12200.gif" alt="ruler-progress effect" width="540" />
+
+### claude-typer
+
+Converts prompt text into a Claude Code CLI typing animation demo.
+
+![claude-typer effect](https://img.laosunwendao.com/skill-uploads/3dbc047456374640bd00a078e22a5008.gif)
+
+### fisheye-motion
+
+Creates a screen-photo style fisheye effect: barrel distortion + moire interference + vignette, with a Remotion video output that pushes focus onto a target region and slides in a yellow highlight. The skill guides cloning the [fisheye-motion](https://github.com/vibe-motion/fisheye-motion) project and rendering with custom parameters.
+
+<img src="fisheye-motion/assets/fisheye-demo.gif" alt="fisheye focus effect" width="440" />
+
+### procedural-fish-render
+
+Generates a loop-friendly procedural fish animation.
+
+![procedural-fish effect](https://img.laosunwendao.com/skill-uploads/96d88ab6cb9a4e1ca76abd73db08d888.gif)
+
+### pixel2motion
+
+Turns PNG/JPG/WebP/screenshot logos into clean, low-complexity, motion-ready SVG, then generates branded logo motion, interactive HTML demos, GIF/video previews, and motion QA evidence. Useful for logo animation, SVG logo reveal, brand motion delivery, and pixel-to-vector-to-motion workflows.
+
+<img src="pixel2motion/assets/demo.gif" alt="pixel2motion logo animation effect" width="540" />
+
+### brand-launch-video-star
+
+Creates fast, high-impact 15–30 second brand and product marketing films from an official company website, verified brand sources, or user-uploaded product imagery. It verifies logos, fonts, colors, imagery, and product claims before designing the story, frame timeline, and real product demonstration. Defaults to English, 16:9, and 15 seconds, with custom durations and formats supported.
+
+Useful for AI/SaaS launches, website motion films, consumer campaigns, physical products, services, and company concept films.
+
+```text
+Use $brand-launch-video-star to create a 15-second 16:9 English launch film
+for https://example.com. Use authentic official assets, demonstrate the core
+product workflow, and keep the pacing fast, visually bold, and smooth.
+```
+
+**Burger King — Flame Shift**
+
+<img src="brand-launch-video-star/assets/burger-king-flame-shift.gif" alt="Burger King fast-paced brand launch video" width="300" />
+
+**Moonshot AI — Product Hypercut**
+
+<img src="brand-launch-video-star/assets/moonshot-product-hypercut.gif" alt="Moonshot AI product launch video" width="360" />
+
+### remotion-candlestick
+
+Creates animated financial candlestick charts in Remotion, covering Yahoo Finance data acquisition, frame-driven Canvas rendering, a dark trading-terminal style, timeline design, Studio previews, and final renders.
+
+<img src="remotion-candlestick/sp500-kline-demo.gif" alt="S&P 500 candlestick animation" width="440" />
+
+### light-spotlight-render
+
+Generates a swinging spotlight text-reveal HTML animation with configurable text, swing range, lamp scale, glow, and background color.
+
+<img src="light-spotlight-render/assets/demo.gif" alt="light spotlight effect" width="540" />
+
+### printed-curtain-render
+
+Weaves PNG, JPEG, or WebP artwork and optional text into an interactive p5.js strand-curtain simulation. The print is baked into material coordinates, so it stretches, folds, and separates with the individual threads. Output is an offline-capable HTML directory with live physics controls.
+
+<img src="printed-curtain-render/assets/maoxuezhang-printed-curtain.gif" alt="printed curtain simulation with Maoxuezhang artwork" width="300" />
+
+<sub>The curtain engine is adapted from Jason Labbe's Dynamic ropes 2 under CC BY-SA 4.0.</sub>
+
+### remotion-3d-ticker
+
+Creates an infinite 3D vertical scrolling photo wall/ticker animation in Remotion. Configurable image columns, scroll direction, and speed.
+
+<img src="remotion-3d-ticker/assets/VerticalTicker.gif" alt="3d ticker effect" width="540" />
+
+### remotion-vinyl-player
+
+Creates an elegant, realistic Vinyl Record Player animation in Remotion. Features infinite record rotation, seamless marquee text scrolling for long titles, and customizable album art.
+
+<img src="remotion-vinyl-player/assets/VinylPlayer.gif" alt="vinyl player effect" width="540" />
+
+### threejs-earth-render
+
+Clones or updates `vibe-motion/threejs-earth` and renders a Three.js 3D Earth route animation with Puppeteer. Useful for globe flight arcs, city-to-city transitions, and 16:9 Earth GIF/MP4 exports.
+
+<img src="threejs-earth-render/assets/earth.gif" alt="threejs earth route animation" width="448" />
+
+### 3d-chladni-render
+
+Clones or updates `nolangz/3D-Chladni` and uses its deterministic exporter to create 3D Chladni particle MP4 or transparent ProRes MOV output. Supports Dynamic Sand, Modal Sand, Cosmic Web, Dynamic Cosmic, audio-driven motion, particle density, lighting, rotation, and reproducible seeds.
+
+<img src="3d-chladni-render/assets/3d-chladni-cosmic.gif" alt="3D Chladni cosmic particle motion" width="304" />
+
+<sub>Preview media: 3D Chladni media by Lykno, licensed under CC BY-NC 4.0.</sub>
+
+### wechat-2d-render
+
+Clones or updates `sxhzju/wechat-2d` and renders the default WeChat-style 2D chat motion video. Useful for WeChat chat animation, video-message bubble motion, and transparent Remotion exports.
+
+<img src="wechat-2d-render/assets/wechat-2d-demo.gif" alt="wechat 2d chat motion effect" width="390" />
+
+### disney-animation-rule-skill
+
+Applies Disney's 12 animation principles as practical design and engineering rules for procedural animation. Use when creating, improving, reviewing, or debugging code-driven motion in web, SVG, canvas, React, Remotion, game, UI, character, camera, or 3D scenes — especially when motion feels stiff, weightless, mechanical, unclear, or physically correct but visually weak.
+
+## Contributing
+
+Compress every GIF before opening a PR. Each GIF must be smaller than 1 MB (1,000,000 bytes), and should ideally be no larger than 250 KB (250,000 bytes). Reduce preview dimensions, frame rate, and palette size as needed; before submitting, verify that the full duration, loop, key text, and main subject remain legible.
+
+## Misc
+
+### Fish School Simulation
+
+A Three.js boids fish school simulation project. This is a standalone project, not a skill.
+
+Project: [vibe-motion/threejs-boids](https://github.com/vibe-motion/threejs-boids)
+
+<img src="https://raw.githubusercontent.com/vibe-motion/threejs-boids/%E4%BA%A4%E4%BA%92%E9%B1%BC%E7%BC%B8/demo.gif" alt="threejs boids fish school simulation" width="540" />
+
+## Community Group
+
+The WeChat group has reached 200 members and can no longer be joined via QR code. Please add my WeChat and I'll manually invite you to the group.
+
+TG group: t.me/zjucat
+
+<p align="center">
+  <img src="https://img.laosunwendao.com/skill-uploads/49bbd79ea9554357a2b9a9e839748dcc.jpg" alt="WeChat QR code" width="176" />
+</p>
+
+## Star History
+
+[![Star History Chart](https://star-history.dera.page/svg?repos=vibe-motion/skills&type=Date)](https://star-history.dera.page/#vibe-motion/skills&Date)

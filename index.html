@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Catálogo consolidado de skills de video para agentes de IA, por IMPULSO IA. Repos clonados, pendientes y referenciados desde la fuente.">
+<meta name="theme-color" content="#001433">
+<title>IMPULSO IA · Video Skills — Catálogo consolidado</title>
+<link rel="icon" type="image/png" href="brand/logo-cuadrado.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Lora:ital,wght@1,400;1,500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#001433;
+  --panel:rgba(255,255,255,.03);
+  --panel-2:rgba(255,255,255,.055);
+  --ink:#f5f8ff;
+  --muted:#9fb3d1;
+  --accent:#4da3ff;
+  --accent-soft:rgba(77,163,255,.14);
+  --line:rgba(255,255,255,.12);
+  --line-strong:rgba(77,163,255,.55);
+  --green:#7ee2a8;
+  --amber:#ffd166;
+  --font-ui:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-serif:'Lora',Georgia,'Times New Roman',serif;
+  --font-mono:'JetBrains Mono','Cascadia Code',Consolas,'Courier New',monospace;
+  --t:180ms ease;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--bg);
+  background-image:radial-gradient(1100px 520px at 82% -12%,rgba(77,163,255,.09),transparent 70%);
+  background-repeat:no-repeat;
+  color:var(--ink);
+  font-family:var(--font-ui);
+  font-size:16px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:var(--font-mono)}
+.container{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,28px)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+::selection{background:rgba(77,163,255,.35)}
+
+.skip{position:absolute;left:-9999px;top:0;z-index:20;background:var(--accent);color:#001433;font-weight:600;padding:9px 16px;border-radius:0 0 10px 0;text-decoration:none}
+.skip:focus{left:0}
+
+/* ---------- header ---------- */
+.site-header{border-bottom:1px solid var(--line);padding:36px 0 30px}
+.head-row{display:flex;align-items:center;gap:clamp(14px,2.5vw,24px);flex-wrap:wrap}
+.logo{flex:0 0 auto;display:flex;align-items:center;min-height:1px}
+.logo img{height:46px;width:auto;display:block}
+.brand h1{margin:0;font-size:clamp(1.45rem,3vw,2rem);font-weight:700;letter-spacing:.03em;line-height:1.15}
+.tagline{margin:3px 0 0;font-family:var(--font-serif);font-style:italic;color:var(--muted);font-size:.95rem}
+.stats{margin-left:auto;display:flex;gap:clamp(18px,3.5vw,38px);flex-wrap:wrap}
+.stat{margin:0;display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--font-mono);font-weight:600;font-size:1.4rem;line-height:1.2}
+.stat span{font-family:var(--font-mono);font-size:.64rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
+.lede{margin:22px 0 0;max-width:680px;font-family:var(--font-serif);font-style:italic;font-size:1.05rem;color:var(--muted)}
+.lede b{font-family:var(--font-mono);font-style:normal;font-weight:600;color:var(--ink)}
+
+/* ---------- controls ---------- */
+.controls{margin:26px 0 4px;display:flex;flex-direction:column;gap:14px}
+#search-input{
+  width:100%;padding:13px 16px;font:inherit;font-size:.95rem;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;outline:none;
+  transition:border-color var(--t),box-shadow var(--t);
+}
+#search-input::placeholder{color:rgba(159,179,209,.55)}
+#search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  font-family:var(--font-mono);font-size:.76rem;padding:7px 12px;border-radius:999px;
+  border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;
+  transition:color var(--t),border-color var(--t),background var(--t);
+}
+.chip:hover{color:var(--ink);border-color:var(--accent)}
+.chip.active{color:#eaf4ff;background:var(--accent-soft);border-color:var(--accent)}
+.chip .cnt{opacity:.6;margin-left:5px}
+.controls-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.estado-group{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sort-box{display:flex;align-items:center;gap:10px}
+.sort-box label{font-family:var(--font-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+#sort-select{
+  font-family:var(--font-mono);font-size:.8rem;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;transition:border-color var(--t);
+}
+#sort-select:hover,#sort-select:focus{border-color:var(--accent);outline:none}
+
+.results-info{font-family:var(--font-mono);font-size:.75rem;color:var(--muted);margin:18px 0 0}
+
+/* ---------- grupos y tarjetas ---------- */
+.group{margin:38px 0 8px;animation:fadeUp .35s ease both}
+.group-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px}
+.gnum{font-family:var(--font-mono);color:var(--accent);font-size:.95rem;font-weight:600}
+.gsep{color:var(--muted)}
+.gtitle{margin:0;font-size:clamp(1.05rem,2vw,1.3rem);font-weight:600;letter-spacing:.01em}
+.gcount{margin-left:auto;font-family:var(--font-mono);color:var(--muted);font-size:.72rem;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+.card{
+  display:flex;flex-direction:column;gap:11px;padding:18px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  transition:border-color var(--t),transform var(--t),background var(--t),box-shadow var(--t);
+}
+.card:hover{border-color:var(--line-strong);background:var(--panel-2);transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,10,35,.45)}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.card-name{margin:0;font-size:1rem;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.card-name .owner{display:block;font-weight:400;font-size:.76rem;color:var(--muted);letter-spacing:.02em}
+.stars{font-family:var(--font-mono);font-size:.78rem;color:var(--amber);white-space:nowrap}
+.chip-cat{align-self:flex-start;font-family:var(--font-mono);font-size:.7rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+.card-desc{margin:0;font-size:.88rem;color:var(--muted);flex-grow:1}
+.card-badges{display:flex;flex-wrap:wrap;gap:6px}
+.badge{
+  font-family:var(--font-mono);font-size:.68rem;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted);text-decoration:none;display:inline-block;
+  transition:background var(--t),border-color var(--t),color var(--t),filter var(--t);
+}
+a.badge:hover{filter:brightness(1.2);border-color:currentColor}
+.badge-local{color:var(--green);border-color:rgba(126,226,168,.4);background:rgba(126,226,168,.08)}
+.badge-pendiente{color:var(--amber);border-color:rgba(255,209,102,.4);background:rgba(255,209,102,.07)}
+.badge-externo{color:var(--muted)}
+.badge-safe{color:var(--green);border-color:rgba(126,226,168,.25)}
+.badge-caution{color:var(--amber);border-color:rgba(255,209,102,.3)}
+.badge-plain{color:var(--muted)}
+.card-foot{margin-top:2px}
+.gh-link{font-family:var(--font-mono);font-size:.78rem;color:var(--accent);text-decoration:none;transition:opacity var(--t)}
+.gh-link:hover{text-decoration:underline}
+
+.empty{padding:70px 20px;text-align:center;color:var(--muted)}
+.empty p{margin:0 0 18px;font-family:var(--font-serif);font-style:italic;font-size:1.05rem}
+.load-error{padding:60px 20px;text-align:center;color:var(--amber);font-family:var(--font-mono);font-size:.85rem}
+
+/* ---------- footer ---------- */
+.site-footer{margin-top:70px;border-top:1px solid var(--line);padding:28px 0 46px;color:var(--muted)}
+.f-brand{margin:0 0 10px;font-size:.95rem;color:var(--ink)}
+.f-brand b{font-weight:700;letter-spacing:.03em}
+.f-tag{font-family:var(--font-serif);font-style:italic}
+.f-attr{margin:0 0 12px;font-size:.8rem;line-height:1.65;max-width:780px}
+.f-attr a{color:var(--accent);text-decoration:none}
+.f-attr a:hover{text-decoration:underline}
+.f-meta{margin:0;font-family:var(--font-mono);font-size:.72rem;color:rgba(159,179,209,.7)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (max-width:680px){
+  .stats{margin-left:0;width:100%}
+  .cards{grid-template-columns:1fr}
+  .group{margin-top:30px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#catalog">Saltar al catálogo</a>
+
+<header class="site-header">
+  <div class="container">
+    <div class="head-row">
+      <span class="logo">
+        <img src="brand/logo-horizontal.png" alt="Logo de IMPULSO IA" width="230" height="46" onerror="this.style.display='none'">
+      </span>
+      <div class="brand">
+        <h1 id="brand-name">IMPULSO IA</h1>
+        <p class="tagline" id="brand-tagline">Crecimiento ágil · IA nativa</p>
+      </div>
+      <div class="stats" role="list" aria-label="Estadísticas del catálogo">
+        <p class="stat" role="listitem"><b id="stat-total">—</b><span>repos</span></p>
+        <p class="stat" role="listitem"><b id="stat-clonados">—</b><span>clonados localmente</span></p>
+        <p class="stat" role="listitem"><b id="stat-cats">—</b><span>categorías</span></p>
+      </div>
+    </div>
+    <p class="lede">Catálogo vivo de <b id="lede-total">…</b> repos con skills de video para agentes de IA: lo local vive en este repo, lo pendiente está en cola de clonación y lo externo se referencia desde la fuente.</p>
+  </div>
+</header>
+
+<main class="container">
+  <section class="controls" id="controls" aria-label="Filtros del catálogo">
+    <input type="search" id="search-input" placeholder="Buscar por nombre o descripción…" aria-label="Buscar repos por nombre o descripción" autocomplete="off" spellcheck="false">
+    <div class="chip-row" id="cat-chips" role="group" aria-label="Filtrar por categoría"></div>
+    <div class="controls-bottom">
+      <div class="estado-group" id="estado-chips" role="group" aria-label="Filtrar por estado"></div>
+      <div class="sort-box">
+        <label for="sort-select">Orden</label>
+        <select id="sort-select">
+          <option value="stars" selected>Estrellas ↓</option>
+          <option value="name">Nombre A–Z</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <p class="results-info" id="results-info" role="status" aria-live="polite"></p>
+
+  <div id="catalog" aria-label="Catálogo de repos"></div>
+
+  <div class="empty" id="empty-state" hidden>
+    <p>Sin resultados. Prueba con otros términos o limpia los filtros.</p>
+    <button type="button" class="chip" id="reset-btn">Limpiar filtros</button>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="f-brand">Consolidado por <b id="foot-brand">IMPULSO IA</b> · <span class="f-tag" id="foot-tagline">Crecimiento ágil · IA nativa</span></p>
+    <p class="f-attr">Catálogo fuente: <a id="foot-src" href="https://agentskillshub.top/best/claude-video-skills/" target="_blank" rel="noopener noreferrer">zhuyansen/awesome-claude-video-skills</a>. Cada subcarpeta conserva su licencia y autores originales. Uso bajo las licencias de cada proyecto.</p>
+    <p class="f-meta">© <span id="foot-year">2026</span> IMPULSO IA · catálogo generado <span id="foot-gen">—</span></p>
+  </div>
+</footer>
+
+<script src="indice.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var DATA = window.INDICE;
+  var $id = function (id) { return document.getElementById(id); };
+  var state = { q: '', cat: null, estado: null, sort: 'stars' };
+
+  /* Nombres/emojis de respaldo para categorias que existen en los repos pero
+     no vienen declaradas en resumen.categorias (sin nombre ni emoji). */
+  var CAT_NAMES = {
+    promo: 'Promo y producto',
+    story: 'Historias y narración',
+    avatar: 'Avatares y presentadores',
+    music: 'Música y audio',
+    craft: 'Craft y creación'
+  };
+  var CAT_EMOJI = {
+    promo: '📣',
+    story: '📖',
+    avatar: '🧑‍🎤',
+    music: '🎵',
+    craft: '🛠️'
+  };
+  var ESTADO_META = [
+    { id: 'clonado', label: '● Local', title: 'Clonado en este repositorio' },
+    { id: 'pendiente', label: '○ Pendiente', title: 'Clonación en curso' },
+    { id: 'externo', label: '↗ Externo', title: 'Solo referenciado desde la fuente' }
+  ];
+
+  var repos = (DATA && DATA.repos) ? DATA.repos : [];
+  var CATS = buildCategories();
+  var countFmt = new Intl.NumberFormat('es-ES');
+
+  function buildCategories() {
+    var declaredOrder = [];
+    var extras = [];
+    var meta = {};
+    var counts = {};
+    var resumen = (DATA && DATA.resumen) || {};
+    (resumen.categorias || []).forEach(function (c) {
+      if (!c || !c.id) { return; }
+      if (declaredOrder.indexOf(c.id) === -1) { declaredOrder.push(c.id); }
+      meta[c.id] = { nombre: c.nombre, emoji: c.emoji, carpeta: c.carpeta || null };
+    });
+    repos.forEach(function (r) {
+      var id = r.categoria_id || '_otros';
+      counts[id] = (counts[id] || 0) + 1;
+      if (!meta[id]) {
+        meta[id] = { nombre: null, emoji: null, carpeta: null };
+        if (extras.indexOf(id) === -1) { extras.push(id); }
+      }
+    });
+    extras.sort(function (a, b) { return (counts[b] || 0) - (counts[a] || 0); });
+    return declaredOrder.concat(extras).map(function (id) {
+      var m = meta[id] || {};
+      var nombre = (id === '_otros')
+        ? 'Sin categoría'
+        : (m.nombre || CAT_NAMES[id] || id.charAt(0).toUpperCase() + id.slice(1));
+      return {
+        id: id,
+        nombre: nombre,
+        emoji: m.emoji || CAT_EMOJI[id] || '📦',
+        carpeta: m.carpeta || null,
+        count: counts[id] || 0
+      };
+    });
+  }
+
+  function catById(id) {
+    var target = id || '_otros';
+    for (var i = 0; i < CATS.length; i++) {
+      if (CATS[i].id === target) { return CATS[i]; }
+    }
+    return { id: target, nombre: target, emoji: '📦', carpeta: null, count: 0 };
+  }
+
+  function norm(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function fmtStars(n) {
+    return (typeof n === 'number' && isFinite(n)) ? countFmt.format(n) : '—';
+  }
+
+  function truncate(s, max) {
+    var str = String(s || '');
+    if (str.length <= max) { return str; }
+    var chars = Array.from(str);
+    if (chars.length <= max) { return str; }
+    return chars.slice(0, max).join('').replace(/\s+\S*$/, '') + '…';
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) { n.className = cls; }
+    if (text !== undefined && text !== null) { n.textContent = text; }
+    return n;
+  }
+
+  function ghUrl(r) {
+    return r.url || ('https://github.com/' + r.repo);
+  }
+
+  function estadoBadge(r) {
+    var folder = r.carpeta ? String(r.carpeta).replace(/\\/g, '/').replace(/\/+$/, '') : null;
+    if (r.estado === 'clonado') {
+      if (folder) {
+        var a = el('a', 'badge badge-local', '● En este repo');
+        a.href = encodeURI(folder) + '/';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.title = 'Ver carpeta local: ' + folder;
+        return a;
+      }
+      var s = el('span', 'badge badge-local', '● En este repo');
+      s.title = 'Clonado en este repositorio (carpeta aún no indexada)';
+      return s;
+    }
+    if (r.estado === 'externo') {
+      var e = el('a', 'badge badge-externo', '↗ En GitHub');
+      e.href = ghUrl(r);
+      e.target = '_blank';
+      e.rel = 'noopener noreferrer';
+      e.title = 'Aún no está en este repositorio';
+      return e;
+    }
+    var p = el('span', 'badge badge-pendiente', '○ Pendiente');
+    p.title = 'Clonación en curso: todavía no está en este repo';
+    return p;
+  }
+
+  function makeCard(r) {
+    var card = el('article', 'card');
+
+    var head = el('div', 'card-head');
+    var h3 = el('h3', 'card-name');
+    var slash = String(r.repo).indexOf('/');
+    if (slash > 0) {
+      h3.appendChild(el('span', 'owner', r.repo.slice(0, slash + 1)));
+      h3.appendChild(document.createTextNode(r.repo.slice(slash + 1)));
+    } else {
+      h3.textContent = r.repo;
+    }
+    head.appendChild(h3);
+    var stars = el('span', 'stars', '★ ' + fmtStars(r.stars));
+    stars.title = 'Estrellas en GitHub';
+    head.appendChild(stars);
+    card.appendChild(head);
+
+    var cinfo = catById(r.categoria_id);
+    card.appendChild(el('span', 'chip-cat', cinfo.emoji + ' ' + cinfo.nombre));
+
+    card.appendChild(el('p', 'card-desc', truncate(r.descripcion || 'Sin descripción.', 160)));
+
+    var badges = el('div', 'card-badges');
+    badges.appendChild(estadoBadge(r));
+    if (r.seguridad === 'safe') {
+      var sf = el('span', 'badge badge-safe', '✓ Verificado');
+      sf.title = 'Revisión de seguridad: sin señales de alerta';
+      badges.appendChild(sf);
+    } else if (r.seguridad === 'caution') {
+      var ca = el('span', 'badge badge-caution', '⚠ Precaución');
+      ca.title = 'Revisar antes de usar: puede requerir atención';
+      badges.appendChild(ca);
+    }
+    if (r.licencia) {
+      var lic = (r.licencia === 'NOASSERTION') ? 'Lic. sin detectar' : 'Lic. ' + r.licencia;
+      var lb = el('span', 'badge badge-plain', lic);
+      lb.title = 'Licencia declarada: ' + r.licencia;
+      badges.appendChild(lb);
+    }
+    if (r.lenguaje) {
+      badges.appendChild(el('span', 'badge badge-plain', r.lenguaje));
+    }
+    card.appendChild(badges);
+
+    var foot = el('div', 'card-foot');
+    var gh = el('a', 'gh-link', 'GitHub ↗');
+    gh.href = ghUrl(r);
+    gh.target = '_blank';
+    gh.rel = 'noopener noreferrer';
+    gh.setAttribute('aria-label', 'Abrir ' + r.repo + ' en GitHub');
+    foot.appendChild(gh);
+    card.appendChild(foot);
+
+    return card;
+  }
+
+  function makeGroup(cat, items) {
+    var section = el('section', 'group');
+    var num = String(CATS.indexOf(cat) + 1);
+    if (num.length < 2) { num = '0' + num; }
+    var hid = ('g-' + cat.id).replace(/[^a-zA-Z0-9_-]/g, '-');
+    section.setAttribute('aria-labelledby', hid);
+
+    var head = el('header', 'group-head');
+    head.appendChild(el('span', 'gnum', num));
+    head.appendChild(el('span', 'gsep', '·'));
+    var h2 = el('h2', 'gtitle', cat.emoji + ' ' + cat.nombre);
+    h2.id = hid;
+    head.appendChild(h2);
+    head.appendChild(el('span', 'gcount', items.length + (items.length === 1 ? ' skill' : ' skills')));
+    section.appendChild(head);
+
+    var grid = el('div', 'cards');
+    var frag = document.createDocumentFragment();
+    items.forEach(function (r) { frag.appendChild(makeCard(r)); });
+    grid.appendChild(frag);
+    section.appendChild(grid);
+    return section;
+  }
+
+  function visibleRepos() {
+    var q = norm(state.q.trim());
+    var list = repos.filter(function (r) {
+      if (state.cat && (r.categoria_id || '_otros') !== state.cat) { return false; }
+      if (state.estado && r.estado !== state.estado) { return false; }
+      if (q && norm(r.repo + ' ' + (r.descripcion || '')).indexOf(q) === -1) { return false; }
+      return true;
+    });
+    if (state.sort === 'name') {
+      list.sort(function (a, b) {
+        return String(a.repo).localeCompare(String(b.repo), 'es', { sensitivity: 'base' });
+      });
+    } else {
+      list.sort(function (a, b) {
+        return (b.stars || 0) - (a.stars || 0) || String(a.repo).localeCompare(String(b.repo), 'es');
+      });
+    }
+    return list;
+  }
+
+  function render() {
+    var list = visibleRepos();
+    var byCat = {};
+    list.forEach(function (r) {
+      var id = r.categoria_id || '_otros';
+      (byCat[id] = byCat[id] || []).push(r);
+    });
+
+    var frag = document.createDocumentFragment();
+    CATS.forEach(function (cat) {
+      var items = byCat[cat.id];
+      if (items && items.length) { frag.appendChild(makeGroup(cat, items)); }
+    });
+
+    var catalog = $id('catalog');
+    catalog.textContent = '';
+    catalog.appendChild(frag);
+
+    var info = $id('results-info');
+    info.textContent = (list.length === repos.length)
+      ? repos.length + ' repos'
+      : list.length + ' de ' + repos.length + ' repos';
+    $id('empty-state').hidden = list.length !== 0;
+  }
+
+  function chip(label, value, count, kind) {
+    var b = el('button', 'chip');
+    b.type = 'button';
+    b.dataset[kind] = value;
+    b.setAttribute('aria-pressed', 'false');
+    b.appendChild(document.createTextNode(label));
+    b.appendChild(el('span', 'cnt', String(count)));
+    return b;
+  }
+
+  function buildChips() {
+    var catWrap = $id('cat-chips');
+    var cfrag = document.createDocumentFragment();
+    cfrag.appendChild(chip('Todas', 'all', repos.length, 'cat'));
+    CATS.forEach(function (c) {
+      cfrag.appendChild(chip(c.emoji + ' ' + c.nombre, c.id, c.count, 'cat'));
+    });
+    catWrap.appendChild(cfrag);
+
+    var eWrap = $id('estado-chips');
+    var efrag = document.createDocumentFragment();
+    efrag.appendChild(chip('Todos', 'all', repos.length, 'estado'));
+    ESTADO_META.forEach(function (m) {
+      var n = repos.filter(function (r) { return r.estado === m.id; }).length;
+      var b = chip(m.label, m.id, n, 'estado');
+      b.title = m.title;
+      efrag.appendChild(b);
+    });
+    eWrap.appendChild(efrag);
+  }
+
+  function syncChips() {
+    var currentCat = state.cat || 'all';
+    var currentEstado = state.estado || 'all';
+    Array.prototype.forEach.call(
+      $id('cat-chips').querySelectorAll('button[data-cat]'),
+      function (b) {
+        var on = b.dataset.cat === currentCat;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+      }
+    );
+    Array.prototype.forEach.call(
+      $id('estado-chips').querySelectorAll('button[data-estado]'),
+      function (b) {
+        var on = b.dataset.estado === currentEstado;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+      }
+    );
+  }
+
+  function resetFilters() {
+    state.q = '';
+    state.cat = null;
+    state.estado = null;
+    $id('search-input').value = '';
+    syncChips();
+    render();
+  }
+
+  function init() {
+    var marca = DATA.marca || {};
+    if (marca.nombre) {
+      $id('brand-name').textContent = marca.nombre;
+      $id('foot-brand').textContent = marca.nombre;
+    }
+    if (marca.tagline) {
+      $id('brand-tagline').textContent = marca.tagline;
+      $id('foot-tagline').textContent = marca.tagline;
+    }
+    if (marca.fuente) { $id('foot-src').href = marca.fuente; }
+    if (marca.fuente_nombre) { $id('foot-src').textContent = marca.fuente_nombre; }
+
+    var clonados = repos.filter(function (r) { return r.estado === 'clonado'; }).length;
+    $id('stat-total').textContent = String(repos.length);
+    $id('stat-clonados').textContent = String(clonados);
+    $id('stat-cats').textContent = String(CATS.length);
+    $id('lede-total').textContent = String(repos.length);
+    $id('foot-gen').textContent = marca.catalogo_generado || DATA.generado || '—';
+    $id('foot-year').textContent = String(new Date().getFullYear());
+
+    buildChips();
+    syncChips();
+
+    $id('cat-chips').addEventListener('click', function (ev) {
+      var btn = (ev.target && ev.target.closest) ? ev.target.closest('button[data-cat]') : null;
+      if (!btn) { return; }
+      var v = btn.dataset.cat;
+      state.cat = (v === 'all' || v === state.cat) ? null : v;
+      syncChips();
+      render();
+    });
+    $id('estado-chips').addEventListener('click', function (ev) {
+      var btn = (ev.target && ev.target.closest) ? ev.target.closest('button[data-estado]') : null;
+      if (!btn) { return; }
+      var v = btn.dataset.estado;
+      state.estado = (v === 'all' || v === state.estado) ? null : v;
+      syncChips();
+      render();
+    });
+    $id('search-input').addEventListener('input', function (ev) {
+      state.q = ev.target.value;
+      render();
+    });
+    $id('sort-select').addEventListener('change', function (ev) {
+      state.sort = ev.target.value;
+      render();
+    });
+    $id('reset-btn').addEventListener('click', resetFilters);
+
+    render();
+  }
+
+  if (!DATA || !DATA.repos) {
+    $id('controls').hidden = true;
+    $id('results-info').textContent = '';
+    var catalog = $id('catalog');
+    catalog.textContent = '';
+    catalog.appendChild(el('p', 'load-error',
+      'No se pudo cargar el catálogo: falta indice.js o no define window.INDICE.'));
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

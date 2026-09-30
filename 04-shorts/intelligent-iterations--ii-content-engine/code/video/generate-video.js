@@ -1,0 +1,489 @@
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+import {
+  parseCompilationMD,
+  materializeExecutionPlanFromMd,
+  executeExecutionPlan,
+} from './generate-video-compilation.js';
+import { burnCaptions } from './add-captions.js';
+import {
+  buildCompilationScaffold,
+  buildVideoResearchArtifact,
+  getCompilationRequirements,
+  getTemplateAuthoringSections,
+  listTemplates,
+  prependCompilationMeta,
+  resolveGenerationSettings,
+  resolveTemplate,
+} from './template-registry.js';
+import { VIDEOS_DIR, isMainModule } from '../core/paths.js';
+import { buildVideoCaption } from '../shared/caption-writer.js';
+import { writeAssetManifestIfMissing } from './asset-manifest.js';
+
+const XAI_API_KEY = process.env.XAI_API_KEY;
+
+function parseArgs(args) {
+  const opts = {
+    topic: null,
+    format: null,
+    template: null,
+    clips: null,
+    clipDuration: null,
+    targetLength: null,
+    outputName: null,
+    md: null,
+    dryRun: false,
+    listTemplates: false,
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--format' && args[i + 1]) {
+      opts.format = args[++i];
+    } else if (args[i] === '--template' && args[i + 1]) {
+      opts.template = args[++i];
+    } else if (args[i] === '--clips' && args[i + 1]) {
+      opts.clips = parseInt(args[++i], 10);
+    } else if (args[i] === '--clip-duration' && args[i + 1]) {
+      opts.clipDuration = parseInt(args[++i], 10);
+    } else if (args[i] === '--target-length' && args[i + 1]) {
+      opts.targetLength = parseInt(args[++i], 10);
+    } else if (args[i] === '--output-name' && args[i + 1]) {
+      opts.outputName = args[++i];
+    } else if (args[i] === '--md' && args[i + 1]) {
+      opts.md = args[++i];
+    } else if (args[i] === '--dry-run') {
+      opts.dryRun = true;
+    } else if (args[i] === '--list-templates') {
+      opts.listTemplates = true;
+    } else if (!args[i].startsWith('--')) {
+      opts.topic = args[i];
+    }
+  }
+
+  return opts;
+}
+
+function countWords(value) {
+  return String(value || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseClipHeader(firstLine) {
+  const header = firstLine.trim();
+  const match = header.match(/^(.*?)\s*--\s*(.+)$/);
+
+  if (!match) {
+    return {
+      name: header,
+      mood: null,
+    };
+  }
+
+  return {
+    name: match[1].trim(),
+    mood: match[2].trim(),
+  };
+}
+
+function extractSectionBody(mdContent, sectionTitle) {
+  const escapedTitle = escapeRegex(sectionTitle);
+  const regex = new RegExp(`(?:^|\\n)## ${escapedTitle}\\s*\\n([\\s\\S]*?)(?=\\n## |\\n# |$)`);
+  const match = mdContent.match(regex);
+  return match ? match[1].trim() : '';
+}
+
+function isPlaceholderBody(body) {
+  const normalized = String(body || '').trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+
+  return normalized.startsWith('describe ')
+    || normalized.startsWith('list ')
+    || normalized.startsWith('name ')
+    || normalized.startsWith('note ')
+    || normalized.startsWith('record ')
+    || normalized.startsWith('capture ')
+    || normalized.startsWith('define ')
+    || normalized.startsWith('replace the placeholders');
+}
+
+function extractPromptMetadata(prompt) {
+  const text = String(prompt || '').trim();
+  const speaker = text.match(/(?:^|\n)Speaker:\s*(.+)$/im)?.[1]?.trim() || '';
+  const dialogue = text.match(/(?:^|\n)Dialogue:\s*"([^"]+)"/im)?.[1]?.trim() || '';
+  return { speaker, dialogue };
+}
+
+function validateCompilationMD(mdContent, expectedClips, resolvedTemplate) {
+  const errors = [];
+  const { promptRequirements, markdownContract } = getCompilationRequirements();
+  const authoringSections = getTemplateAuthoringSections(resolvedTemplate?.template);
+  const clipHeaders = mdContent.match(/^## Clip \d+:/gm) || [];
+  const requiredSections = markdownContract.required_sections || [];
+  const imageMinWords = promptRequirements?.image_prompt_word_range?.min || 0;
+  const videoMinWords = promptRequirements?.video_prompt_word_range?.min || 0;
+  const fallbackMinWords = promptRequirements?.fallback_video_prompt_word_range?.min || 0;
+
+  for (const authoringSection of authoringSections) {
+    if (!authoringSection.required) {
+      continue;
+    }
+
+    const body = extractSectionBody(mdContent, authoringSection.title);
+    if (!body) {
+      errors.push(`Missing required authoring section: ## ${authoringSection.title}.`);
+      continue;
+    }
+
+    if (isPlaceholderBody(body)) {
+      errors.push(`Authoring section "${authoringSection.title}" still contains scaffold placeholder text.`);
+      continue;
+    }
+
+    const wordCount = countWords(body);
+    if (authoringSection.min_words && wordCount < authoringSection.min_words) {
+      errors.push(`Authoring section "${authoringSection.title}" is too short (${wordCount} words, need ${authoringSection.min_words}+).`);
+    }
+  }
+
+  if (clipHeaders.length === 0) {
+    errors.push('No "## Clip N:" headers found. Each clip must start with "## Clip 1:", "## Clip 2:", etc.');
+    return errors;
+  }
+
+  if (clipHeaders.length < expectedClips) {
+    errors.push(`Expected ${expectedClips} clips but found ${clipHeaders.length} clip headers.`);
+  }
+
+  const clipSections = mdContent.split(/^## Clip \d+:/m).slice(1);
+
+  for (let i = 0; i < clipSections.length; i++) {
+    const section = clipSections[i];
+    const clipNum = i + 1;
+    const sectionMatches = {};
+
+    for (const requiredSection of requiredSections) {
+      const matcher = new RegExp(`### ${escapeRegex(requiredSection)}\\s*\`\`\`\\s*([\\s\\S]*?)\`\`\``);
+      const match = section.match(matcher);
+      if (!match) {
+        errors.push(`Clip ${clipNum}: Missing ### ${requiredSection} with code block.`);
+      } else {
+        sectionMatches[requiredSection] = match[1].trim();
+      }
+    }
+
+    const continuityWords = countWords(sectionMatches['Continuity Anchors']);
+    if (sectionMatches['Continuity Anchors'] && continuityWords < 15) {
+      errors.push(`Clip ${clipNum}: Continuity anchors are too short.`);
+    }
+
+    const imageWords = countWords(sectionMatches['Image Prompt']);
+    if (sectionMatches['Image Prompt'] && imageWords < imageMinWords) {
+      errors.push(`Clip ${clipNum}: Image prompt is too short (${imageWords} words, need ${imageMinWords}+).`);
+    }
+
+    const videoPrompt = sectionMatches['Video Prompt'];
+    const videoWords = countWords(videoPrompt);
+    if (videoPrompt && videoWords < videoMinWords) {
+      errors.push(`Clip ${clipNum}: Video prompt is too short (${videoWords} words, need ${videoMinWords}+).`);
+    }
+
+    const fallbackPrompt = sectionMatches['Fallback Video Prompt'];
+    const fallbackWords = countWords(fallbackPrompt);
+    if (fallbackPrompt && fallbackWords < fallbackMinWords) {
+      errors.push(`Clip ${clipNum}: Fallback video prompt is too short (${fallbackWords} words, need ${fallbackMinWords}+).`);
+    }
+
+    if (markdownContract.dialogue_in_video_prompt_required && videoPrompt && !videoPrompt.includes('"')) {
+      errors.push(`Clip ${clipNum}: Video prompt must contain dialogue in quotes.`);
+    }
+
+    if (markdownContract.speaker_tag_in_video_prompt_required && videoPrompt) {
+      const { speaker, dialogue } = extractPromptMetadata(videoPrompt);
+      if (!speaker) {
+        errors.push(`Clip ${clipNum}: Video prompt must include "Speaker: <name or None>".`);
+      }
+      if (dialogue && /^none$/i.test(speaker)) {
+        errors.push(`Clip ${clipNum}: Video prompt cannot use Speaker: None when dialogue is present.`);
+      }
+    }
+
+    if (markdownContract.dialogue_in_fallback_prompt_required && fallbackPrompt && !fallbackPrompt.includes('"')) {
+      errors.push(`Clip ${clipNum}: Fallback video prompt must contain dialogue in quotes.`);
+    }
+
+    if (markdownContract.speaker_tag_in_fallback_prompt_required && fallbackPrompt) {
+      const { speaker, dialogue } = extractPromptMetadata(fallbackPrompt);
+      if (!speaker) {
+        errors.push(`Clip ${clipNum}: Fallback video prompt must include "Speaker: <name or None>".`);
+      }
+      if (dialogue && /^none$/i.test(speaker)) {
+        errors.push(`Clip ${clipNum}: Fallback video prompt cannot use Speaker: None when dialogue is present.`);
+      }
+    }
+
+    const firstLine = section.split('\n')[0].trim();
+    const parsedHeader = parseClipHeader(firstLine);
+    if (markdownContract.requires_mood_marker && !parsedHeader.mood) {
+      errors.push(`Clip ${clipNum}: Missing mood marker in clip header. Use "${markdownContract.clip_header_pattern || '## Clip N: Name -- Mood'}".`);
+    }
+  }
+
+  return errors;
+}
+
+function topicSlug(topic) {
+  return topic
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 50)
+    .replace(/-$/, '');
+}
+
+function safeOutputName(value, fallback = 'video') {
+  const normalized = (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s_-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 50);
+
+  return normalized || fallback;
+}
+
+function withUpdatedFrontmatter(mdContent, settings) {
+  const stripped = String(mdContent || '').replace(/^---\n[\s\S]*?\n---\n*/, '');
+  return prependCompilationMeta(stripped, settings);
+}
+
+function resolveCompilationArtifactPath({ topic, outputName, md }) {
+  const requestedBaseName = safeOutputName(outputName || topicSlug(topic), 'video');
+  const mdPath = md
+    ? path.resolve(md)
+    : path.join(VIDEOS_DIR, requestedBaseName, `${requestedBaseName}.md`);
+  const baseName = path.basename(mdPath, path.extname(mdPath));
+
+  return {
+    baseName,
+    videosDir: path.dirname(mdPath),
+    mdPath,
+  };
+}
+
+function loadCompilationArtifacts({ topic, settings, resolvedTemplate, outputName, md }) {
+  const resolved = resolveCompilationArtifactPath({ topic, outputName, md });
+
+  if (!fs.existsSync(resolved.mdPath)) {
+    fs.mkdirSync(resolved.videosDir, { recursive: true });
+    fs.writeFileSync(
+      resolved.mdPath,
+      buildCompilationScaffold({
+        topic,
+        resolvedTemplate,
+        settings,
+      })
+    );
+    const manifestPath = writeAssetManifestIfMissing({
+      topic,
+      resolvedTemplate,
+      settings,
+      videosDir: resolved.videosDir,
+      mdPath: resolved.mdPath,
+    });
+    throw new Error(
+      `Missing compilation markdown: ${resolved.mdPath}\nScaffolded a starter markdown and asset manifest:\n- ${resolved.mdPath}\n- ${manifestPath}\nFill them in, then rerun the video renderer.`
+    );
+  }
+
+  const mdContent = fs.readFileSync(resolved.mdPath, 'utf8');
+  const validationErrors = validateCompilationMD(mdContent, settings.clipCount, resolvedTemplate);
+  if (validationErrors.length > 0) {
+    throw new Error(
+      `Compilation markdown failed validation:\n${validationErrors.map((error) => `- ${error}`).join('\n')}`
+    );
+  }
+
+  fs.mkdirSync(resolved.videosDir, { recursive: true });
+  fs.writeFileSync(resolved.mdPath, withUpdatedFrontmatter(mdContent, settings));
+  writeAssetManifestIfMissing({
+    topic,
+    resolvedTemplate,
+    settings,
+    videosDir: resolved.videosDir,
+    mdPath: resolved.mdPath,
+  });
+
+  return resolved;
+}
+
+function saveResearchArtifact({ topic, resolvedTemplate, settings, outputDir, route }) {
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  const researchPath = path.join(outputDir, 'research.json');
+  const artifact = buildVideoResearchArtifact({
+    topic,
+    resolvedTemplate,
+    settings,
+    route,
+  });
+  fs.writeFileSync(researchPath, JSON.stringify(artifact, null, 2));
+
+  return researchPath;
+}
+
+async function runClipPipeline({ mdPath, baseName, videosDir, settings, dryRun }) {
+  if (dryRun) {
+    console.log('=== Dry run complete ===');
+    console.log(`Validated MD: ${mdPath}`);
+    console.log('Skipping image/video generation.');
+    return;
+  }
+
+  console.log('[4/5] Running video generation pipeline...\n');
+  const { plan, planPath } = materializeExecutionPlanFromMd(mdPath);
+  console.log(`  Saved execution plan: ${planPath}\n`);
+
+  let result;
+  try {
+    result = await executeExecutionPlan({
+      ...plan,
+      clipDurationSeconds: settings.clipDurationSeconds || plan.clipDurationSeconds,
+      aspectRatio: settings.aspectRatio || plan.aspectRatio,
+      resolution: settings.resolution || plan.resolution,
+      imageModel: settings.imageModel || plan.imageModel,
+      videoModel: settings.videoModel || plan.videoModel,
+      clipsOutputDir: path.join(videosDir, 'clips'),
+      stitchedVideoPath: path.join(videosDir, `${baseName}_stitched.mp4`),
+      finalVideoPath: path.join(videosDir, `${baseName}.mp4`),
+    });
+  } catch (err) {
+    if (err.message.includes('ffmpeg')) {
+      console.error('\nffmpeg is required for stitching clips. Install it with:');
+      console.error('  brew install ffmpeg');
+      process.exit(1);
+    }
+    throw err;
+  }
+
+  const stitchedPath = result.stitchedPath;
+  const finalPath = result.finalPath;
+  console.log('\n[5/5] Burning on-video dialogue captions...');
+  try {
+    await burnCaptions({
+      mdPath,
+      clipsDir: path.join(videosDir, 'clips'),
+      inputVideo: stitchedPath,
+      outputVideo: finalPath,
+    });
+    fs.unlinkSync(stitchedPath);
+  } catch (err) {
+    console.error(`  Caption burning failed: ${err.message}`);
+    console.error('  Using uncaptioned video as final...');
+    fs.renameSync(stitchedPath, finalPath);
+  }
+
+  console.log(`\n=== Done! ===`);
+  console.log(`Clips generated: ${result.clipPaths.length}/${plan.jobs.length}`);
+  console.log(`Final video: ${finalPath}`);
+}
+
+export async function main(argv = process.argv.slice(2)) {
+  const opts = parseArgs(argv);
+
+  if (opts.listTemplates) {
+    console.log('\nAvailable video templates:\n');
+    for (const template of listTemplates()) {
+      console.log(`- ${template.id}: ${template.description}`);
+    }
+    return;
+  }
+
+  if (!opts.topic) {
+    console.error('Usage: node code/cli/video.js "topic" [--template id] [--clips N] [--clip-duration N] [--target-length N] [--output-name slug] [--md path] [--dry-run]');
+    console.error('Legacy alias: --format hero|villain');
+    console.error('Example: node code/cli/video.js "absurd fruit revenge story in a dessert banquet hall" --template anthropomorphic-fruit-revenge-drama --md output/videos/fruit-revenge/fruit-revenge.md');
+    process.exit(1);
+  }
+
+  const resolvedTemplate = resolveTemplate(opts.template, opts.format);
+  const settings = resolveGenerationSettings(opts, resolvedTemplate);
+  const generationRoute = 'local_agent_authored_md';
+
+  console.log('\n=== Automated Video Generation ===');
+  console.log(`Topic: ${opts.topic}`);
+  console.log(`Template: ${settings.templateId}`);
+  console.log(`Clips: ${settings.clipCount}`);
+  console.log(`Clip duration: ${settings.clipDurationSeconds}s`);
+  console.log(`Target length: ${settings.targetLengthSeconds}s`);
+  console.log(`MD source: ${opts.md ? path.resolve(opts.md) : 'derived from output-name/topic slug'}`);
+  console.log(`Dry run: ${opts.dryRun}\n`);
+
+  console.log('[1/5] Loading locally authored compilation markdown...');
+  let resolvedArtifacts;
+  try {
+    resolvedArtifacts = loadCompilationArtifacts({
+      topic: opts.topic,
+      settings,
+      resolvedTemplate,
+      outputName: opts.outputName,
+      md: opts.md,
+    });
+  } catch (err) {
+    console.error(`\nCompilation markdown is required before rendering: ${err.message}`);
+    process.exit(1);
+  }
+
+  const { baseName, videosDir, mdPath } = resolvedArtifacts;
+  console.log(`  Using compilation MD: ${mdPath}`);
+  console.log('  Validation passed and frontmatter refreshed.\n');
+
+  const researchPath = saveResearchArtifact({
+    topic: opts.topic,
+    resolvedTemplate,
+    settings,
+    outputDir: videosDir,
+    route: generationRoute,
+  });
+  console.log(`[2/5] Saved research artifact: ${researchPath}\n`);
+
+  console.log('[3/5] Generating post caption...');
+  const parsedForCaption = parseCompilationMD(mdPath);
+  try {
+    const caption = buildVideoCaption({
+      topic: opts.topic,
+      clips: parsedForCaption,
+      template: resolvedTemplate?.template || {},
+    });
+
+    const captionPath = path.join(videosDir, `${baseName}_caption.txt`);
+    fs.writeFileSync(captionPath, caption);
+    console.log(`  Saved caption: ${captionPath}`);
+    console.log(`\n--- Caption Preview ---\n${caption}\n--- End Caption ---\n`);
+  } catch (err) {
+    console.error(`  Caption generation failed: ${err.message}`);
+    console.error('  Continuing without caption...\n');
+  }
+
+  await runClipPipeline({
+    mdPath,
+    baseName,
+    videosDir,
+    settings,
+    dryRun: opts.dryRun,
+  });
+}
+
+if (isMainModule(import.meta.url)) {
+  main().catch((err) => {
+    console.error('Fatal error:', err.message);
+    process.exit(1);
+  });
+}

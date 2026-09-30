@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "forbidden": ["UNKNOWN"],
+  "allowedSpdxLicenses": [
+    "0BSD",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BlueOak-1.0.0",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MIT-CMU",
+    "MPL-2.0",
+    "PSF-2.0",
+    "TCL",
+    "Unlicense",
+    "Zlib",
+    "bzip2-1.0.6"
+  ],
+  "allowedSpdxExceptions": [],
+  "allowedLicenseRefs": ["LicenseRef-SQLite-Public-Domain"],
+  "restrictedLicenseRefs": [],
+  "reviewedNonRestrictedLicenseRefs": ["LicenseRef-SQLite-Public-Domain"],
+  "trustedApprovals": [],
+  "classifications": {}
+}

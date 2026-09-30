@@ -1,0 +1,56 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+node_modules/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.nox/
+.pyre/
+
+# Coverage and build artifacts
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+site/
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+.analysis/
+vex_debug_*/
+vex_render_check*/
+
+# Optional local Vex runtime state if redirected into the repo
+.video-agent/
+.tmp-state/
+
+bugs.md
+instructions.md

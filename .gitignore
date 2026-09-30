@@ -1,0 +1,11 @@
+# Ruido com.
+node_modules/
+__pycache__/
+.venv/
+venv/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+*.tmp
+_reporte*

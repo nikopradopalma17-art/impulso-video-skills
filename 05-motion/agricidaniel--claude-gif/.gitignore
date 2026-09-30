@@ -1,0 +1,40 @@
+# Node
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Secrets and credentials (NEVER commit these)
+.env
+.env.*
+*.env
+**/.env
+
+# Temporary files
+/tmp/
+*.tmp
+*.bak
+*.swp
+
+# Generated output (users generate their own)
+output/*.gif
+
+# Playwright browser binaries
+.cache/
+
+# Remotion build artifacts
+build/
+dist/
+out/

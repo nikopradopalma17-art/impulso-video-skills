@@ -1,0 +1,246 @@
+# ae-mcp
+
+English | [简体中文](README.zh-CN.md)
+
+<a href="https://glama.ai/mcp/servers/@JUNKDOGE-JOE/after-effects-mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@JUNKDOGE-JOE/after-effects-mcp/badge" alt="ae-mcp MCP server" />
+</a>
+
+**Setup prompt — paste this into the MCP client you want to use:**
+
+```text
+Install and configure ae-mcp for the current client receiving and executing
+this prompt. Do not default to Claude Code or configure another client.
+Before changing anything, inspect the local ae-mcp extension and native plug-in
+files and versions, plus this client's existing MCP registration and actual
+connection, read-only. Existence alone does not prove readiness. Compare with
+the latest official stable release assets available for my platform:
+- Client registration already correct: keep it; install only missing or damaged files.
+- Files complete and versions suitable: only add or repair client registration.
+- Both ready and current: verify without reinstalling.
+- Newer version available: upgrade existing components, preserving user settings
+  and other MCP configuration; do not downgrade. If versions cannot be established
+  or platform assets are unavailable, explain rather than blindly overwrite.
+Use the release ZXP and platform-native plug-in for needed file installation or
+upgrade, then open Window > Extensions > ae-mcp in After Effects.
+Identify this client's configuration method and location, preserving all other
+MCP entries. Use http://127.0.0.1:11488/mcp if it supports Streamable HTTP;
+for stdio only, configure `npx -y ae-mcp-jkdg` using this client's format.
+If automatic editing is unavailable, give precise manual steps for this client.
+Ask which client only if the target truly cannot be identified; never silently
+fall back to Claude Code. Keep the AE panel open, refresh/reconnect or start a
+new session as this client requires, then call ae_status to verify. If user
+action is required first, state that verification is still pending.
+```
+
+ae-mcp connects an After Effects CEP panel to AI clients through a local MCP
+endpoint. The panel hosts the service at `http://127.0.0.1:11488/mcp`; the
+host is a Node process using Express, and After Effects state is reached
+through ExtendScript and the frozen native AEGP plane.
+
+## Install and first run
+
+1. Install the signed ZXP in After Effects.
+2. Install the matching native plug-in beside the After Effects plug-ins
+   selected for the host — the `.aex` on Windows, the `AeMcpNative.plugin`
+   bundle on macOS. Keep the version pair from the same release. The same
+   ZXP installs on both systems; it bundles the OpenCode runtime for Windows
+   (`runtime/opencode/opencode.exe`, about 60 MB), which the panel uses only
+   on Windows, while macOS falls back to an `opencode` found on PATH. Only
+   this native plug-in is built per platform, and `ae_nativeExec` is the one
+   tool that needs it. [Install](docs/INSTALL.md) has the exact per-platform
+   destination, and the macOS bundle additionally needs its download
+   quarantine cleared before After Effects will load it.
+3. Start After Effects and open **Window > Extensions > ae-mcp**. Keep the panel
+   open while an external client uses MCP.
+4. Configure one of the two supported external connection forms below.
+
+The panel itself is the MCP service. No separate repository server is needed.
+External clients must run on the same machine as After Effects because the
+default endpoint is loopback.
+
+## Client connections
+
+Claude Code uses the URL transport:
+
+```bash
+claude mcp add --transport http ae http://127.0.0.1:11488/mcp
+```
+
+Claude Desktop can use the published connector through the system Node
+installation, without needing access to the installed extension directory.
+This `npx -y ae-mcp-jkdg` form wraps the same dependency-free
+`host/stdio-shim.js`:
+
+```json
+{
+  "mcpServers": {
+    "ae": {
+      "command": "npx",
+      "args": ["-y", "ae-mcp-jkdg"]
+    }
+  }
+}
+```
+
+Alternatively, Claude Desktop can run the dependency-free stdio shim shipped
+in the installed extension. Set `command` to the system Node executable and
+point `args` at the extension directory's `host/stdio-shim.js`:
+
+```json
+{
+  "mcpServers": {
+    "ae": {
+      "command": "node",
+      "args": ["<installed-extension>/host/stdio-shim.js"],
+      "env": {
+        "AE_MCP_HTTP_URL": "http://127.0.0.1:11488/mcp"
+      }
+    }
+  }
+}
+```
+
+Claude Desktop therefore needs a system Node installation. The shim keeps one
+stdio request queue and forwards MCP responses to the panel host.
+
+## Panel capabilities
+
+The CEP host advertises 13 public MCP tools:
+
+| Area | Tools |
+| --- | --- |
+| Status | `ae_status` |
+| ExtendScript and recovery | `ae_exec`, `ae_execRecover` |
+| Read and visual verification | `ae_read`, `ae_previewFrame`, `ae_validateExpressions` |
+| Project checkpoints | `ae_checkpoint`, `ae_revert` |
+| Frozen native AEGP | `ae_nativeExec` |
+| Tool Library and skills | `ae_toolSearch`, `ae_toolUse`, `ae_toolSave`, `ae_skillUse` |
+
+Successful `ae_exec` and `ae_execRecover` scripts are captured as deduplicated,
+rerunnable Tool Library candidates. `ae_toolSave` promotes or creates reusable
+JSX and prompt-skill artifacts; the Tools page manages candidates and saved
+artifacts, including import/export. Usage counters and funnel events show what
+gets replayed or retained, while the placeholder guard points compacted
+conversations back to exact candidates and stops repeated placeholder retries.
+
+The panel also provides approval modes, activity history, diagnostics, log
+export, and built-in Claude, Codex, and OpenCode channels. Persistent host state
+defaults to `~/.ae-mcp`; developers and tests can relocate it with
+`AE_MCP_STATE_DIR`.
+
+The public MCP tools are served by the CEP host. Writes should be followed by
+an independent readback; potentially side-effecting failures must be
+reconciled before retry, and Undo must be executed and verified separately.
+
+## Development
+
+Install the two Node workspaces and build the panel:
+
+```bash
+(cd plugin/host && npm ci)
+(cd plugin/panel && npm ci && npm run build)
+```
+
+For a local CEP deployment, use the platform-specific script after the host
+and panel are built:
+
+```powershell
+.\scripts\install-plugin-dev.ps1
+```
+
+```bash
+./scripts/install-plugin-dev-macos.sh
+```
+
+The Adobe After Effects C/C++ Plug-in SDK is a developer-supplied input and
+must remain outside this repository. Verify it before building the native
+plug-in:
+
+```bash
+node scripts/package/ae-sdk-input.mjs verify-input --platform macos-arm64
+```
+
+For the frozen native plane, build into a new directory outside the repository.
+The installer keeps transaction state under `native-plugin-dev-v1`; retain the
+returned transaction ID if you install the result:
+
+```bash
+AE_SDK_ARCHIVE=/absolute/path/AfterEffectsSDK.zip
+AE_SDK_ROOT=/absolute/path/AfterEffectsSDK
+BUILD_DIR=/private/tmp/ae-mcp-native-dev
+TRANSACTION_ID="paste-the-transaction-id-here"
+node native/ae-plugin/build-macos.mjs \
+  --sdk-archive "$AE_SDK_ARCHIVE" \
+  --sdk-root "$AE_SDK_ROOT" \
+  --output "$BUILD_DIR"
+# The install state root is native-plugin-dev-v1.
+node native/ae-plugin/install-dev-macos.mjs install --artifact-dir "$BUILD_DIR"
+node native/ae-plugin/install-dev-macos.mjs rollback \
+  --transaction "$TRANSACTION_ID"
+```
+
+The native plane is frozen; generated AEGP protocol files are checked in and
+the capability-package code-generation pipeline is not part of normal
+development.
+
+## Tests and packaging
+
+Run focused Node contracts locally:
+
+```powershell
+node --test scripts/package/test/verify-windows-zxp-stage.test.mjs
+node --test scripts/package/test/zxp-payload-audit.test.mjs
+```
+
+The Windows ZXP staging command copies the panel, host, JSX, shared modules,
+icons, generated host assets, and the pinned OpenCode runtime staged by
+`node scripts/package/fetch-opencode-runtime.mjs`. It verifies the host's
+exact Express `4.22.2` dependency and signs the ZXP once:
+
+```powershell
+.\scripts\package-zxp.ps1 -SkipSigning
+```
+
+The signed ZXP must contain no nested native binary; the bundled
+`opencode.exe` is the one explicitly allowed executable. The packaging script
+fails above 80 MB, and a release with the runtime is roughly 60 MB.
+
+See [Install](docs/INSTALL.md), [Reference](docs/REFERENCE.md),
+[Tool Library](docs/TOOL_LIBRARY.md), [Architecture](docs/ARCHITECTURE_DIRECTION.md),
+[Workflow](docs/WORKFLOW.md), and [Release](docs/RELEASE.md) for maintained
+operational and developer details.
+
+## Sponsors
+
+Thank you to everyone who supports the development and maintenance of ae-mcp!
+
+Sponsorship is voluntary, and any amount is appreciated. Your support helps
+with the project's development and maintenance.
+
+**[Support via PayPal](https://paypal.me/junkdoge)**
+
+<details open>
+<summary>Scan to support via WeChat Pay or Alipay</summary>
+
+<p>Scan with the corresponding app.</p>
+<table>
+  <tr><th>WeChat Pay</th><th>Alipay</th></tr>
+  <tr>
+    <td><a href="docs/assets/sponsorship/wechat-pay.jpg"><img src="docs/assets/sponsorship/wechat-pay.jpg" alt="WeChat Pay sponsorship QR code" width="240" /></a></td>
+    <td><a href="docs/assets/sponsorship/alipay.jpg"><img src="docs/assets/sponsorship/alipay.jpg" alt="Alipay sponsorship QR code" width="240" /></a></td>
+  </tr>
+</table>
+
+</details>
+
+### Sponsor acknowledgements
+
+| Sponsor | About | Contribution | Note |
+| --- | --- | --- | --- |
+| [**biheye-g**](https://github.com/biheye-g) | Bilibili content creator **匕禾页** | CNY 18 | First sponsor |
+
+## License
+
+ae-mcp is released under the MIT License; see [LICENSE](LICENSE). Adobe's
+`CSInterface.js` retains its upstream license notice.

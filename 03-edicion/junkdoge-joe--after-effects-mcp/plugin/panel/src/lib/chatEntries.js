@@ -1,0 +1,155 @@
+import { displayAttachments } from '../../../shared/chat-attachments.mjs';
+
+function nextId(entries, prefix) {
+  return `${prefix}-${entries.length + 1}`;
+}
+
+function updateTool(entries, toolUseId, updater) {
+  return entries.map((entry) => {
+    if (entry.type !== 'tool-call' || entry.toolUseId !== toolUseId) return entry;
+    return updater(entry);
+  });
+}
+
+export function userTurnEntry(turn) {
+  return {
+    id: `user-${turn.turnId}`,
+    type: 'user-text',
+    text: turn.text,
+    attachments: displayAttachments(turn.attachments),
+  };
+}
+
+export function reduceEvent(entries, evt) {
+  const current = Array.isArray(entries) ? entries : [];
+  if (!evt || !evt.type) return current;
+
+  switch (evt.type) {
+    case 'turn-start':
+    case 'turn-accepted':
+      return current;
+
+    case 'text-delta': {
+      const text = String(evt.text || '');
+      if (!text) return current;
+      const last = current[current.length - 1];
+      if (last && last.type === 'ai-text') {
+        return current.slice(0, -1).concat({ ...last, text: `${last.text || ''}${text}` });
+      }
+      return current.concat({ id: nextId(current, 'ai'), type: 'ai-text', text });
+    }
+
+    case 'tool-start':
+      return current.concat({
+        id: evt.toolUseId || nextId(current, 'tool'),
+        type: 'tool-call',
+        toolUseId: evt.toolUseId,
+        name: evt.name || '',
+        input: evt.input,
+        state: 'running',
+      });
+
+    case 'approval-required':
+      if (!current.some((entry) => entry.type === 'tool-call' && entry.toolUseId === evt.toolUseId)) {
+        return current.concat({
+          id: evt.toolUseId || nextId(current, 'tool'),
+          type: 'tool-call',
+          toolUseId: evt.toolUseId,
+          name: evt.name || '',
+          input: evt.input,
+          risk: evt.risk,
+          state: 'awaiting-approval',
+        });
+      }
+      return updateTool(current, evt.toolUseId, (entry) => ({
+        ...entry,
+        name: evt.name || entry.name,
+        input: evt.input === undefined ? entry.input : evt.input,
+        risk: evt.risk,
+        state: 'awaiting-approval',
+      }));
+
+    case 'tool-result':
+      if (!current.some((entry) => entry.type === 'tool-call' && entry.toolUseId === evt.toolUseId)) {
+        return current.concat({
+          id: evt.toolUseId || nextId(current, 'tool'),
+          type: 'tool-call',
+          toolUseId: evt.toolUseId,
+          name: evt.name || '',
+          state: evt.ok ? 'ok' : 'error',
+          ok: !!evt.ok,
+          text: evt.text || '',
+          ...(evt.images ? { images: evt.images } : {}),
+          durationMs: evt.durationMs,
+        });
+      }
+      return updateTool(current, evt.toolUseId, (entry) => ({
+        ...entry,
+        state: evt.ok ? 'ok' : 'error',
+        ok: !!evt.ok,
+        text: evt.text || '',
+        ...(evt.images || entry.images ? { images: evt.images || [] } : {}),
+        durationMs: evt.durationMs,
+      }));
+
+    case 'tool-denied':
+      return updateTool(current, evt.toolUseId, (entry) => ({
+        ...entry,
+        state: 'denied',
+      }));
+
+    case 'tool-allowed':
+      return updateTool(current, evt.toolUseId, (entry) => ({
+        ...entry,
+        state: 'running',
+      }));
+
+    // Agent-to-user question form (#219): a dedicated entry type, NOT a
+    // tool-call, so it renders as a form instead of an Allow/Deny card.
+    case 'question-required': {
+      const next = {
+        id: evt.toolUseId || nextId(current, 'question'),
+        type: 'question',
+        toolUseId: evt.toolUseId,
+        source: evt.source || '',
+        title: evt.title || '',
+        questions: Array.isArray(evt.questions) ? evt.questions : [],
+        state: 'pending',
+      };
+      if (current.some((entry) => entry.type === 'question' && entry.toolUseId === evt.toolUseId)) {
+        return current.map((entry) => (
+          entry.type === 'question' && entry.toolUseId === evt.toolUseId ? next : entry
+        ));
+      }
+      return current.concat(next);
+    }
+
+    case 'question-resolved':
+      return current.map((entry) => {
+        if (entry.type !== 'question' || entry.toolUseId !== evt.toolUseId) return entry;
+        return {
+          ...entry,
+          state: evt.outcome === 'answered' ? 'answered' : 'cancelled',
+          ...(evt.answers ? { answers: evt.answers } : {}),
+        };
+      });
+
+    case 'turn-end':
+      return current;
+
+    case 'error':
+      return current.concat({
+        id: nextId(current, 'error'),
+        type: 'error',
+        kind: evt.kind,
+        code: evt.code || null,
+        message: evt.message || '',
+        detail: evt.detail || null,
+        turnId: evt.turnId || null,
+        dispatchState: evt.dispatchState || null,
+      });
+
+    default:
+      return current;
+  }
+}

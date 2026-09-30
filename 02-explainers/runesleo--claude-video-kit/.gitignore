@@ -1,0 +1,32 @@
+node_modules/
+out/
+checkpoints/
+experiments/hyperframes/upstream/
+docs/plans/
+**/*.wav
+**/*.mp4
+**/*.mp3
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.local
+.DS_Store
+examples/*/metadata.json
+examples/*/workspace/
+!examples/schoger-demo/script.json
+
+# Pipeline artifacts (generated, do not commit)
+workspace/
+remotion/public/*.wav
+remotion/public/*.png
+remotion/public/*.jpeg
+remotion/public/*.jpg
+remotion/public/captions.json
+
+# Distribute outputs (Leo-specific content; do not commit to upstream)
+examples/*/distribute/
+examples/*/distribute.zip
+**/review-result.json
+**/video-explainer-result.json
+.env

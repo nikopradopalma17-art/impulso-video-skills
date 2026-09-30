@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{TITLE}}</title>
+  <!-- CRITICAL: always link runtime/styles.css FIRST so the white-on-dark
+       defaults and `:root { --mvm-bg / --mvm-text }` tokens are loaded
+       before any author overrides. -->
+  <link rel="stylesheet" href="../runtime/styles.css" />
+  <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+  <style>
+    /* ============================================================
+     * Author-side overrides — keep changes here.
+     *
+     * COLOR CONTRACT (do NOT break these):
+     *  • #stage defaults to background #0a0a0f / text #ffffff.
+     *  • Every text element under #stage inherits white automatically.
+     *  • If you set `background: white/light` on ANY element, ALSO set
+     *    `color: dark` on that element. The runtime contrast checker
+     *    (contrast-check.js) will console.warn otherwise.
+     *  • Easiest fix: use `.mvm-card-dark` / `.mvm-card-light` —
+     *    they pair background + text for guaranteed readability.
+     * ============================================================ */
+  </style>
+</head>
+<body class="mvm-preview">
+
+  <!-- Composition definition:
+       data-composition-id  unique id
+       data-width / height  pixel dimensions
+       data-fps             frames per second  (30 / 60)
+       data-duration        total seconds
+  -->
+  <div id="stage"
+       data-composition-id="{{ID}}"
+       data-width="1920"
+       data-height="1080"
+       data-fps="30"
+       data-duration="10">
+
+    <!-- 1. Background layer (shader / canvas / solid).  ALWAYS dark by
+         default — switch to a light theme by setting
+         `style="--mvm-bg: #f7f5ef; --mvm-text: #0a0a0f"` on #stage. -->
+    <div data-background="aurora"></div>
+
+    <!-- 2. Scene wrapper with built-in dark scrim that lifts text off
+         the shader. `data-hide-mode="visibility"` (default) keeps
+         already-visible siblings stable when others fade in. -->
+    <div class="scene scene-scrim"
+         data-clip data-hide-mode="visibility"
+         data-start="0" data-duration="10"
+         style="position: absolute; inset: 0; z-index: 10;">
+
+      <!-- Headlines inherit color from #stage automatically (white).
+           Pair `.title` (思源宋体 Black by default) with `.text-readable`
+           when the background is busy. -->
+      <h1 class="title text-aurora text-readable"
+          data-clip
+          data-start="0.2"
+          data-duration="9"
+          data-text-animation="split-text"
+          data-stagger="0.06"
+          data-char-duration="0.9">你好，世界</h1>
+
+      <p class="subtitle"
+         data-clip
+         data-start="1.4"
+         data-duration="8"
+         data-animation="unmaskUp"
+         data-in-duration="0.8"
+         data-easing="easeInOutQuart">由 motion-video-maker 制作</p>
+    </div>
+
+    <!-- 3. Optional letter-box / frame overlay (always above content) -->
+    <div class="frame"></div>
+
+  </div>
+
+  <!-- Runtime — load order matters:
+       spring → timeline → components → shaders → transitions → effects →
+       gsap (core + plugins) → gsap-bridge → contrast/layout checks.
+
+       The GSAP scripts are OPTIONAL — drop any plugin you don't use to
+       keep the page light.  Bridge tolerates a missing plugin and only
+       warns when you actually try to use a data-* attribute that needs it.
+       The bridge MUST come AFTER all gsap files and AFTER timeline.js
+       (because it proxies into the mvm easing table). -->
+  <script src="../runtime/spring.js"></script>
+  <script src="../runtime/timeline.js"></script>
+  <script src="../runtime/components.js"></script>
+  <script src="../runtime/shaders.js"></script>
+  <script src="../runtime/transitions.js"></script>
+  <script src="../runtime/effects.js"></script>
+
+  <!-- GSAP core + plugins (all free, MIT/no-fee since Webflow's
+       GSAP acquisition; no Club, no auth token, no private registry). -->
+  <script src="../runtime/gsap/gsap.min.js"></script>
+  <script src="../runtime/gsap/CustomEase.min.js"></script>
+  <script src="../runtime/gsap/CustomWiggle.min.js"></script>
+  <script src="../runtime/gsap/CustomBounce.min.js"></script>
+  <script src="../runtime/gsap/EasePack.min.js"></script>
+  <script src="../runtime/gsap/DrawSVGPlugin.min.js"></script>
+  <script src="../runtime/gsap/MorphSVGPlugin.min.js"></script>
+  <script src="../runtime/gsap/MotionPathPlugin.min.js"></script>
+  <script src="../runtime/gsap/Physics2DPlugin.min.js"></script>
+  <script src="../runtime/gsap/PhysicsPropsPlugin.min.js"></script>
+  <script src="../runtime/gsap/Flip.min.js"></script>
+  <script src="../runtime/gsap/SplitText.min.js"></script>
+  <script src="../runtime/gsap/ScrambleTextPlugin.min.js"></script>
+  <script src="../runtime/gsap/TextPlugin.min.js"></script>
+  <script src="../runtime/gsap-bridge.js"></script>
+
+  <script src="../runtime/contrast-check.js"></script>
+  <script src="../runtime/layout-check.js"></script>
+</body>
+</html>

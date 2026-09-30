@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.4.0",
+  "project_slug": "iceberg-vox-minimal",
+  "assets": [
+    {
+      "id": "paper-substrate",
+      "role": "plate",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#paper-substrate",
+      "status": "approved",
+      "notes": "暖白纸面 + 半调圆点 + 固定种子噪点，两场共享的 substrate"
+    },
+    {
+      "id": "water-field",
+      "role": "prop",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#water-field",
+      "status": "approved",
+      "notes": "#2E6FA8 蓝色撕裂边纸带；s01 为水面，s02 复用为底部轨道，即转场继承锚点"
+    },
+    {
+      "id": "iceberg-cutout",
+      "role": "cutout",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#iceberg-cutout",
+      "status": "approved",
+      "alpha_checked": true,
+      "notes": "白色剪纸冰山，水上峰与水下体一体，RGBA alpha 由 PIL 多边形生成"
+    },
+    {
+      "id": "waterline-annotation",
+      "role": "annotation",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#waterline-annotation",
+      "status": "approved",
+      "notes": "横贯画面的虚线水线 + 三角箭头 + 「水面」小字，trace 描画入场"
+    },
+    {
+      "id": "buoyancy-data-bar",
+      "role": "data",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#buoyancy-data-bar",
+      "status": "approved",
+      "notes": "竖向 10/90 比例条：红段=水上，蓝段=水下，数字 10% 与 90% 为确定性文字"
+    },
+    {
+      "id": "balance-prop",
+      "role": "prop",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#balance-prop",
+      "status": "approved",
+      "notes": "纸天平：支点三角 + 横梁 + 两端托盘，横梁绕支点 pivot 倾斜"
+    },
+    {
+      "id": "ice-cube",
+      "role": "cutout",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#ice-cube",
+      "status": "approved",
+      "alpha_checked": true,
+      "notes": "白色撕裂边纸方块（冰），RGBA alpha 由 PIL 生成，与水块同尺寸"
+    },
+    {
+      "id": "water-cube",
+      "role": "prop",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#water-cube",
+      "status": "approved",
+      "notes": "蓝色撕裂边纸方块（水），与冰块同尺寸，落在天平右侧"
+    },
+    {
+      "id": "tilt-annotation",
+      "role": "annotation",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#tilt-annotation",
+      "status": "approved",
+      "notes": "天平右侧的向下弧线箭头 + 「更重的一侧下沉」小字"
+    },
+    {
+      "id": "density-data",
+      "role": "data",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#density-data",
+      "status": "approved",
+      "notes": "密度数字条：冰 917 kg/m³ / 水 1000 kg/m³，确定性文字"
+    },
+    {
+      "id": "scene-title-type",
+      "role": "type",
+      "source_kind": "code-native",
+      "path": "tools/build_example_media.py#scene-title-type",
+      "status": "approved",
+      "notes": "场景命题印章：msyh 确定性中文文字，stamp 入场，两场各一句"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+ "name": "remotion-koubo-studio",
+ "version": "1.0.0",
+ "description": "Remotion 口播 MG 剪辑工程（由 jc-remotion-skills 生成）",
+ "private": true,
+ "dependencies": {
+ "@fontsource/archivo-black": "^5.2.8",
+ "@fontsource/inter": "^5.2.8",
+ "@fontsource/noto-sans-sc": "^5.2.9",
+ "@remotion/cli": "4.0.489",
+ "@remotion/tailwind-v4": "4.0.489",
+ "lucide-react": "^1.24.0",
+ "react": "^19.2.3",
+ "react-dom": "^19.2.3",
+ "remotion": "4.0.489",
+ "tailwindcss": "4.0.0"
+ },
+ "devDependencies": {
+ "@types/react": "19.2.7",
+ "@types/web": "0.0.166",
+ "typescript": "5.9.3"
+ },
+ "scripts": {
+ "dev": "remotion studio",
+ "build": "remotion bundle"
+ },
+ "sideEffects": [
+ "*.css",
+ "src/design/fonts.ts",
+ "**/fonts.ts"
+ ]
+}

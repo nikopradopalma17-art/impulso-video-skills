@@ -1,0 +1,220 @@
+skill:
+  meta:
+    id: "skill.clipforge.stage6-production"
+    version: "1.2.0"
+    type: EXECUTIVE
+    tags: ["html", "render", "video"]
+    rigor: STRICT
+  intent:
+    objective: "HTML 场景就绪，视频已渲染输出"
+    criteria:
+      - "index.html 存在且包含所有场景"
+      - "所有场景使用三层架构"
+      - "GSAP timeline 已正确注册"
+  boundary:
+    rules:
+      - ref: "R-G-*"
+      - ref: "R-C-*"
+      - ref: "R-R-*"
+      - ref: "R-S6-*"
+    preferences:
+      - text: "特效、布局和视觉表达从内容自主推导，不查表套用"
+        weight: "HIGH"
+  guard:
+    red_flags:
+      - thought: "这个效果用 CSS animation 更简单"
+        reality: "HyperFrames seek 不执行 CSS animation，所有入场必须用 GSAP"
+        trigger: "试图使用 CSS animation 做入场"
+      - thought: "三层架构太麻烦，直接写内容就行"
+        reality: "三层是正确结构，扁平化会导致渲染异常和视觉分层混乱"
+        trigger: "试图省略三层架构"
+      - thought: "bg 层用 glow+grid 三件套就够了，反正渲染出来差别不大"
+        reality: "H.264 编码后低质量 bg 差异极小，必须有纹理/光束/粒子等丰富元素才有效。R-R-009 已升级为 HARD 门禁"
+        trigger: "试图用 glow+grid 三件套作为唯一 bg 方案"
+      - thought: "相邻场景用同样的渐变没关系，反正内容不同"
+        reality: "视觉同质化导致观众疲劳，R-R-010 要求相邻场景 bg 必须有可区分的差异"
+        trigger: "连续场景使用相同的 bg 渐变色值"
+      - thought: "padding 设两层更安全"
+        reality: "双重 padding 是最常见的渲染事故，只设一层"
+        trigger: "试图同时设置 scene-wrap 和 .phase 的 padding"
+      - thought: "window.__hf 是可选的，HyperFrames 会自动处理"
+        reality: "__hf 是 HyperFrames 渲染的必需 API，缺少会导致 45s 超时后渲染崩溃（HARD，gate: hf_api_present）"
+        trigger: "完成 HTML 编写但未注入 window.__hf"
+      - thought: "场景 div 不需要 id，用 class 选择器就行"
+        reality: "GSAP 动画使用 #sN .xxx 选择器，缺少 id 会导致场景动画静默丢失，尤其是首尾关键场景"
+        trigger: "场景包裹 div 未设置 id=\"sN\" 属性"
+      - thought: "用 CSS .scene-wrap{opacity:0} + .active{opacity:1} 控制场景切换"
+        reality: "HyperFrames 通过 GSAP timeline seek 驱动，不会添加/移除 CSS class。所有场景永远 opacity:0 → 黑屏。正确方式：GSAP timeline .set() 控制可见性"
+        trigger: "试图用 CSS class 切换场景可见性"
+      - thought: "渲染成功就代表视频没问题"
+        reality: "黑屏视频（所有帧相同颜色）码率极低（<500 kbps），HyperFrames 不报错但产出的视频无内容。必须检查码率"
+        trigger: "HyperFrames 渲染完成后未验证视频质量"
+      - thought: "fx 层放了几个 div 就够了，不需要动画"
+        reality: "纯静态 fx 元素在 H.264 编码后与背景融为一体，观众看不到任何特效。每个 fx 元素必须有 GSAP 动画（R-R-013 HARD）。组件库匹配不到就从内容推导创建新特效"
+        trigger: "试图在 layer-fx 中放置无 GSAP 动画的静态 div"
+      - thought: "用 section-tag 小标签标注场景类型，既清晰又省空间"
+        reality: "section-tag 小徽章（20-24px）看起来廉价，不符合竖屏视频的视觉冲击力。场景标题必须用标题层字号（竖屏≥64px），用字重和颜色区分（R-R-016 HARD）"
+        trigger: "试图添加 class='section-tag' 的小徽章标题"
+      - thought: "文字小一点没关系，反正内容都在"
+        reality: "竖屏 1080px 宽 ÷ 3 DPR ≈ 360px 手机宽度，36px 以下在手机端只有 9-12px 完全不可读（R-R-015 HARD）。字号是可读性底线，不是审美偏好"
+        trigger: "试图在竖屏内容层使用低于 36px 的字号"
+      - thought: "横屏空间大，字体可以小一些"
+        reality: "横屏在手机端播放时缩放比 ~2.67x，32px 缩放后只有 12px 是可读极限。横屏正文最低 32px，标注最低 24px（R-R-015 HARD）。32px 是底线不是目标，正文推荐 36-44px"
+        trigger: "试图在横屏内容层使用低于 32px 的字号"
+      - thought: "横屏纯白文字就够了，不需要渐变"
+        reality: "纯白/纯色文字在横屏宽幅画面上视觉平淡。标题应使用渐变色（background-clip:text）或高对比配色，横屏空间大必须用色彩丰富度弥补"
+        trigger: "横屏场景标题使用纯白色"
+      - thought: "横屏内容左对齐像文档一样更自然"
+        reality: "视频不是文档。横屏 1920px 宽幅下所有内容左对齐会导致视觉重心偏向一侧，另一侧空旷失衡。内容容器应居中（max-width+margin:0 auto），文字本身可以左对齐。双栏布局保持左右平衡（R-R-020 HARD）"
+        trigger: "横屏场景所有内容偏向画布一侧"
+      - thought: "bg 层我自己写 CSS 渐变就好，不需要用组件库"
+        reality: "bg 层必须使用组件库中的 bg 组件（R-R-021 HARD），保留 <!-- bg-component: NAME --> 标记。允许换色和叠加背景图片"
+        trigger: "试图自行编写 bg 层 CSS 而不使用组件库"
+      - thought: "background:linear-gradient(...) 简洁方便，效果一样"
+        reality: "CSS background 简写会重置 background-clip 回 border-box，导致 .grad-text 的 background-clip:text 失效。结果是渐变填满整个背景色块，color:transparent 隐藏文字——只看到色块看不到字（R-S6-021 HARD）。正确写法：background-image:linear-gradient(...)"
+        trigger: "在 .grad-text 元素上使用 background: 简写属性"
+    spirit_vs_letter:
+      - rule_ref: "R-S6-*"
+        mode: LETTER
+        intent: "HTML 结构规则是流程层硬约束：三层架构、单层 padding、GSAP timeline"
+      - rule_ref: "R-R-*"
+        mode: LETTER
+        intent: "渲染管线约束：HTML 实体净化、禁用 anim-in、cover.html 渲染前移除"
+      - rule_ref: "R-C-*"
+        mode: SPIRIT
+        intent: "视觉设计享有最大自由度：配色、布局、动效从内容自主推导"
+  gate:
+    hard:
+      - gate: file_exists
+        params:
+          files: ["index.html"]
+      - gate: hf_api_present
+        params:
+          file: "index.html"
+      - gate: scene_ids_match
+        params:
+          html_file: "index.html"
+          segments_file: "narration_segments.json"
+      - gate: composition_structure
+        params:
+          file: "index.html"
+      - gate: root_attributes_complete
+        params:
+          file: "index.html"
+      - gate: output_no_bgm_valid
+        params:
+          bgm_file: "output.mp4"
+          no_bgm_file: "output_no_bgm.mp4"
+      - gate: bg_component_source
+        params:
+          file: "index.html"
+      - gate: bg_visual_diversity
+        params:
+          file: "index.html"
+      - gate: adjacent_bg_diversity
+        params:
+          file: "index.html"
+      - gate: fx_layer_not_empty
+        params:
+          file: "index.html"
+      - gate: html_no_css_visibility
+        params:
+          file: "index.html"
+      - gate: video_bitrate_valid
+        params:
+          file: "output.mp4"
+          min_bitrate_kbps: 500
+      - gate: data_duration_source_valid
+        params:
+          html_file: "index.html"
+          segments_file: "segment_durations.json"
+          tolerance: 0.5
+      - gate: fx_animation_present
+        params:
+          file: "index.html"
+      - gate: portrait_typography_valid
+        params:
+          file: "index.html"
+      - gate: phase_timings_valid
+        params:
+          file: "phase_timings.json"
+          max_gap: 0.5
+      - gate: bgm_not_exceeds_narration
+        params:
+          bgm_file: "bgm.wav"
+          segments_file: "segment_durations.json"
+          narration_file: "narration.mp3"
+          tolerance: 0.15
+      - gate: orientation_consistency
+        params:
+          file: "index.html"
+      - gate: grad_text_shorthand_valid
+        params:
+          file: "index.html"
+      - gate: phase_visibility_present
+        params:
+          html_file: "index.html"
+          segments_file: "narration_segments.json"
+      - gate: no_real_person_name
+        params:
+          files: ["index.html"]
+      - gate: no_school_name
+        params:
+          files: ["index.html"]
+      - gate: no_app_name
+        params:
+          files: ["index.html"]
+      - gate: no_competitor_attack
+        params:
+          files: ["index.html"]
+      - gate: no_search_cta
+        params:
+          files: ["index.html", "narration.txt"]
+      - gate: no_forbidden_speech
+        params:
+          files: ["index.html"]
+      - gate: gradient_text_no_dark_shadow
+        params:
+          file: "index.html"
+      - gate: pre_render_deps
+        params: {}
+      - gate: html_structure_valid
+        params:
+          file: "index.html"
+      - gate: safe_area_bounds
+        params:
+          file: "index.html"
+      - gate: narration_audio_embedded
+        params:
+          file: "index.html"
+      - gate: delayed_animation_init
+        params:
+          file: "index.html"
+      - gate: output_media_valid
+        params:
+          files: ["output.mp4"]
+      - gate: visual_phases_completeness
+        params:
+          segments_file: "segment_durations.json"
+          narration_file: "narration_segments.json"
+      - gate: no_global_text_shadow
+        params:
+          file: "index.html"
+      - gate: safezone_rendered
+        params: {}
+    soft:
+      - gate: phase_anchor_coverage
+        params:
+          file: "phase_timings.json"
+          max_auto_ratio: 0.5
+      - gate: font_consistency
+        params:
+          file: "index.html"
+      - gate: list_alignment_valid
+        params:
+          file: "index.html"
+    max_retries: 2
+  trace:
+    capture: true
+    level: FULL
+    sensitive_fields: []

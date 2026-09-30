@@ -1,0 +1,58 @@
+# 视频生成工作目录（项目文件、渲染产物、音视频素材）
+workspace/
+
+# Node
+node_modules/
+package-lock.json
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 环境变量
+.env
+.env.local
+
+# 个人定时任务配置（通过 /clipforge-category-setup 生成）
+.claude/commands/github-daily-trending.md
+.claude/commands/github-weekly-trending.md
+.claude/commands/github-weekly-zhihu.md
+.claude/commands/*-daily-*.md
+.claude/commands/*-weekly-*.md
+.claude/commands/goldminer.md
+
+
+.idea/
+
+.idea/agents/
+.claude/skills/
+skills-lock.json
+.claude/scheduled_tasks.json
+.claude/scheduled_tasks.lock
+
+.agents/
+
+# Claude Code worktree 隔离副本（并行 Agent 临时目录）
+.claude/worktrees/
+
+# FFmpeg loudnorm 中间产物
+loudnorm_stats.json
+
+# Python
+__pycache__/
+*.pyc
+
+# 引擎执行轨迹
+.claude/commands/clipforge/traces/
+
+# 引擎运行时 Delta（规则增量变更产物）
+.claude/commands/clipforge/deltas/
+# 引擎运行时命中率持久化
+.claude/commands/clipforge/hit_counts.json
+
+# 本地大字体文件（不入库）。build_font_faces 三级回退获取：
+# assets/fonts → $CLIPFORGE_FONTS_DIR（用户本地字体目录，如 E:\字体）→ 自动下载到 hyperframes cache（克隆者首次渲染）
+.claude/commands/clipforge/assets/fonts/
+
+.local
+docs/superpowers/

@@ -1,0 +1,62 @@
+{
+  "_fixture": {
+    "classification": "synthetic-contract-vector",
+    "runtimeEvidence": false,
+    "compatibilityEvidence": false
+  },
+  "request": {
+    "wireVersion": 1,
+    "kind": "request",
+    "sessionId": "11111111-1111-4111-8111-111111111111",
+    "requestId": "capabilities-1",
+    "method": "capabilities",
+    "params": {
+      "detail": "summary",
+      "limit": 50
+    }
+  },
+  "response": {
+    "wireVersion": 1,
+    "kind": "response",
+    "sessionId": "11111111-1111-4111-8111-111111111111",
+    "requestId": "capabilities-1",
+    "method": "capabilities",
+    "ok": true,
+    "replayed": false,
+    "result": {
+      "detail": "summary",
+      "items": [
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "summary",
+          "id": "ae.native.exec",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "Load builtin:skill:ae-execution-guide before composing a native program."
+          ],
+          "primitiveCount": 23,
+          "requiredSkill": "builtin:skill:ae-execution-guide",
+          "requiredSuite": "generated-primitive-union",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Runs one bounded native AEGP program; writes use one AE Undo group.",
+          "summary": "Execute a bounded native AEGP program. Load the default execution guide before composing operations.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1
+        }
+      ],
+      "nextCursor": null,
+      "queryDigest": "08059a819d9635e9e11a0679029ce979a00ed5ee00c94454a33cc92373924041",
+      "capabilitiesDigest": "f2c60f51f366a9111c818ae6af6ca1c135e1f66ad276fd3c6e9c93961e5ddb9a"
+    }
+  }
+}

@@ -1,0 +1,83 @@
+skill:
+  meta:
+    id: "skill.clipforge.stage3-scenes"
+    version: "1.2.0"
+    type: EXECUTIVE
+    tags: ["scenes", "narration"]
+    rigor: STANDARD
+  intent:
+    objective: "旁白文案就绪，场景拆分和节奏设计完成"
+    criteria:
+      - "narration_segments.json 存在且为合法 JSON 数组"
+      - "hook 场景为纯钩子"
+      - "总字数在目标范围内"
+  boundary:
+    rules:
+      - ref: "R-G-*"
+      - ref: "R-C-*"
+      - ref: "R-S3-*"
+    preferences:
+      - text: "场景节奏和情绪起伏从内容自然推导"
+        weight: "MEDIUM"
+  guard:
+    red_flags:
+      - thought: "hook 里顺便介绍一下背景"
+        reality: "前 3 秒是生死线，任何信息性内容都会削弱钩子冲击力"
+        trigger: "试图在 hook 场景加入正文内容"
+      - thought: "场景数量和节奏差不多就行"
+        reality: "节奏是视频质量的根本，必须严格按 emotion_curve 设计"
+        trigger: "试图跳过节奏设计"
+      - thought: "把 hook 写得抽象/有格调（如'几个猛项目''替你跑全流程''方向挺杂'）"
+        reality: "抽象文案=0 信息增量，观众1秒划走；具象数字+反直觉收益 c5s 高（6月0.42 vs 7月0.22，drill-c5s 验证）"
+        trigger: "试图用比喻/形容词/宏大叙事/元铺垫（今天讲什么）替代具体数据/对比/冲突"
+    spirit_vs_letter:
+      - rule_ref: "R-S3-*"
+        mode: LETTER
+        intent: "hook 结构是流程层硬约束：前 3 秒纯钩子，不放信息性内容"
+      - rule_ref: "R-G-003"
+        mode: LETTER
+        intent: "旁白音色是流程层约束：固定 YunjianNeural，禁止播报腔"
+      - rule_ref: "R-C-*"
+        mode: SPIRIT
+        intent: "场景内容设计享有最大自由度，从内容自主推导叙事节奏"
+  gate:
+    hard:
+      - gate: file_exists
+        params:
+          files: ["narration_segments.json"]
+      - gate: json_valid
+        params:
+          files: ["narration_segments.json"]
+      - gate: hook_pattern_verified
+        params:
+          file: "narration_segments.json"
+      - gate: no_forbidden_speech
+        params:
+          files: ["narration.txt"]
+      - gate: no_real_person_name
+        params:
+          files: ["narration.txt"]
+      - gate: no_school_name
+        params:
+          files: ["narration.txt"]
+      - gate: no_app_name
+        params:
+          files: ["narration.txt"]
+      - gate: no_competitor_attack
+        params:
+          files: ["narration.txt"]
+      - gate: no_meta_instruction
+        params:
+          files: ["narration.txt"]
+    soft:
+      - gate: narration_translation_pattern
+        params:
+          files: ["narration.txt"]
+      - gate: narration_emotion_type_valid
+        params:
+          file: "narration_segments.json"
+    max_retries: 2
+  trace:
+    capture: true
+    level: FULL
+    sensitive_fields: []

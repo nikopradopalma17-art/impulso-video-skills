@@ -1,0 +1,36 @@
+{
+  "name": "jincheng-skills",
+  "owner": {
+    "name": "jincheng2026"
+  },
+  "metadata": {
+    "description": "口播视频 MG 剪辑的规则体系与工程管线：粗剪+SRT 到成片，含版式分区、信息层级、动效时长、密度节奏四套实测规格与渲染/QC/音效/字幕工具链",
+    "version": "1.2.0"
+  },
+  "plugins": [
+    {
+      "name": "remotion-koubo",
+      "description": "口播 MG 剪辑全套：装配流水线 + 设计系统 + 素材工程 + 音效 + 风格保真 + 错题集，共 6 个 skill。首次使用时自动检查并准备 Remotion 工程环境。",
+      "source": "./",
+      "strict": false,
+      "version": "1.2.0",
+      "category": "video-editing",
+      "keywords": [
+        "remotion",
+        "video",
+        "motion-graphics",
+        "editing",
+        "subtitle",
+        "chinese"
+      ],
+      "skills": [
+        "./skills/remotion-assembly",
+        "./skills/remotion-design-system",
+        "./skills/remotion-broll",
+        "./skills/remotion-sfx",
+        "./skills/remotion-reference-fidelity",
+        "./skills/remotion-gotchas-index"
+      ]
+    }
+  ]
+}

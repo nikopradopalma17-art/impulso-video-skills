@@ -1,0 +1,373 @@
+import { LitElement, PropertyValues, html } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import { atPlayhead, importPathsAt } from "./importDrop";
+import { getLocationEnv } from "../../functions/getLocationEnv";
+import { IAssetStore, assetStore } from "../../states/assetStore";
+import { projectStore } from "../../states/projectStore";
+import { LocaleController } from "../../controllers/locale";
+import {
+  AssetEntry,
+  joinPath,
+  parentDirectory,
+  readDirectory,
+} from "./directoryEntries";
+import { AssetSort, sortAssetEntries } from "./assetSort";
+import "./switchShowType";
+import "./assetList";
+import "./assetSortMenu";
+
+type LoadStatus = "idle" | "loading" | "loaded" | "error";
+
+/**
+ * Opens the folder picker and points both the project root and the browse
+ * cursor at the result.
+ *
+ * Lives here rather than in `functions/directory.ts` so that everything which
+ * decides "what is the asset panel showing" sits in one file. `ControlSetting`
+ * imports it for its own "select project folder" button.
+ *
+ * The same function serves the empty state and the toolbar button, so changing
+ * folder later is the identical action to picking the first one. Nothing on the
+ * timeline moves: a clip holds an absolute `localpath`, and `projectFolder` is
+ * only where renders are written.
+ */
+export async function selectProjectFolder(): Promise<void> {
+  if (getLocationEnv() == "demo") {
+    const toast: any = document.querySelector("toast-box");
+    toast?.showToast({
+      message: "The folder cannot be viewed in the demo version.",
+      delay: "3000",
+    });
+    return;
+  }
+
+  const picked = await window.electronAPI.req.dialog.openDirectory();
+
+  let dir = "";
+  if (getLocationEnv() == "web") {
+    // The web shim has no real picker, so the last visited folder is the only
+    // thing worth reopening.
+    dir = localStorage.getItem("targetDirectory") || "/";
+  } else {
+    // Cancelling the dialog answers `undefined`. Leave the panel exactly where
+    // it was: this is offered from an already open folder now, and the old
+    // `picked || "/"` threw the user out to the filesystem root for pressing
+    // Escape.
+    if (!picked) {
+      return;
+    }
+
+    dir = String(picked);
+  }
+
+  projectStore.getState().updateProjectFolder(dir);
+
+  // The `#projectFolder` input this used to mirror into is gone with the
+  // settings panel's own picker, and nothing reads it any more — `event.ts` and
+  // `Modal.ts`, the two the mirror existed for, both stopped. `projectStore`
+  // above is the one answer to "where is the project" now.
+
+  assetStore.getState().setDirectory(dir);
+}
+
+@customElement("asset-browser")
+export class AssetBrowser extends LitElement {
+  @state()
+  nowDirectory = assetStore.getState().nowDirectory;
+
+  @state()
+  entries: AssetEntry[] = [];
+
+  @state()
+  status: LoadStatus = "idle";
+
+  @state()
+  errorMessage = "";
+
+  @state()
+  showType = assetStore.getState().showType;
+
+  @state()
+  sort: AssetSort = assetStore.getState().sort;
+
+  /**
+   * `entries` in `sort`'s order, recomputed in `willUpdate` when either
+   * changes. A new sort re-orders what was read and never reads the disk.
+   */
+  private sorted: AssetEntry[] = [];
+
+  private lc = new LocaleController(this);
+  private unsubscribe?: () => void;
+  private observer?: IntersectionObserver;
+  private loadedRevision = assetStore.getState().directoryRevision;
+
+  /**
+   * Whether this panel has ever been on screen.
+   *
+   * It mounts at app startup inside a `display: none` tab pane and Lit has no
+   * reason to re-render when the pane is finally shown, so without this the
+   * folder is read, and every `lstat` in it issued, for a session that never
+   * opens the Asset tab. The same gate `templateBrowser`, `lutBrowser` and
+   * `animationPresetBrowser` each carry, and for the same reason.
+   *
+   * The tiles gate themselves separately, so this is not what stops the
+   * expensive half; it is what stops the disk read.
+   */
+  private seen = false;
+
+  createRenderRoot() {
+    this.unsubscribe = assetStore.subscribe((state: IAssetStore) => {
+      this.showType = state.showType;
+      // Replaced only on a real change, so Lit's identity check is the whole
+      // test for whether to re-sort.
+      this.sort = state.sort;
+
+      if (state.directoryRevision != this.loadedRevision) {
+        this.loadedRevision = state.directoryRevision;
+        this.nowDirectory = state.nowDirectory;
+        // Remembered, not dropped: opening the tab later loads whatever the
+        // cursor has arrived at by then.
+        if (this.seen) {
+          this.loadDirectory(state.nowDirectory, state.directoryRevision);
+        }
+      }
+    });
+
+    return this;
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+
+    this.observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) {
+        return;
+      }
+      this.observer?.disconnect();
+      this.observer = undefined;
+
+      this.seen = true;
+      const state = assetStore.getState();
+      this.nowDirectory = state.nowDirectory;
+      this.loadDirectory(state.nowDirectory, state.directoryRevision);
+    });
+    this.observer.observe(this);
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.unsubscribe?.();
+    this.observer?.disconnect();
+    this.observer = undefined;
+  }
+
+  private async loadDirectory(dir: string, revision: number) {
+    if (dir == "") {
+      this.entries = [];
+      this.status = "idle";
+      return;
+    }
+
+    this.status = "loading";
+    this.errorMessage = "";
+
+    try {
+      const entries = await readDirectory(dir);
+
+      // A faster click may have already asked for somewhere else; that request
+      // owns the panel now, so this reply is dropped rather than painted.
+      if (this.isStale(revision)) {
+        return;
+      }
+
+      this.entries = entries;
+      this.status = "loaded";
+
+      if (getLocationEnv() == "web") {
+        localStorage.setItem("targetDirectory", dir);
+      }
+    } catch (error) {
+      if (this.isStale(revision)) {
+        return;
+      }
+
+      this.entries = [];
+      this.status = "error";
+      this.errorMessage =
+        error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  private isStale(revision: number): boolean {
+    return assetStore.getState().directoryRevision != revision;
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    if (changed.has("entries") || changed.has("sort")) {
+      this.sorted = sortAssetEntries(this.entries, this.sort);
+    }
+  }
+
+  /**
+   * A new order starts at the top: "Largest First" is a request to see the
+   * largest file, and the row it is on is the first one. The first render is
+   * not a change of order, so it leaves the pane where it was.
+   */
+  protected updated(changed: PropertyValues): void {
+    if (changed.has("sort") && changed.get("sort") !== undefined) {
+      this.closest(".tab-content")?.scrollTo({ top: 0 });
+    }
+  }
+
+  render() {
+    return html`<div class="browse-bar is-floating">
+        <button
+          type="button"
+          class="browse-btn"
+          title=${this.lc.t("setting.parent_folder")}
+          aria-label=${this.lc.t("setting.parent_folder")}
+          ?disabled=${parentDirectory(this.nowDirectory) == null}
+          @click=${this.handleClickPrevDirectory}
+        >
+          <span class="material-symbols-outlined">arrow_upward</span>
+        </button>
+
+        ${this.templatePath()}
+
+        <button
+          type="button"
+          class="browse-btn ${getLocationEnv() == "demo" ? "d-none" : ""}"
+          data-tutorial="asset-change-folder"
+          title=${this.lc.t("setting.change_project_folder")}
+          aria-label=${this.lc.t("setting.change_project_folder")}
+          @click=${this.handleClickSelectFolder}
+        >
+          <span class="material-symbols-outlined">folder_open</span>
+        </button>
+
+        <asset-sort-menu></asset-sort-menu>
+
+        <switch-showtype></switch-showtype>
+      </div>
+
+      <div @asset-navigate=${this.handleNavigate} @asset-open=${this.handleOpen}>
+        ${this.templateBody()}
+      </div>`;
+  }
+
+  /**
+   * Where the panel is, as a path whose folder name is the part that shows.
+   *
+   * A read-only field in the search box's shell rather than a disabled
+   * `<input>`: an input clips the end of its value, which is the folder's own
+   * name, and `_browse.scss#browse-path` clips the start instead. The whole
+   * path is the tooltip.
+   */
+  private templatePath() {
+    // No folder yet: the shell alone, since the empty state under it already
+    // says what to do and saying it twice reads as two different problems.
+    const path = this.nowDirectory;
+    if (path == "") {
+      return html`<div class="browse-field browse-field-path">
+        <span class="material-symbols-outlined browse-field-icon">folder</span>
+      </div>`;
+    }
+
+    // Split after the last separator that has something after it, so a root
+    // ("/", "C:\") still shows as itself rather than as an empty leaf.
+    const trimmed = path.replace(/[\\/]+$/, "");
+    const cut = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\"));
+    const leaf = cut < 0 ? path : trimmed.slice(cut + 1) || path;
+    const parent = cut < 0 ? "" : trimmed.slice(0, cut + 1);
+
+    return html`<div class="browse-field browse-field-path" title=${path}>
+      <span class="material-symbols-outlined browse-field-icon">folder</span>
+      <span class="browse-path"
+        ><bdi dir="ltr"
+          >${parent}<span class="browse-path-leaf">${leaf}</span></bdi
+        ></span
+      >
+    </div>`;
+  }
+
+  private templateBody() {
+    if (this.status == "idle") {
+      return this.templateEmpty();
+    }
+
+    if (this.status == "error") {
+      return html`<div class="browse-empty">
+        <div class="browse-empty-icon">
+          <span class="material-symbols-outlined">folder_off</span>
+        </div>
+        <div class="browse-empty-title">Could not read this folder</div>
+        <div class="browse-empty-text">${this.errorMessage}</div>
+      </div>`;
+    }
+
+    return html`<asset-list
+      .entries=${this.sorted}
+      .directory=${this.nowDirectory}
+      .showType=${this.showType}
+      .sort=${this.sort}
+    ></asset-list>`;
+  }
+
+  private templateEmpty() {
+    const isDemo = getLocationEnv() == "demo";
+
+    // A `<button>` with the label as its text: `tests/e2e/harness/ui.ts` finds
+    // it as `asset-browser button` by "Select Folder".
+    return html`<div class="browse-empty">
+      <div class="browse-empty-icon">
+        <span class="material-symbols-outlined">folder_open</span>
+      </div>
+      <div class="browse-empty-title">
+        ${isDemo
+          ? "The folder cannot be viewed in the demo version."
+          : this.lc.t("setting.need_select_project_folder")}
+      </div>
+      <button
+        type="button"
+        class="browse-text-btn is-primary ${isDemo ? "d-none" : ""}"
+        data-tutorial="asset-select-folder"
+        @click=${this.handleClickSelectFolder}
+      >
+        ${this.lc.t("setting.select_project_folder")}
+      </button>
+    </div>`;
+  }
+
+  private handleClickSelectFolder() {
+    selectProjectFolder();
+  }
+
+  private handleNavigate(event: CustomEvent) {
+    const target = joinPath(this.nowDirectory, event.detail.name);
+    assetStore.getState().setDirectory(target);
+  }
+
+  /**
+   * Opening an asset puts it on the timeline at the playhead.
+   *
+   * `importPathsAt` is where the drag out of this same panel already lands
+   * (`elementTimelineCanvas`'s `"asset"` drop intent), and clicking has to
+   * agree with dragging. It also has to go through `probeMedia`, because that
+   * is the only reader that measures a file whose container states no length: a
+   * `MediaRecorder` capture answers `duration: Infinity`, and a clip with an
+   * infinite span is drawn by nothing, since every Canvas2D call with a
+   * non-finite argument is a silent no-op.
+   */
+  private handleOpen(event: CustomEvent) {
+    void importPathsAt([event.detail.path], atPlayhead());
+  }
+
+  private handleClickPrevDirectory() {
+    const parent = parentDirectory(this.nowDirectory);
+    if (parent == null) {
+      return;
+    }
+
+    assetStore.getState().setDirectory(parent);
+  }
+}

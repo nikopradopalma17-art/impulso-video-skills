@@ -1,0 +1,41 @@
+{
+  "video": "visual/vox/renders/s01-playable.mp4",
+  "duration": 6.0,
+  "metadata": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 1920,
+        "height": 1080,
+        "r_frame_rate": "30/1"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "6.000000"
+    }
+  },
+  "checkpoints": {
+    "entry": 0.12,
+    "build": 2.04,
+    "settled": 4.32,
+    "exit": 5.88
+  },
+  "frames": {
+    "entry": "visual/vox/evidence/s01/entry.png",
+    "build": "visual/vox/evidence/s01/build.png",
+    "settled": "visual/vox/evidence/s01/settled.png",
+    "exit": "visual/vox/evidence/s01/exit.png"
+  },
+  "contact_sheet": "visual/vox/evidence/s01/contact-sheet.jpg",
+  "decode": "pass"
+}

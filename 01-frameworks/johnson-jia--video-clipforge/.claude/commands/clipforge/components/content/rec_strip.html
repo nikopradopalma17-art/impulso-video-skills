@@ -1,0 +1,119 @@
+<!--
+@ComponentMeta
+name: rec_strip
+layer: content
+tags: [recommendation, ranking, priority, verdict, tier]
+emotion_range: [certainty, guidance]
+visual_density: standard
+complexity: css-only
+description: 推荐条（三档优先级排列），从高到低展示机会评估或推荐排名，带评分标签
+parameters: {}
+/ComponentMeta
+-->
+<!-- HTML -->
+<div class="rec-wrap">
+  <div class="rec-heading">
+    <span class="rec-white">创业机会</span>
+    <span class="rec-accent">优先级</span>
+  </div>
+  <div class="rec-sub">基于市场规模、竞争格局、技术成熟度三维评估</div>
+  <div class="rec-stack">
+    <div class="rec-item rec-top">
+      <div class="rec-icon">🥇</div>
+      <div class="rec-text">
+        <div class="rec-name">养老 AI 手环 / 眼镜</div>
+        <div class="rec-desc">蓝海 · 刚需 · 子女付费模式</div>
+      </div>
+      <div class="rec-score rec-score-g">A+</div>
+    </div>
+    <div class="rec-item rec-mid">
+      <div class="rec-icon">🥈</div>
+      <div class="rec-text">
+        <div class="rec-name">垂直场景 AI 眼镜</div>
+        <div class="rec-desc">B 端 · 高客单价 · 行业壁垒</div>
+      </div>
+      <div class="rec-score rec-score-b">B+</div>
+    </div>
+    <div class="rec-item rec-low">
+      <div class="rec-icon">🚫</div>
+      <div class="rec-text">
+        <div class="rec-name">通用消费 AI 眼镜</div>
+        <div class="rec-desc">大厂红海 · 高投入 · 低壁垒</div>
+      </div>
+      <div class="rec-score rec-score-d">D</div>
+    </div>
+  </div>
+  <div class="rec-conclusion">
+    <strong>结论</strong>：养老 AI 是唯一同时满足 <span class="rec-hl">刚需 + 蓝海 + 窗口期</span> 三个条件的方向
+  </div>
+</div>
+
+<!-- CSS -->
+<style>
+.rec-wrap {
+  display: flex; flex-direction: column;
+  align-items: center; width: 100%;
+}
+.rec-heading { font-size: 36px; font-weight: 900; margin-bottom: 12px; text-align: center; }
+.rec-white { color: var(--text-primary, #F9FAFB); }
+.rec-accent {
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.rec-sub { font-size: 34px; color: var(--text-dim, #6B7280); margin-bottom: 36px; }
+.rec-stack { width: 100%; display: flex; flex-direction: column; gap: 16px; margin-bottom: 28px; }
+.rec-item {
+  display: flex; align-items: center; gap: 20px;
+  border-radius: 16px; padding: 28px 32px;
+  border: 2px solid rgba(255,255,255,0.04);
+}
+.rec-top { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); }
+.rec-mid { background: rgba(59,130,246,0.06); border-color: rgba(59,130,246,0.12); }
+.rec-low { background: rgba(255,255,255,0.02); }
+.rec-icon { font-size: 40px; }
+.rec-text { flex: 1; }
+.rec-name { font-size: 38px; font-weight: 700; color: var(--text-primary, #F9FAFB); margin-bottom: 4px; }
+.rec-desc { font-size: 34px; color: var(--text-dim, #6B7280); }
+.rec-score { font-size: 32px; font-weight: 900; text-align: right; }
+.rec-score-g { color: #10B981; }
+.rec-score-b { color: #3B82F6; }
+.rec-score-d { color: var(--text-dim, #6B7280); }
+.rec-conclusion {
+  width: 100%;
+  background: rgba(16,185,129,0.05);
+  border: 1px solid rgba(16,185,129,0.1);
+  border-left: 5px solid #10B981;
+  border-radius: 0 14px 14px 0;
+  padding: 24px 32px;
+  font-size: 36px; line-height: 1.7;
+  color: var(--text-secondary, #9CA3AF);
+}
+.rec-conclusion strong { color: var(--text-primary, #F9FAFB); }
+.rec-hl { color: #F59E0B; font-weight: 700; }
+</style>
+
+<!-- JS (GSAP) -->
+<script>
+// Step 1: Heading scales in with punch
+tl.from('.rec-heading', {opacity:0, scale:0.4, y:-40, duration:0.45, ease:'back.out(2)'}, startTime)
+  // Step 2: Subtitle fades in
+  .from('.rec-sub', {opacity:0, y:10, duration:0.3, ease:'power4.out'}, startTime + 0.2)
+  // Step 3: Items slide in with alternating rotation
+  .from('.rec-item', {
+    opacity:0, x:-60, rotation:(i) => i % 2 === 0 ? -3 : 3,
+    duration:0.45, ease:'back.out(1.5)', stagger:0.1
+  }, startTime + 0.35)
+  // Step 4: Scores elastic pop
+  .from('.rec-score', {
+    opacity:0, scale:0, rotation:(i) => i % 2 === 0 ? -10 : 10,
+    duration:0.4, ease:'elastic.out(1, 0.5)', stagger:0.1
+  }, startTime + 0.6)
+  // Step 5: Icons bounce
+  .from('.rec-icon', {scale:0, opacity:0, duration:0.35, ease:'back.out(2.5)', stagger:0.1}, startTime + 0.45)
+  // Step 6: Conclusion wipes in with clip-path
+  .from('.rec-conclusion', {opacity:0, x:-40, clipPath:'inset(0 100% 0 0)', duration:0.5, ease:'power4.out'}, startTime + 1.0)
+  // Step 7: Highlight words glow
+  .fromTo('.rec-hl',
+    {textShadow:'0 0 0px transparent'},
+    {textShadow:'0 0 20px rgba(245,158,11,0.5)', duration:0.3, ease:'power2.out'}, startTime + 1.4);
+</script>

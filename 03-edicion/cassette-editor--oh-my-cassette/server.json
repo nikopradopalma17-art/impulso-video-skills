@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Cassette-Editor/oh-my-cassette",
+  "title": "Oh My Cassette",
+  "description": "Chat-driven AI video montage: beat-synced cuts, auto-matched music, subtitles, transitions.",
+  "version": "0.4.19",
+  "websiteUrl": "https://cassette-editor.github.io/oh-my-cassette/",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/main/assets/logo-400.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "400x400"
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/Cassette-Editor/oh-my-cassette",
+    "source": "github",
+    "id": "1265161922"
+  }
+}

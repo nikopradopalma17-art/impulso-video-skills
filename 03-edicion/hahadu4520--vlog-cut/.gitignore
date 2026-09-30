@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.vlog-cut/
+.venv/
+.pytest_cache/
+.DS_Store
+.claude/
+
+# real-world dogfood artefacts: keep the project out of git, but allow
+# proj/<name>/ subfolders if a future contributor adds an example with
+# a stripped-down checked-in version
+proj/
+
+# raw source clips for the user's own projects
+0501testvideo/
+
+# Heavy demo media stays out of git; small product screenshots are fine.
+docs/img/*.gif
+docs/img/*.mp4
+docs/img/*.png

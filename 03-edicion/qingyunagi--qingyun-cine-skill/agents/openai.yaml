@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qingyun Cinematic Video Editor"
+  short_description: "电影级预告片、卡点剪辑、叙事宣传片和海报的完整工作流"
+  default_prompt: "Use $qingyun-cine-skill to turn these source clips, music, dialogue, and logo into a polished cinematic trailer or beat-sync edit."

@@ -1,0 +1,230 @@
+<!--
+@ComponentMeta
+name: project_full_card
+layer: content
+tags: [project-card, listing, full-screen, single-project, avatar]
+emotion_range: [confidence, interest]
+visual_density: rich
+complexity: css-only
+description: 标准模式单项目全屏卡片，纵向三带（顶/中/底）justify-content:space-between 撑满 1920 安全区，9 层信息含 owner avatar 视觉锚点。禁单列居中（垂直利用率 33% 的旧布局已废弃）。
+parameters:
+  padding: { default: "180px 90px 220px 90px" }
+  avatar_path: { required: false, desc: "owner 头像 assets/avatars/{owner}.png；raw_trending.avatar_path 为 null 时整个 .pfc-avatar-wrap 省略，中部带 flex 自适应不塌" }
+/ComponentMeta
+-->
+<!-- HTML -->
+<div class="project-full-card">
+  <!-- 背景装饰 -->
+  <div class="pfc-glow pfc-glow-warm"></div>
+  <div class="pfc-glow pfc-glow-cool"></div>
+  <div class="pfc-grid"></div>
+
+  <!-- 顶部带：排名+类别 + 用途标签（利益前置，让观众一眼看到好处）+ 项目名 -->
+  <div class="pfc-top">
+    <div class="pfc-header-row">
+      <span class="pfc-rank">#01</span>
+      <span class="pfc-category">WiFi 黑科技</span>
+    </div>
+    <div class="pfc-use">家用路由器感知人体</div>
+    <div class="pfc-name"><span class="pfc-owner">example-owner /</span> <span class="pfc-repo">RuView</span></div>
+  </div>
+
+  <!-- 中部带：avatar 锚点 + 描述 + 涨星数据条（纵向填满中段） -->
+  <div class="pfc-mid">
+    <div class="pfc-avatar-wrap">
+      <div class="pfc-avatar-ring"></div>
+      <img class="pfc-avatar" src="assets/avatars/example-owner.png" alt="">
+    </div>
+    <div class="pfc-desc">WiFi 信号空间感知 · 无需摄像头</div>
+    <div class="pfc-data-bar">
+      <div class="pfc-bar-head">
+        <span class="pfc-bar-label">今日涨星</span>
+        <span class="pfc-bar-val">+700 ★</span>
+      </div>
+      <div class="pfc-bar-track"><div class="pfc-bar-fill"></div></div>
+      <div class="pfc-topics">
+        <span class="pfc-topic">射频感知</span>
+        <span class="pfc-topic">姿态估计</span>
+        <span class="pfc-topic">体征监测</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部带：三词卖点 + 评语（左对齐撑满宽） -->
+  <div class="pfc-bottom">
+    <div class="pfc-selling">
+      <span class="pfc-sell-item">无摄像头</span>
+      <span class="pfc-sell-item">本地推理</span>
+      <span class="pfc-sell-item">家用硬件</span>
+    </div>
+    <div class="pfc-commentary">家用 WiFi 即可实现空间智能</div>
+  </div>
+</div>
+
+<!-- CSS -->
+<style>
+.project-full-card {
+  position: relative; width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  justify-content: space-between;   /* ★ 三带撑满 1520px 垂直空间，禁 center */
+  padding: 180px 90px 220px 90px;   /* 竖屏安全区，与 SAFE_PADDING_PORTRAIT 一致 */
+}
+.pfc-glow {
+  position: absolute; border-radius: 50%; filter: blur(150px);
+  pointer-events: none; z-index: 0;
+}
+.pfc-glow-warm {
+  width: 520px; height: 520px; opacity: 0.18;
+  background: var(--accent-warm);
+  top: 180px; left: -120px;
+}
+.pfc-glow-cool {
+  width: 460px; height: 460px; opacity: 0.16;
+  background: var(--accent-cool);
+  bottom: 280px; right: -100px;
+}
+.pfc-grid {
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 44px 44px; pointer-events: none;
+}
+
+/* ── 顶部带：排名+类别同行，项目名独占整行完整显示（禁 ellipsis 截断）── */
+.pfc-top {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; gap: 20px;
+  width: 100%;
+}
+.pfc-header-row { display: flex; align-items: baseline; gap: 32px; }
+.pfc-rank {
+  font-size: 96px; font-weight: 900; line-height: 0.9;
+  color: var(--accent-warm);
+  text-shadow: 0 0 24px rgba(240,180,41,0.5);  /* glow 降：60px 手机 OLED 过曝，24px + 提 alpha 补 */
+  font-family: 'JetBrains Mono', monospace;
+}
+.pfc-category {
+  font-size: 38px; font-weight: 600; letter-spacing: 0.08em;
+  color: var(--accent-cool); text-transform: uppercase;
+}
+.pfc-use {
+  font-size: 52px; font-weight: 800; line-height: 1.1;
+  /* 用途标签（胶囊纯色）：胶囊禁用 grad clip:text（feedback-bgclip-text-capsule-conflict —
+     胶囊 padding+border+background + background-clip:text → 文字透明+胶囊底被裁=整个标签消失）。
+     胶囊用纯场景色文字 + 深色胶囊底衬，禁组合 grad-* 渐变文字 class。如需分色用纯色变体。*/
+  padding: 8px 22px; border-radius: 12px;
+  background: rgba(13,9,5,0.55);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  color: var(--accent-warm);
+  align-self: flex-start;
+  letter-spacing: 0.02em;
+}
+.pfc-name {
+  width: 100%; text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.08; letter-spacing: -0.01em;
+  word-break: break-word;   /* 长名换行完整显示，禁 nowrap+ellipsis 截断 */
+}
+.pfc-owner {   /* owner 小字灰：完整 owner/repo 可搜索（防只 repo 如 skills 搜不到）。32px 对齐 director_gate MIN_TEXT 下限（28px 会撞字号下限 HARD）*/
+  font-size: 32px; font-weight: 500;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.04em;
+}
+.pfc-repo {   /* repo 大字：主标识。owner(32px)+repo(60px) 同行最长 DeusData/codebase-memory-mcp≈886px<900px（JetBrains Mono 实际字符宽<0.6em，余量更大），超长名靠 word-break 换行 */
+  font-size: 60px; font-weight: 800; color: #f5f5f5;  /* #fff→#f5f5f5 降一档，手机 OLED 不过曝 */
+}
+
+/* ── 中部带 ── */
+.pfc-mid {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 40px; width: 100%;
+}
+.pfc-avatar-wrap {
+  position: relative;
+  width: 240px; height: 240px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pfc-avatar-ring {
+  position: absolute; inset: -18px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--accent-warm), var(--accent-cool), var(--accent-warm));
+  filter: blur(16px); opacity: 0.5;
+}
+.pfc-avatar {
+  position: relative; z-index: 1;
+  width: 240px; height: 240px;
+  border-radius: 50%; object-fit: cover;
+  border: 3px solid rgba(255,255,255,0.85);
+  box-shadow: 0 0 50px rgba(0,0,0,0.5);
+}
+.pfc-desc {
+  font-size: 40px; font-weight: 600; line-height: 1.35;
+  color: #f5f5f5; text-align: center; max-width: 780px;  /* #fff→#f5f5f5 降一档，手机 OLED 不过曝（与 .pfc-repo 一致）*/
+}
+.pfc-data-bar { width: 100%; max-width: 780px; display: flex; flex-direction: column; gap: 16px; }
+.pfc-bar-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.pfc-bar-label { font-size: 32px; font-weight: 500; color: rgba(255,255,255,0.6); }
+.pfc-bar-val { font-size: 40px; font-weight: 800; color: var(--accent-warm); font-family: 'JetBrains Mono', monospace; }
+.pfc-bar-track {
+  width: 100%; height: 16px; border-radius: 999px;
+  background: rgba(255,255,255,0.1); overflow: hidden;
+}
+.pfc-bar-fill {
+  width: 72%; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-cool), var(--accent-warm));
+  transform-origin: left center;
+}
+.pfc-topics { display: flex; flex-wrap: wrap; gap: 14px; }
+.pfc-topic {
+  font-size: 32px; font-weight: 600; padding: 8px 22px;
+  border-radius: 999px; color: var(--accent-cool);
+  background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3);
+}
+
+/* ── 底部带 ── */
+.pfc-bottom {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; gap: 28px; width: 100%;
+}
+.pfc-selling { display: flex; flex-wrap: wrap; gap: 16px; }
+.pfc-sell-item {
+  font-size: 32px; font-weight: 700; padding: 10px 26px;
+  border-radius: 14px; color: #fff;
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.18);
+}
+.pfc-commentary {
+  font-size: 36px; font-weight: 500; line-height: 1.4;
+  color: rgba(255,255,255,0.72);
+  border-left: 4px solid var(--accent-warm); padding-left: 24px;
+}
+</style>
+
+<!-- JS (GSAP) -->
+<script>
+// 顶部带：排名弹入 + 类别/项目名揭示
+tl.from('.pfc-rank', {scale:3.5, opacity:0, duration:0.55, ease:'power4.out'}, startTime + 0.1)
+  .to('.pfc-rank', {scale:0.92, duration:0.18, ease:'power2.inOut'}, startTime + 0.65)
+  .to('.pfc-rank', {scale:1, duration:0.15, ease:'back.out(1.5)'}, startTime + 0.83)
+  .from('.pfc-category', {opacity:0, x:-30, duration:0.35, ease:'power3.out'}, startTime + 0.35)
+  .from('.pfc-use', {opacity:0, scale:0.6, y:20, duration:0.4, ease:'back.out(1.8)'}, startTime + 0.42)
+  .from('.pfc-name', {opacity:0, x:-40, clipPath:'inset(0 100% 0 0)', duration:0.45, ease:'power4.out'}, startTime + 0.5)
+// 中部带：avatar 弹入 + 光环脉动 + 描述 + 涨星进度条 + topics
+  .from('.pfc-avatar-wrap', {scale:0, rotation:-25, opacity:0, duration:0.6, ease:'elastic.out(1, 0.55)'}, startTime + 0.7)
+  .from('.pfc-avatar-ring', {opacity:0, scale:0.4, duration:0.5, ease:'power2.out'}, startTime + 0.75)
+  .to('.pfc-avatar-ring', {scale:1.12, opacity:0.7, duration:1.3, ease:'sine.inOut', yoyo:true, repeat:3}, startTime + 1.25)
+  .from('.pfc-desc', {opacity:0, y:20, duration:0.4, ease:'power3.out'}, startTime + 1.0)
+  .from('.pfc-bar-head', {opacity:0, x:-20, duration:0.3, ease:'power3.out'}, startTime + 1.15)
+  .from('.pfc-bar-track', {opacity:0, duration:0.2, ease:'power2.out'}, startTime + 1.2)
+  .from('.pfc-bar-fill', {scaleX:0, duration:0.7, ease:'power3.out'}, startTime + 1.25)
+  .from('.pfc-topic', {opacity:0, scale:0.5, stagger:0.08, duration:0.3, ease:'back.out(2)'}, startTime + 1.5)
+// 底部带：三词卖点 + 评语
+  .from('.pfc-sell-item', {opacity:0, y:20, stagger:0.1, duration:0.35, ease:'back.out(1.6)'}, startTime + 1.8)
+  .from('.pfc-commentary', {opacity:0, x:30, duration:0.4, ease:'power3.out'}, startTime + 2.05)
+// 背景光晕脉动
+  .to('.pfc-glow-warm', {scale:1.15, duration:0.6, ease:'sine.inOut', yoyo:true, repeat:1}, startTime + 0.3)
+  .to('.pfc-glow-cool', {scale:1.1, duration:0.6, ease:'sine.inOut', yoyo:true, repeat:1}, startTime + 0.5);
+</script>

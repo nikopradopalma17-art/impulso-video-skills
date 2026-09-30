@@ -1,0 +1,10 @@
+{
+    "upstream_repository":  "https://github.com/Phantomlau3674/xingchen-skill-family",
+    "upstream_tag":  "v2026.07.22",
+    "upstream_commit":  "5bebe30f8e4ac1cd4d763ac013b9d3f513a8a4f1",
+    "upstream_tree":  "44c7c6def2bb44b67da2a297916ff56530eced5e",
+    "exported_skill_path":  "skills/xingchen-vox-collage",
+    "export_timestamp":  "2026-07-22T09:24:32Z",
+    "standalone_package_sha256":  "991078d6a7e6ac75e3735540f14c1db42e542b2926139f8cfa41ee8867b86550",
+    "standalone_version":  "0.2.0"
+}

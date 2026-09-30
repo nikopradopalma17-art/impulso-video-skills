@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "project_id": "iceberg-vox-minimal",
+    "format": {"width": 1920, "height": 1080, "fps": 30}
+  },
+  "script": {"timeline_revision": 1},
+  "scenes": [
+    {
+      "scene_id": "s01-below-waterline",
+      "beat_id": "b01",
+      "timing": {"start_sec": 0.0, "end_sec": 6.0}
+    },
+    {
+      "scene_id": "s02-density-balance",
+      "beat_id": "b02",
+      "timing": {"start_sec": 6.0, "end_sec": 10.0}
+    }
+  ]
+}

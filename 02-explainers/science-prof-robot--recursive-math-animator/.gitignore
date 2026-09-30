@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ClawHub CLI install metadata (lockfile)
+.clawhub/
+
+# Local AWS video publisher (intentionally not committed)
+.codex/skills/recursive-animation-s3/
+.aws/
+aws-credentials*
+credentials
+
+# Training workspace
+.training/
+
+# Manim output
+media/
+exports/
+*.mp4
+*.gif
+*.mov
+
+# Example videos (committed to repo)
+!videos/
+!videos/*.mp4
+
+# Secrets
+.env
+*.pem
+*.key
+
+# Logs
+*.log
+logs/
+
+# Deployment state and generated infrastructure output
+.terraform/
+*.tfstate
+*.tfstate.*
+.serverless/
+.cdk.out/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

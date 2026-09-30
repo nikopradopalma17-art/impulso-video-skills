@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "productVersion": "0.9.0",
+  "artifacts": [
+    {
+      "path": "ae-execution-guide.json",
+      "sha256": "4149d316437f42564d85a94000659db8ce543a082f9473ffcd9cbd7643f9f8bf"
+    },
+    {
+      "path": "ease-and-timing.json",
+      "sha256": "d7b377e44958803b80c60e6ef928b6560b5db6947974adc15a87338f3a13e6f3"
+    },
+    {
+      "path": "extendscript-cookbook.json",
+      "sha256": "d9401ce4a85cd81204f30fc7a5495d20d273fd6ca3b4248e081386f2937e478e"
+    },
+    {
+      "path": "glow-recipes.json",
+      "sha256": "3ca8864f176094c8a3715d4cb050bd13fe92f214bf422cfdb3e22fda0659d202"
+    },
+    {
+      "path": "grade-stack.json",
+      "sha256": "9f9df8e3f61fec40603f3ddd6ceee42b7b679b244c9f92d3e7db4f940233df1c"
+    },
+    {
+      "path": "kinetic-typography.json",
+      "sha256": "9850f7f2228caae9625aadbabec7510547e5fb2824365490862a95d0ade392fd"
+    },
+    {
+      "path": "project-organization.json",
+      "sha256": "7f50dcb65bab1531ae80a99a5ae3af3f724a7789567445abd32f3b1e2790e251"
+    },
+    {
+      "path": "render-order.json",
+      "sha256": "2084545ae5559ffb86a5dd7451b4503866a478b718142d2dc9d4ff5830181e00"
+    }
+  ]
+}

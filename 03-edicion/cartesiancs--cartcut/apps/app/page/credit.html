@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko" class="h-100">
+  <head>
+    <!-- Local only, so this window opens offline. `h-100` and `p-4` on <body>
+         are Bootstrap's, hence the stylesheet; the fonts arrive with
+         ../dist/style.css. See ../vendor/README.md. -->
+    <link rel="stylesheet" href="../vendor/bootstrap.min.css" />
+    <link rel="stylesheet" href="../vendor/noto-sans-kr.css" />
+    <link rel="stylesheet" href="../vendor/devent-designsystem.css" />
+
+    <link rel="stylesheet" href="../dist/style.css" />
+
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+
+      .bg-black {
+        background-color: #080809;
+      }
+
+      .btn.active {
+        background-color: #15171a;
+      }
+
+      .tab-content {
+        border-radius: 1rem;
+        padding: 1rem;
+        background-color: #15171a;
+      }
+
+      .full-screen {
+        width: 100%;
+        height: 100%;
+        background-color: #080809;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .flex {
+        display: flex;
+      }
+
+      .column {
+        flex-direction: column;
+      }
+
+      .justify-center {
+        justify-content: center;
+        align-items: center;
+      }
+
+      .gap-2 {
+        gap: 0.5rem;
+      }
+
+      .img {
+        width: 5rem;
+        height: 5rem;
+        align-items: center;
+      }
+
+      .title {
+        color: #ffffff;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .sub-title {
+        color: #797a87;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.75rem;
+      }
+    </style>
+  </head>
+  <body class="h-100 bg-black p-4">
+    <div class="full-screen">
+      <div class="flex column justify-center gap-2">
+        <img src="https://cdn.cartesiancs.com/i.png" class="img" alt="" />
+        <b class="title">CartCut</b>
+        <b class="sub-title"
+          >CartCut is an open-source video editing software.
+        </b>
+      </div>
+    </div>
+
+    <script src="../vendor/bootstrap.bundle.min.js"></script>
+    <script src="../vendor/devent-designsystem.js"></script>
+
+    <script src="../dist/index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,165 @@
+/**
+ * Registering a font family with the page, so the canvas can actually draw it.
+ *
+ * This is not cosmetic. `renderer/text.ts` sets
+ * `ctx.font = "… ${fontSize}px ${textElement.fontname}"`, and a canvas resolves
+ * that family against the document's font faces like any CSS consumer. If no
+ * `@font-face` has been injected for the name, the text silently renders in
+ * the fallback — in the preview *and* in the export, since the export composites
+ * through the same renderers.
+ *
+ * Until now only `optionText.insertFontLists()` injected them, and only for the
+ * fonts that panel had enumerated. Anything that sets a font from elsewhere has
+ * to do this too.
+ */
+
+export type FontEntry = {
+  /** Absolute path, or the literal "default". */
+  path: string;
+  name: string;
+  /** File extension, which is what `@font-face`'s `format()` wants. */
+  type: string;
+};
+
+/** What a text element carries when it has not been given a font. */
+export const DEFAULT_FONT: FontEntry = {
+  path: "default",
+  name: "notosanskr",
+  type: "otf",
+};
+
+/**
+ * Split a font path into the three fields a text element stores.
+ *
+ * Mirrors the derivation in `optionText.handleChangeTextFont`, which takes the
+ * last path segment and splits on ".". Done here rather than at each call site
+ * because the three fields have to agree — a name without its matching path
+ * draws in the fallback, and a path without its type produces an `@font-face`
+ * with the wrong `format()`.
+ */
+export function parseFontPath(fontPath: string): FontEntry {
+  if (fontPath == null || fontPath === "" || fontPath === "default") {
+    return { ...DEFAULT_FONT };
+  }
+
+  const segments = fontPath.split(/[\\/]/);
+  const filename = segments[segments.length - 1] ?? "";
+  const dot = filename.lastIndexOf(".");
+
+  // A directory with a dot in it must not be mistaken for the extension, which
+  // is why this splits the *filename* and takes the last dot rather than the
+  // first dot of the whole path.
+  const name = dot > 0 ? filename.slice(0, dot) : filename;
+  const type = dot > 0 ? filename.slice(dot + 1) : "";
+
+  if (!name) {
+    return { ...DEFAULT_FONT };
+  }
+
+  return { path: fontPath, name, type };
+}
+
+/** Families already injected, so a repeated call is free. */
+const registered = new Set<string>([DEFAULT_FONT.name]);
+
+
+/** The stylesheet `optionText` also writes into, created on first use. */
+function styleElement(): HTMLStyleElement | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+  let style = document.querySelector("style#fontStyles") as HTMLStyleElement | null;
+  if (style == null) {
+    style = document.createElement("style");
+    style.id = "fontStyles";
+    document.head.appendChild(style);
+  }
+  return style;
+}
+
+/**
+ * Make `entry.name` usable as a canvas font family. Idempotent.
+ *
+ * The built-in face needs nothing — it is in the app's own stylesheet.
+ */
+export function ensureFontFace(entry: FontEntry): void {
+  if (entry.path === "default" || registered.has(entry.name)) {
+    return;
+  }
+
+  const style = styleElement();
+  if (style == null) {
+    return;
+  }
+
+  // No `font-weight` descriptor, including for a variable font. Measured in
+  // Chromium: a variable face gives all nine rungs from `ctx.font` with or
+  // without one, because the engine reads the file's own `fvar` axis and does
+  // not need to be told. Declaring a range that changes nothing would be a
+  // second, silent source of truth about what a face covers.
+  style.insertAdjacentHTML(
+    "beforeend",
+    `@font-face { font-family: "${entry.name}"; src: url("file://${entry.path}"); }`,
+  );
+  registered.add(entry.name);
+}
+
+/** Families this module has injected. Exported for tests. */
+export function loadedFontFamilies(): string[] {
+  return [...registered];
+}
+
+/**
+ * Register every font a loaded document refers to.
+ *
+ * Opening a `.ngt` used to inject nothing at all: the only callers of
+ * `ensureFontFace` are the font *picker* paths, so a text element that named a
+ * font nobody had picked this session drew in the fallback — in the preview and
+ * in the export, and on the machine that authored it, not just after the
+ * project was carried somewhere else. The element kept the right `fontname`
+ * and there was simply no `@font-face` for the canvas to resolve it against,
+ * which is what made it silent.
+ *
+ * Returns how many families it added, which is only useful for tests —
+ * `ensureFontFace` is idempotent, so calling this twice is free.
+ */
+export function registerDocumentFonts(
+  elements: Record<string, unknown>,
+): number {
+  const before = registered.size;
+
+  for (const element of Object.values(elements ?? {})) {
+    if (element == null || typeof element !== "object") {
+      continue;
+    }
+    const { filetype, fontpath, runs } = element as {
+      filetype?: string;
+      fontpath?: unknown;
+      runs?: unknown;
+    };
+    if (filetype !== "text") {
+      continue;
+    }
+    if (typeof fontpath === "string") {
+      ensureFontFace(parseFontPath(fontpath));
+    }
+
+    // A per-range font is a face no element's own `fontpath` names, so without
+    // this the styled stretch alone would draw in the fallback the next time
+    // the project was opened - the exact silent failure this function exists to
+    // end, one level down. Read straight off the stored field rather than
+    // through `runsOf`, because this runs before the document is in the store
+    // and a face is worth registering even if the run turns out to be junk.
+    if (Array.isArray(runs)) {
+      for (const run of runs) {
+        const path = (run as { style?: { fontpath?: unknown } } | null)?.style
+          ?.fontpath;
+        if (typeof path === "string" && path !== "") {
+          ensureFontFace(parseFontPath(path));
+        }
+      }
+    }
+  }
+
+  return registered.size - before;
+}

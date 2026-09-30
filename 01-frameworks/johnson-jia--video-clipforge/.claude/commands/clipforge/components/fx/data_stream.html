@@ -1,0 +1,105 @@
+<!--
+@ComponentMeta
+name: data_stream
+layer: fx
+tags: [data, stream, flow, binary, code, matrix, tech, hex]
+emotion_range: [tech, tension, focus, analysis]
+visual_density: medium
+complexity: canvas-gsap
+description: 垂直数据流（双字符集 + 亮头发光尾迹 + 随机闪烁），GSAP seek 驱动，适合数据/技术/AI 主题
+parameters:
+  line_count: { default: 18, range: [10, 25], description: "数据流列数" }
+  speed: { default: 1.0, range: [0.5, 2.0], description: "流动速度倍率" }
+/ComponentMeta
+-->
+<!-- HTML -->
+<canvas class="ds-canvas" width="1080" height="1920"></canvas>
+
+<!-- CSS -->
+<style>
+.ds-canvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  opacity: 0.20; pointer-events: none;
+}
+</style>
+
+<!-- JS (GSAP + Canvas) -->
+<script>
+const dsCanvas = document.querySelector('.ds-canvas');
+const dsCtx = dsCanvas.getContext('2d');
+const W = 1080, H = 1920;
+const COLS = 18;
+const BIN_CHARS = '01'.split('');
+const HEX_CHARS = '0123456789ABCDEF'.split('');
+const cols = [];
+
+for (let i = 0; i < COLS; i++) {
+  const isHex = Math.random() > 0.5;
+  const charSet = isHex ? HEX_CHARS : BIN_CHARS;
+  const fontSize = isHex ? 13 : (14 + Math.floor(Math.random() * 3));
+  const colW = W / COLS;
+  const trailLen = 10 + Math.floor(Math.random() * 18);
+  const speed = (0.8 + Math.random() * 2.2);
+  const chars = [];
+  for (let j = 0; j < trailLen; j++) {
+    chars.push(charSet[Math.floor(Math.random() * charSet.length)]);
+  }
+  cols.push({
+    x: i * colW + colW / 2,
+    y: Math.random() * H,
+    speed, fontSize, trailLen, chars, charSet, isHex
+  });
+}
+
+function drawStream() {
+  dsCtx.fillStyle = 'rgba(10,10,20,0.12)';
+  dsCtx.fillRect(0, 0, W, H);
+  for (const col of cols) {
+    // Draw trail from head to tail
+    for (let j = 0; j < col.trailLen; j++) {
+      const cy = col.y - j * col.fontSize;
+      if (cy < -20 || cy > H + 20) continue;
+      const ratio = j / col.trailLen;
+      let alpha, color;
+      if (j === 0) {
+        // Bright head — white/cyan
+        alpha = 0.95;
+        color = 'rgba(200,255,255,' + alpha.toFixed(2) + ')';
+        dsCtx.shadowBlur = 12;
+        dsCtx.shadowColor = 'rgba(0,220,180,0.6)';
+      } else if (j < 3) {
+        // Near-head glow
+        alpha = 0.6 - ratio * 0.15;
+        color = 'rgba(0,220,170,' + alpha.toFixed(2) + ')';
+        dsCtx.shadowBlur = 6;
+        dsCtx.shadowColor = 'rgba(0,200,150,0.3)';
+      } else {
+        // Tail fade
+        alpha = Math.max(0, (1 - ratio) * 0.35);
+        color = 'rgba(0,180,140,' + alpha.toFixed(2) + ')';
+        dsCtx.shadowBlur = 0;
+      }
+      dsCtx.fillStyle = color;
+      dsCtx.font = col.fontSize + 'px monospace';
+      dsCtx.fillText(col.chars[j], col.x, cy);
+      // Flicker: 8% chance to swap a trail char
+      if (Math.random() < 0.08) {
+        col.chars[j] = col.charSet[Math.floor(Math.random() * col.charSet.length)];
+      }
+    }
+    dsCtx.shadowBlur = 0;
+    col.y += col.speed * 2;
+    if (col.y - col.trailLen * col.fontSize > H) {
+      col.y = -col.trailLen * col.fontSize;
+      col.speed = 0.8 + Math.random() * 2.2;
+    }
+  }
+}
+
+const dsProgress = { val: 0 };
+tl.to(dsProgress, {
+  val: 1, duration: 0.1, repeat: -1, ease: 'none',
+  onUpdate: drawStream
+}, sceneStart);
+</script>

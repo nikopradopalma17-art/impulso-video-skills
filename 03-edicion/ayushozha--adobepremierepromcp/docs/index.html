@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdobePremiereProMCP — AI-Powered MCP Server for Adobe Premiere Pro</title>
+    <meta name="description" content="Open-source MCP server for Adobe Premiere Pro with 1,064 registered schemas and a 72-tool curated, readback-first default profile for timeline, media, captions, effects, transitions, and export workflows.">
+    <meta name="keywords" content="MCP server, Model Context Protocol, Adobe Premiere Pro, AI video editing, Claude, GPT, ExtendScript, color grading, audio mixing, video production, NLE, creative cloud, automation, Go, Rust, TypeScript, Python">
+    <meta name="author" content="ayushozha">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://github.com/ayushozha/AdobePremiereProMCP">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="AdobePremiereProMCP — Verified-First Premiere Pro Automation">
+    <meta property="og:description" content="Open-source MCP server for curated, readback-first Adobe Premiere Pro automation workflows.">
+    <meta property="og:url" content="https://github.com/ayushozha/AdobePremiereProMCP">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="AdobePremiereProMCP">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AdobePremiereProMCP — Verified-First Premiere Pro Automation">
+    <meta name="twitter:description" content="AI-powered MCP server for Adobe Premiere Pro. Control video editing with natural language via Claude, GPT, or any AI assistant.">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareSourceCode",
+        "name": "AdobePremiereProMCP",
+        "description": "Open-source Model Context Protocol server for Adobe Premiere Pro with 1,064 registered schemas and a compact curated, readback-first default profile.",
+        "url": "https://github.com/ayushozha/AdobePremiereProMCP",
+        "codeRepository": "https://github.com/ayushozha/AdobePremiereProMCP",
+        "programmingLanguage": ["Go", "Rust", "Python", "TypeScript"],
+        "runtimePlatform": ["macOS", "Windows", "Linux"],
+        "license": "https://opensource.org/licenses/MIT",
+        "applicationCategory": "Video Editing, AI Tools, Developer Tools",
+        "operatingSystem": ["macOS", "Windows", "Linux"],
+        "keywords": "MCP server, Model Context Protocol, Adobe Premiere Pro, AI video editing, Claude, GPT, ExtendScript, color grading, audio mixing, NLE"
+    }
+    </script>
+
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+            --purple: #bc8cff;
+            --green: #3fb950;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+        header {
+            padding: 48px 0 32px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 640px;
+            margin: 0 auto 24px;
+        }
+        .badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .badge.highlight { border-color: var(--accent); color: var(--accent); }
+        .cta-group { display: flex; gap: 12px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+        .btn {
+            display: inline-block;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: var(--bg); }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--accent); }
+        section { padding: 48px 0; }
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 24px;
+            color: var(--text);
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .card h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--accent); }
+        .card p { color: var(--text-muted); font-size: 0.95rem; }
+        .stat { font-size: 2rem; font-weight: 800; color: var(--green); }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
+        td { font-size: 0.95rem; }
+        code {
+            background: var(--surface);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        pre {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+            margin-top: 16px;
+        }
+        .arch-diagram {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: var(--text-muted);
+        }
+        footer {
+            padding: 32px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .tagline { font-size: 1rem; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>AdobePremiereProMCP</h1>
+        <p class="tagline">Open-source, readback-first automation for supported Adobe Premiere Pro editing workflows through MCP.</p>
+        <div class="badges">
+            <span class="badge highlight">69 curated default tools</span>
+            <span class="badge">Premiere Pro 2020-2026</span>
+            <span class="badge">MIT License</span>
+            <span class="badge">macOS + Windows + Linux</span>
+        </div>
+        <div class="cta-group">
+            <a href="https://github.com/ayushozha/AdobePremiereProMCP" class="btn btn-primary">View on GitHub</a>
+            <a href="https://github.com/ayushozha/AdobePremiereProMCP/releases" class="btn btn-secondary">Download v0.1.0</a>
+        </div>
+    </div>
+</header>
+
+<section>
+    <div class="container">
+        <h2>What It Does</h2>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">Give it a script and footage, review the generated edit plan, then assemble a reversible rough cut through supported Premiere routes.</p>
+        <div class="grid">
+            <div class="card">
+                <h3>Timeline Editing</h3>
+                <p>Inspect, insert, overwrite, move, trim, razor, ripple, and assemble clips from a validated edit plan.</p>
+            </div>
+            <div class="card">
+                <h3>Color Grading</h3>
+                <p>Discover installed effects and apply supported Lumetri/effect parameters with public-DOM readback where Premiere exposes it.</p>
+            </div>
+            <div class="card">
+                <h3>Audio Mixing</h3>
+                <p>Inspect and adjust supported audio levels/effects, analyze waveforms and silence, and build reviewable dialogue-cut plans.</p>
+            </div>
+            <div class="card">
+                <h3>Effects &amp; Transitions</h3>
+                <p>Discover and apply installed effects/transitions through curated routes that check the resulting name, duration, or parameter state.</p>
+            </div>
+            <div class="card">
+                <h3>Planned Workflows</h3>
+                <p>Parse scripts, match assets, validate EDLs, create social variants, and keep a human checkpoint before timeline mutation.</p>
+            </div>
+            <div class="card">
+                <h3>Export &amp; Delivery</h3>
+                <p>Direct export, Adobe Media Encoder queue, codec conversion (ProRes, H.264/265, DNxHR), batch exports, and delivery checks.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section style="background: var(--surface);">
+    <div class="container">
+        <h2>Tool Profiles</h2>
+        <table>
+            <thead>
+                <tr><th>Profile</th><th>Scope</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>standard</td><td>72 tools</td><td>Curated everyday inspection, Rust media analysis, timeline, caption, effect, transition, MOGRT, audio, and export routes</td></tr>
+                <tr><td>workflow profiles</td><td>Task-sized</td><td>Dialogue, captions, social, transitions, effects, proxies, or delivery</td></tr>
+                <tr><td>all</td><td>Compatibility catalog</td><td>Safe-by-capability full registry; includes legacy/experimental handlers and is not certified</td></tr>
+                <tr><td>all,unsafe</td><td>1,064 schemas</td><td>Adds arbitrary script, shell, URL, clipboard, external-editor, and file-I/O tools</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section>
+    <div class="container">
+        <h2>Architecture</h2>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">Four languages, each playing to their strengths:</p>
+        <div class="grid">
+            <div class="card">
+                <h3>Go Orchestrator</h3>
+                <p>MCP protocol handling, concurrency, service mesh, health checks, and circuit breakers. The central hub that routes all tool calls.</p>
+            </div>
+            <div class="card">
+                <h3>Rust Media Engine</h3>
+                <p>High-performance media scanning, waveform analysis, thumbnail generation, and real-time processing. When speed matters.</p>
+            </div>
+            <div class="card">
+                <h3>Python Intelligence</h3>
+                <p>Deterministic script parsing, asset matching, EDL generation, and pacing analysis.</p>
+            </div>
+            <div class="card">
+                <h3>TypeScript Bridge</h3>
+                <p>Connects to Premiere Pro via CEP/ExtendScript. Translates MCP tool calls into native Premiere Pro operations.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section style="background: var(--surface);">
+    <div class="container">
+        <h2>Quick Start</h2>
+        <pre><code>git clone https://github.com/ayushozha/AdobePremiereProMCP.git
+cd AdobePremiereProMCP
+just install &amp;&amp; just build
+just install-panel  # Install CEP panel into Premiere Pro
+just start          # Start all services</code></pre>
+        <p style="color: var(--text-muted); margin-top: 16px;"><code>PremierPro.command</code> starts the full local stack on macOS. <code>PremierPro.bat</code> launches the Windows CLI after its backend services and CEP panel have been started separately.</p>
+    </div>
+</section>
+
+<section>
+    <div class="container">
+        <h2>Supported Versions</h2>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">The extension manifest targets Adobe Premiere Pro 2020 through 2026 on macOS and Windows. Compatibility still requires a host smoke test on the exact Premiere/OS build. The bridge uses Adobe's CEP (Common Extensibility Platform) and ExtendScript.</p>
+        <div class="grid">
+            <div class="card"><h3>Premiere Pro 2020-2022</h3><p>Declared manifest targets; live compatibility matrix pending.</p></div>
+            <div class="card"><h3>Premiere Pro 2023-2024</h3><p>Declared manifest targets; run the host smoke workflow before mutations.</p></div>
+            <div class="card"><h3>Premiere Pro 2025-2026</h3><p>Primary/beta development targets; live compatibility matrix pending.</p></div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p>AdobePremiereProMCP is open source under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
+        <p style="margin-top: 8px;">
+            <a href="https://github.com/ayushozha/AdobePremiereProMCP">GitHub</a> &middot;
+            <a href="https://github.com/ayushozha/AdobePremiereProMCP/releases">Releases</a> &middot;
+            <a href="https://github.com/ayushozha/AdobePremiereProMCP/issues">Issues</a> &middot;
+            <a href="https://github.com/ayushozha/AdobePremiereProMCP/discussions">Discussions</a>
+        </p>
+    </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,3335 @@
+{
+  "_fixture": {
+    "classification": "synthetic-contract-vector",
+    "runtimeEvidence": false,
+    "compatibilityEvidence": false
+  },
+  "capabilitiesDigest": "f2c60f51f366a9111c818ae6af6ca1c135e1f66ad276fd3c6e9c93961e5ddb9a",
+  "items": [
+    {
+      "cancellation": "before-dispatch",
+      "compatibility": {
+        "intendedPlatforms": [
+          "macos-arm64",
+          "windows-x64"
+        ],
+        "status": "unverified"
+      },
+      "detail": "full",
+      "id": "ae.native.exec",
+      "idempotency": "idempotency-key",
+      "mutability": "mutating",
+      "preconditions": [
+        "Load builtin:skill:ae-execution-guide before composing a native program."
+      ],
+      "primitiveCount": 23,
+      "requiredSkill": "builtin:skill:ae-execution-guide",
+      "requiredSuite": "generated-primitive-union",
+      "risk": "write",
+      "schemaVersion": 1,
+      "sideEffectSummary": "Runs one bounded native AEGP program; writes use one AE Undo group.",
+      "summary": "Execute a bounded native AEGP program. Load the default execution guide before composing operations.",
+      "undo": "ae-undo-group",
+      "valueKind": "Json",
+      "version": 1,
+      "contractDigest": "6f71a946caf0a4692be5165afd2af6d9a82fbf12f6f9b9569f376a16ede0a217",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operations"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "operations"
+              ],
+              "properties": {
+                "operations": {
+                  "items": {
+                    "required": [
+                      "op"
+                    ],
+                    "properties": {
+                      "op": {
+                        "enum": [
+                          "composition.resolve",
+                          "layer.resolve",
+                          "property.resolve",
+                          "project.items.list",
+                          "composition.layers.list",
+                          "composition.selectedLayers.list",
+                          "composition.time.read",
+                          "composition.settings.read",
+                          "layer.properties.list",
+                          "property.keyframes.list",
+                          "property.keyframe.details.read"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "operationKey"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "undoGroup"
+                    ]
+                  }
+                ]
+              }
+            },
+            "else": {
+              "required": [
+                "operationKey",
+                "undoGroup"
+              ]
+            }
+          }
+        ],
+        "properties": {
+          "operationKey": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+          },
+          "undoGroup": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.resolve"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "locator"
+                      ],
+                      "properties": {
+                        "locator": {
+                          "allOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "hostInstanceId",
+                                "sessionId",
+                                "projectId",
+                                "generation",
+                                "objectId"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "enum": [
+                                    "project",
+                                    "item",
+                                    "composition",
+                                    "layer",
+                                    "stream"
+                                  ]
+                                },
+                                "hostInstanceId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "sessionId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "projectId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "generation": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 9007199254740991
+                                },
+                                "objectId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                }
+                              },
+                              "x-invariant": "server-issued-opaque-identifiers-bound-to-host-session-project-generation"
+                            },
+                            {
+                              "properties": {
+                                "kind": {
+                                  "const": "composition"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "layer.resolve"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition",
+                        "locator"
+                      ],
+                      "properties": {
+                        "locator": {
+                          "allOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "hostInstanceId",
+                                "sessionId",
+                                "projectId",
+                                "generation",
+                                "objectId"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "enum": [
+                                    "project",
+                                    "item",
+                                    "composition",
+                                    "layer",
+                                    "stream"
+                                  ]
+                                },
+                                "hostInstanceId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "sessionId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "projectId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "generation": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 9007199254740991
+                                },
+                                "objectId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                }
+                              },
+                              "x-invariant": "server-issued-opaque-identifiers-bound-to-host-session-project-generation"
+                            },
+                            {
+                              "properties": {
+                                "kind": {
+                                  "const": "layer"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.resolve"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "layer",
+                        "locator"
+                      ],
+                      "properties": {
+                        "locator": {
+                          "allOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "hostInstanceId",
+                                "sessionId",
+                                "projectId",
+                                "generation",
+                                "objectId"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "enum": [
+                                    "project",
+                                    "item",
+                                    "composition",
+                                    "layer",
+                                    "stream"
+                                  ]
+                                },
+                                "hostInstanceId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "sessionId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "projectId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "generation": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 9007199254740991
+                                },
+                                "objectId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                }
+                              },
+                              "x-invariant": "server-issued-opaque-identifiers-bound-to-host-session-project-generation"
+                            },
+                            {
+                              "properties": {
+                                "kind": {
+                                  "const": "stream"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "project.items.list"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "limit",
+                        "offset"
+                      ],
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991,
+                          "default": 0,
+                          "x-omissionBehavior": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 50
+                        },
+                        "projectLocator": {
+                          "allOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "hostInstanceId",
+                                "sessionId",
+                                "projectId",
+                                "generation",
+                                "objectId"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "enum": [
+                                    "project",
+                                    "item",
+                                    "composition",
+                                    "layer",
+                                    "stream"
+                                  ]
+                                },
+                                "hostInstanceId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "sessionId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "projectId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                },
+                                "generation": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 9007199254740991
+                                },
+                                "objectId": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                }
+                              },
+                              "x-invariant": "server-issued-opaque-identifiers-bound-to-host-session-project-generation"
+                            },
+                            {
+                              "properties": {
+                                "kind": {
+                                  "const": "project"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.layers.list"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition",
+                        "limit",
+                        "offset"
+                      ],
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991,
+                          "default": 0,
+                          "x-omissionBehavior": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 25
+                        },
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.selectedLayers.list"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition",
+                        "limit",
+                        "offset"
+                      ],
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991,
+                          "default": 0,
+                          "x-omissionBehavior": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 25
+                        },
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.time.read"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition"
+                      ],
+                      "properties": {
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.time.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition",
+                        "targetTime"
+                      ],
+                      "properties": {
+                        "targetTime": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.settings.read"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition"
+                      ],
+                      "properties": {
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.duration.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition",
+                        "duration"
+                      ],
+                      "properties": {
+                        "duration": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.frameRate.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition",
+                        "frameRate"
+                      ],
+                      "properties": {
+                        "frameRate": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "numerator",
+                            "denominator"
+                          ],
+                          "properties": {
+                            "numerator": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 2147483647
+                            },
+                            "denominator": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 2147483647
+                            }
+                          }
+                        },
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.pixelAspectRatio.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition",
+                        "pixelAspectRatio"
+                      ],
+                      "properties": {
+                        "pixelAspectRatio": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "numerator",
+                            "denominator"
+                          ],
+                          "properties": {
+                            "numerator": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 2147483647
+                            },
+                            "denominator": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 2147483647
+                            }
+                          }
+                        },
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "composition.displayStartTime.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "composition",
+                        "displayStartTime"
+                      ],
+                      "properties": {
+                        "displayStartTime": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "composition": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "layer.properties.list"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "layer",
+                        "limit",
+                        "offset"
+                      ],
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991,
+                          "default": 0,
+                          "x-omissionBehavior": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 25
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "parentProperty": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.keyframes.list"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "limit",
+                        "offset",
+                        "property"
+                      ],
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991,
+                          "default": 0,
+                          "x-omissionBehavior": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 25
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.value.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "layer",
+                        "property",
+                        "value"
+                      ],
+                      "properties": {
+                        "value": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "value"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "scalar"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "components"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "vector"
+                                },
+                                "components": {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 3,
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 32,
+                                    "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "alpha",
+                                "red",
+                                "green",
+                                "blue"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "color"
+                                },
+                                "alpha": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "red": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "green": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "blue": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.keyframe.details.read"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "time"
+                      ],
+                      "properties": {
+                        "time": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.keyframe.add"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "layer",
+                        "property",
+                        "time",
+                        "value"
+                      ],
+                      "properties": {
+                        "time": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "value": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "value"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "scalar"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "components"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "vector"
+                                },
+                                "components": {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 3,
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 32,
+                                    "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "alpha",
+                                "red",
+                                "green",
+                                "blue"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "color"
+                                },
+                                "alpha": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "red": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "green": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "blue": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.keyframe.value.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "layer",
+                        "property",
+                        "time",
+                        "value"
+                      ],
+                      "properties": {
+                        "time": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "value": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "value"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "scalar"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "components"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "vector"
+                                },
+                                "components": {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 3,
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 32,
+                                    "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "alpha",
+                                "red",
+                                "green",
+                                "blue"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "color"
+                                },
+                                "alpha": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "red": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "green": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                },
+                                "blue": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 32,
+                                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.keyframe.interpolation.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "inInterpolation",
+                        "layer",
+                        "outInterpolation",
+                        "property",
+                        "time"
+                      ],
+                      "properties": {
+                        "time": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "inInterpolation": {
+                          "enum": [
+                            "linear",
+                            "bezier",
+                            "hold"
+                          ]
+                        },
+                        "outInterpolation": {
+                          "enum": [
+                            "linear",
+                            "bezier",
+                            "hold"
+                          ]
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.keyframe.temporalEase.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "dimensions",
+                        "layer",
+                        "property",
+                        "time"
+                      ],
+                      "properties": {
+                        "time": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "dimensions": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 4,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "dimension",
+                              "inEase",
+                              "outEase"
+                            ],
+                            "properties": {
+                              "dimension": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 3
+                              },
+                              "inEase": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "speed",
+                                  "influence"
+                                ],
+                                "properties": {
+                                  "speed": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 32,
+                                    "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                  },
+                                  "influence": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 32,
+                                    "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                  }
+                                },
+                                "x-invariant": "speed-and-influence-are-finite-and-influence-is-within-0-to-100"
+                              },
+                              "outEase": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "speed",
+                                  "influence"
+                                ],
+                                "properties": {
+                                  "speed": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 32,
+                                    "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                  },
+                                  "influence": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 32,
+                                    "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+                                  }
+                                },
+                                "x-invariant": "speed-and-influence-are-finite-and-influence-is-within-0-to-100"
+                              }
+                            }
+                          }
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.keyframe.behavior.set"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "behavior",
+                        "enabled",
+                        "layer",
+                        "property",
+                        "time"
+                      ],
+                      "properties": {
+                        "time": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "behavior": {
+                          "enum": [
+                            "temporal-continuous",
+                            "temporal-auto-bezier",
+                            "spatial-continuous",
+                            "spatial-auto-bezier",
+                            "roving"
+                          ]
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "properties": {
+                    "op": {
+                      "const": "property.keyframe.delete"
+                    },
+                    "args": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "layer",
+                        "property",
+                        "time"
+                      ],
+                      "properties": {
+                        "time": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "scale"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "integer",
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            },
+                            "scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4294967295
+                            }
+                          }
+                        },
+                        "layer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "ref"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "saveAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "returnAs": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "primitives": [
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.resolve",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read composition.resolve.",
+          "undo": "not-applicable",
+          "valueKind": "CompositionHandle",
+          "version": 1,
+          "contractDigest": "bedb1cb0f0f0975d070328ded85b0206e10c94929f8c3756862395722e05a7ea",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "locator"
+            ],
+            "properties": {
+              "locator": {
+                "$ref": "aegp-rpc.schema.json#/$defs/compositionLocator"
+              }
+            }
+          },
+          "resultSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "handle",
+              "exportable"
+            ],
+            "properties": {
+              "handle": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "value"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "composition"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              "exportable": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "layer.resolve",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_LayerSuite9 must be available."
+          ],
+          "requiredSuite": "AEGP_LayerSuite9",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read layer.resolve.",
+          "undo": "not-applicable",
+          "valueKind": "LayerHandle",
+          "version": 1,
+          "contractDigest": "7deebcae2527ae8fc22afa2d7398781144690b774e294b4b7b04c1bf4be24cdf",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "locator"
+            ],
+            "properties": {
+              "locator": {
+                "$ref": "aegp-rpc.schema.json#/$defs/layerLocator"
+              }
+            }
+          },
+          "resultSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "handle",
+              "exportable"
+            ],
+            "properties": {
+              "handle": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "value"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "layer"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              "exportable": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.resolve",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read property.resolve.",
+          "undo": "not-applicable",
+          "valueKind": "PropertyHandle",
+          "version": 1,
+          "contractDigest": "089dbacfc20ef6638fb85ab98f45442772c1b9251282910cb2f3def0a9d46571",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "locator"
+            ],
+            "properties": {
+              "locator": {
+                "$ref": "aegp-rpc.schema.json#/$defs/streamLocator"
+              }
+            }
+          },
+          "resultSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "handle",
+              "exportable"
+            ],
+            "properties": {
+              "handle": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "value"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "property"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              "exportable": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "project.items.list",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_ProjSuite6 must be available."
+          ],
+          "requiredSuite": "AEGP_ProjSuite6",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read project.items.list.",
+          "undo": "not-applicable",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "bd2695a9eb0b09fcd8bf8284dc3f86fb44b7dd274b2e3c40b5d1686432831c46",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "offset",
+              "limit"
+            ],
+            "properties": {
+              "offset": {
+                "$ref": "aegp-rpc.schema.json#/$defs/pageOffset"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50
+              },
+              "projectLocator": {
+                "$ref": "aegp-rpc.schema.json#/$defs/projectLocator"
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/projectItemsListValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.layers.list",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read composition.layers.list.",
+          "undo": "not-applicable",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "d741de7107adfec5c8560ac721a68a980f2dda388162c6b7f6983baa74f3034c",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "offset",
+              "limit"
+            ],
+            "properties": {
+              "offset": {
+                "$ref": "aegp-rpc.schema.json#/$defs/pageOffset"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 25
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionLayersListValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.selectedLayers.list",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read composition.selectedLayers.list.",
+          "undo": "not-applicable",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "d741de7107adfec5c8560ac721a68a980f2dda388162c6b7f6983baa74f3034c",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "offset",
+              "limit"
+            ],
+            "properties": {
+              "offset": {
+                "$ref": "aegp-rpc.schema.json#/$defs/pageOffset"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 25
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionLayersListValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.time.read",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read composition.time.read.",
+          "undo": "not-applicable",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "b68e454a203d6cb2a542224661219ad810335dc2eee1ea3a1985e17883836eb2",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [],
+            "properties": {}
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionTimeReadValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.time.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write composition.time.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "dddfa80234c8cd5070be56c26a92291073875dab53e27142a5c9bfc6f8f8b672",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "targetTime"
+            ],
+            "properties": {
+              "targetTime": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "scale"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4294967295
+                  }
+                }
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionTimeSetValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.settings.read",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read composition.settings.read.",
+          "undo": "not-applicable",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "fa019292708c3492259971a5959d336e122f4056d87363ae500b66a1147bf9b5",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [],
+            "properties": {}
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionSettingsReadValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.duration.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write composition.duration.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "ea5fc0670a7409db5c27c464899f9cc8898d8c14f1a555f8f6358d23f1cb96ea",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "duration"
+            ],
+            "properties": {
+              "duration": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "scale"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4294967295
+                  }
+                }
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionSettingsChangedValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.frameRate.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write composition.frameRate.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "dfcad69b7edb2605af5160d1d5cf18fe609ebbba2f338b2bac5ef0830920731c",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "frameRate"
+            ],
+            "properties": {
+              "frameRate": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "numerator",
+                  "denominator"
+                ],
+                "properties": {
+                  "numerator": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "denominator": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  }
+                }
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionSettingsChangedValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.pixelAspectRatio.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write composition.pixelAspectRatio.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "ba429b2721a5a803df964a31acb5caee49d162bb768cbd48c9adc69f99f34de6",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pixelAspectRatio"
+            ],
+            "properties": {
+              "pixelAspectRatio": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "numerator",
+                  "denominator"
+                ],
+                "properties": {
+                  "numerator": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "denominator": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  }
+                }
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionSettingsChangedValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "composition.displayStartTime.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_CompSuite11 must be available."
+          ],
+          "requiredSuite": "AEGP_CompSuite11",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write composition.displayStartTime.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "b3f68ec53e4cee687f10f17d7f02e1c061a70224fef0d05727914a71e87618b8",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "displayStartTime"
+            ],
+            "properties": {
+              "displayStartTime": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "scale"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4294967295
+                  }
+                }
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/compositionSettingsChangedValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "layer.properties.list",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_LayerSuite9 must be available."
+          ],
+          "requiredSuite": "AEGP_LayerSuite9",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read layer.properties.list.",
+          "undo": "not-applicable",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "051e745c3df7a1135f2559c0aad052bfb0567f02d35925b006de80b5d3b999a3",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "offset",
+              "limit"
+            ],
+            "properties": {
+              "offset": {
+                "$ref": "aegp-rpc.schema.json#/$defs/pageOffset"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 25
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/layerPropertiesListValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.keyframes.list",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read property.keyframes.list.",
+          "undo": "not-applicable",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "e9f84f6a282734e76dbba79edeb25b9d4b25d40e4169541a782fa28c9845120d",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "offset",
+              "limit"
+            ],
+            "properties": {
+              "offset": {
+                "$ref": "aegp-rpc.schema.json#/$defs/pageOffset"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 25
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/layerPropertyKeyframesListValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.value.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write property.value.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "44f30f4e384f76f8d6c7603e725fe37f987190133eecf46f571a65d9258d5ff0",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value"
+            ],
+            "properties": {
+              "value": {
+                "$ref": "aegp-rpc.schema.json#/$defs/layerPropertyPrimitiveValue"
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/layerPropertySetValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.keyframe.details.read",
+          "idempotency": "idempotent",
+          "mutability": "read-only",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "read",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Reads After Effects state without changing it.",
+          "summary": "Read property.keyframe.details.read.",
+          "undo": "not-applicable",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "e5572da81eb8aae1ab8f5a1eb7c5c90c45db2ba071f45203d2f4420a98e95631",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time"
+            ],
+            "properties": {
+              "time": {
+                "$ref": "aegp-rpc.schema.json#/$defs/keyframeTimeInput"
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/keyframeDetailsValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.keyframe.add",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write property.keyframe.add.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "0bc406187010b043d6011bf345578dddc4906a93f69a0d03c8e51d19568bbf3b",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time",
+              "value"
+            ],
+            "properties": {
+              "time": {
+                "$ref": "aegp-rpc.schema.json#/$defs/keyframeTimeInput"
+              },
+              "value": {
+                "$ref": "aegp-rpc.schema.json#/$defs/layerPropertyPrimitiveValue"
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/keyframeMutationValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.keyframe.value.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write property.keyframe.value.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "0bc406187010b043d6011bf345578dddc4906a93f69a0d03c8e51d19568bbf3b",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time",
+              "value"
+            ],
+            "properties": {
+              "time": {
+                "$ref": "aegp-rpc.schema.json#/$defs/keyframeTimeInput"
+              },
+              "value": {
+                "$ref": "aegp-rpc.schema.json#/$defs/layerPropertyPrimitiveValue"
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/keyframeMutationValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.keyframe.interpolation.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write property.keyframe.interpolation.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "e3b13f65f803b0330dce9dcb4c72246aad1ab2237e6f41a57d9f8906735cca77",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time",
+              "inInterpolation",
+              "outInterpolation"
+            ],
+            "properties": {
+              "time": {
+                "$ref": "aegp-rpc.schema.json#/$defs/keyframeTimeInput"
+              },
+              "inInterpolation": {
+                "enum": [
+                  "linear",
+                  "bezier",
+                  "hold"
+                ]
+              },
+              "outInterpolation": {
+                "enum": [
+                  "linear",
+                  "bezier",
+                  "hold"
+                ]
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/keyframeMutationValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.keyframe.temporalEase.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write property.keyframe.temporalEase.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "c8d14ee9cd4b4cdcb410e89049ec058d11242b3bcf8d32c6efc7f25c30749726",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time",
+              "dimensions"
+            ],
+            "properties": {
+              "time": {
+                "$ref": "aegp-rpc.schema.json#/$defs/keyframeTimeInput"
+              },
+              "dimensions": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 4,
+                "items": {
+                  "$ref": "aegp-rpc.schema.json#/$defs/keyframeEaseDimension"
+                }
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/keyframeMutationValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.keyframe.behavior.set",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write property.keyframe.behavior.set.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "b25c73d0ec1c8232548716bfc342373a0dcc2b5ea9c128e04e46436426b72553",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time",
+              "behavior",
+              "enabled"
+            ],
+            "properties": {
+              "time": {
+                "$ref": "aegp-rpc.schema.json#/$defs/keyframeTimeInput"
+              },
+              "behavior": {
+                "enum": [
+                  "temporal-continuous",
+                  "temporal-auto-bezier",
+                  "spatial-continuous",
+                  "spatial-auto-bezier",
+                  "roving"
+                ]
+              },
+              "enabled": {
+                "type": "boolean"
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/keyframeMutationValue"
+          }
+        },
+        {
+          "cancellation": "before-dispatch",
+          "compatibility": {
+            "intendedPlatforms": [
+              "macos-arm64",
+              "windows-x64"
+            ],
+            "status": "unverified"
+          },
+          "detail": "full",
+          "id": "property.keyframe.delete",
+          "idempotency": "idempotency-key",
+          "mutability": "mutating",
+          "preconditions": [
+            "AEGP_StreamSuite5 must be available."
+          ],
+          "requiredSuite": "AEGP_StreamSuite5",
+          "risk": "write",
+          "schemaVersion": 1,
+          "sideEffectSummary": "Changes After Effects state within one native program Undo group.",
+          "summary": "Write property.keyframe.delete.",
+          "undo": "ae-undo-group",
+          "valueKind": "Json",
+          "version": 1,
+          "contractDigest": "c794c1a818a4195acd3d352fe6e5a5fae4dd30c2678f0e38a04c82d3f0ac68a9",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time"
+            ],
+            "properties": {
+              "time": {
+                "$ref": "aegp-rpc.schema.json#/$defs/keyframeTimeInput"
+              }
+            }
+          },
+          "resultSchema": {
+            "$ref": "aegp-rpc.schema.json#/$defs/keyframeMutationValue"
+          }
+        }
+      ],
+      "resultSchema": {
+        "$ref": "aegp-rpc.schema.json#/$defs/nativeProgramInvokeResult"
+      }
+    }
+  ]
+}

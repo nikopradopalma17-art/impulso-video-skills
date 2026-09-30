@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "premierpro-mcp": {
+      "type": "stdio",
+      "command": "./go-orchestrator/bin/premierpro-mcp",
+      "args": [
+        "--log-level",
+        "error"
+      ],
+      "env": {}
+    }
+  }
+}

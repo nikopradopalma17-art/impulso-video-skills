@@ -1,0 +1,67 @@
+<!--
+@ComponentMeta
+name: data_viz
+layer: content
+tags: [data, stats, chart, metrics, bar]
+emotion_range: [curiosity, confidence]
+visual_density: compact
+complexity: css-only
+description: 数据可视化卡片，水平进度条展示语言占比、Star 分布等数据
+parameters: {}
+/ComponentMeta
+-->
+<!-- HTML -->
+<div class="data-viz">
+  <div class="data-title">语言分布</div>
+  <div class="data-bars">
+    <div class="data-bar">
+      <div class="bar-label">Python</div>
+      <div class="bar-track"><div class="bar-fill" style="width:45%"></div></div>
+      <div class="bar-value">45%</div>
+    </div>
+    <!-- 更多条目... -->
+  </div>
+</div>
+
+<!-- CSS -->
+<style>
+.data-viz {
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px; padding: 40px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.data-title { font-size: 36px; font-weight: 700; color: #fff; margin-bottom: 32px; }
+.data-bar {
+  display: flex; align-items: center; gap: 20px;
+  margin-bottom: 20px;
+}
+.bar-label { font-size: 40px; color: var(--text-secondary); width: 160px; }
+.bar-track {
+  flex: 1; height: 12px; border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%; border-radius: 6px;
+  background: linear-gradient(90deg, var(--accent-cool), var(--accent-warm));
+}
+.bar-value { font-size: 40px; font-weight: 700; color: var(--accent-warm); width: 80px; text-align: right; }
+</style>
+
+<!-- JS (GSAP) -->
+<script>
+// Step 1: Title scales in with overshoot punch
+tl.from('.data-title', {opacity:0, scale:0.5, y:-40, duration:0.45, ease:'back.out(1.8)'}, startTime)
+  // Step 2: Container card fades in
+  .from('.data-viz', {opacity:0, y:30, clipPath:'inset(10% 0 0 0)', duration:0.4, ease:'power4.out'}, startTime + 0.05)
+  // Step 3: Labels slide in from left with stagger
+  .from('.data-bar .bar-label', {opacity:0, x:-40, duration:0.3, stagger:0.08, ease:'back.out(1.5)'}, startTime + 0.25)
+  // Step 4: Bar fills grow with elastic easing
+  .from('.bar-fill', {scaleX:0, duration:0.8, stagger:0.12, ease:'elastic.out(1, 0.75)', transformOrigin:'left center'}, startTime + 0.4)
+  // Step 5: Values pop in with scale burst
+  .from('.bar-value', {opacity:0, scale:0, duration:0.4, stagger:0.1, ease:'elastic.out(1, 0.5)'}, startTime + 0.7)
+  // Step 6: Glow sweep on bars
+  .fromTo('.bar-fill',
+    {boxShadow:'0 0 0px transparent'},
+    {boxShadow:'0 0 30px rgba(6,182,212,0.4), 0 0 60px rgba(240,180,41,0.2)', duration:0.4, ease:'power2.out', stagger:0.1}, startTime + 1.1);
+</script>

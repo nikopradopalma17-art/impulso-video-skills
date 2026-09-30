@@ -1,0 +1,267 @@
+<!--
+  REFERENCE EXAMPLE — Quantum Computing Explainer
+
+  Demonstrates the skill contract:
+    - 1280x720 viewport
+    - Loads GSAP from jsdelivr
+    - Reads window.__AUDIO_DURATION to scale scene timing
+    - Sets window.__done = true when finished
+
+  This file is one specific design; don't copy it for new topics — design something
+  that fits the new topic's mood and meaning.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Quantum Computing</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0f1f;
+    --ink: #ffffff;
+    --muted: rgba(255,255,255,0.55);
+    --accent: #8b5cf6;
+    --accent-2: #06b6d4;
+    --surface: #131830;
+    --line: rgba(255,255,255,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1280px; height: 720px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+    overflow: hidden; position: relative;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 64px 64px; opacity: 0.4;
+  }
+  .stage {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 100px;
+    opacity: 0; pointer-events: none;
+  }
+  .scene.active { opacity: 1; }
+  .eyebrow {
+    font-size: 14px; font-weight: 500; letter-spacing: 5px;
+    color: var(--accent-2); text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .headline {
+    font-size: 64px; font-weight: 500;
+    line-height: 1.05; text-align: center;
+    letter-spacing: -1.5px;
+  }
+  .headline .w { display: inline-block; }
+  .accent { color: var(--accent); }
+  .accent-2 { color: var(--accent-2); }
+  .subhead {
+    font-size: 26px; font-weight: 400; line-height: 1.3;
+    color: var(--muted); text-align: center;
+    margin-top: 24px; max-width: 880px;
+  }
+  .caption {
+    font-size: 14px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); margin-top: 32px;
+  }
+  svg.stage-svg { width: 100%; max-width: 900px; height: 380px; }
+  svg .fill-ink { fill: var(--ink); }
+  svg .fill-accent { fill: var(--accent); }
+  svg .fill-surface { fill: var(--surface); }
+  svg .stroke-accent { stroke: var(--accent); fill: none; stroke-width: 2.5; }
+  svg .stroke-accent-2 { stroke: var(--accent-2); fill: none; stroke-width: 2.5; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="stage" id="stage"></div>
+
+<script>
+  const TOTAL = window.__AUDIO_DURATION || 70;
+
+  // Allocate scene durations proportional to script segment lengths
+  const weights = [0.08, 0.14, 0.21, 0.18, 0.21, 0.18];
+  const wsum = weights.reduce((a,b)=>a+b, 0);
+  const dur = (i) => TOTAL * weights[i] / wsum;
+
+  const stage = document.getElementById('stage');
+  const splitWords = s => s.split(' ').map(w => '<span class="w">' + w + '</span>').join(' ');
+
+  const scenes = [
+    // 0 — Hook
+    (root) => {
+      root.innerHTML = `
+        <div class="eyebrow">A 90-second explainer</div>
+        <div class="headline">${splitWords('What if a computer')}</div>
+        <div class="headline accent" style="margin-top:12px;">${splitWords('could be in two places at once?')}</div>
+        <div class="subhead">Quantum computing, made simple.</div>
+      `;
+      return {
+        in: tl => {
+          tl.from(root.querySelector('.eyebrow'), { y: 20, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0);
+          tl.from(root.querySelectorAll('.headline .w'), { y: 60, opacity: 0, duration: 0.7, stagger: 0.07, ease: 'power3.out' }, 0.15);
+          tl.from(root.querySelector('.subhead'), { y: 20, opacity: 0, duration: 0.7, ease: 'power2.out' }, 0.6);
+        },
+      };
+    },
+    // 1 — Classical bit
+    (root) => {
+      root.innerHTML = `
+        <div class="eyebrow">The classical bit</div>
+        <div class="subhead" style="margin-top:0;margin-bottom:32px;">Either 0 or 1 — never both</div>
+        <svg class="stage-svg" viewBox="0 0 1000 380">
+          <circle cx="500" cy="180" r="120" class="fill-surface stroke-accent" stroke-width="3"/>
+          <text x="500" y="218" text-anchor="middle" font-size="110" font-weight="500" class="fill-ink">
+            <animate attributeName="opacity" values="1;0;1" dur="1.4s" repeatCount="indefinite"/>0
+          </text>
+          <text x="500" y="218" text-anchor="middle" font-size="110" font-weight="500" class="fill-accent">
+            <animate attributeName="opacity" values="0;1;0" dur="1.4s" repeatCount="indefinite"/>1
+          </text>
+        </svg>
+        <div class="caption">Like a coin lying flat</div>
+      `;
+      return {
+        in: tl => {
+          tl.from(root.querySelector('.eyebrow'), { y: -20, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0);
+          tl.from(root.querySelector('.subhead'), { y: -10, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0.15);
+          tl.from(root.querySelector('svg'), { scale: 0.85, opacity: 0, duration: 0.8, transformOrigin: 'center', ease: 'back.out(1.4)' }, 0.2);
+          tl.from(root.querySelector('.caption'), { y: 20, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0.7);
+        },
+      };
+    },
+    // 2 — Qubit / superposition
+    (root) => {
+      root.innerHTML = `
+        <div class="eyebrow">The qubit</div>
+        <div class="subhead" style="margin-top:0;margin-bottom:32px;">Zero, one — or both at once. <span class="accent-2">Superposition.</span></div>
+        <svg class="stage-svg" viewBox="0 0 1000 380">
+          <circle cx="500" cy="190" r="135" class="stroke-accent" stroke-width="3"/>
+          <ellipse cx="500" cy="190" rx="135" ry="45" class="stroke-accent-2" opacity="0.85">
+            <animateTransform attributeName="transform" type="rotate" from="0 500 190" to="360 500 190" dur="6s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="500" cy="190" rx="45" ry="135" class="stroke-accent-2" opacity="0.85">
+            <animateTransform attributeName="transform" type="rotate" from="0 500 190" to="-360 500 190" dur="8s" repeatCount="indefinite"/>
+          </ellipse>
+          <text x="445" y="210" text-anchor="middle" font-size="54" font-weight="500" class="fill-ink">0</text>
+          <text x="555" y="210" text-anchor="middle" font-size="54" font-weight="500" class="fill-ink">1</text>
+          <circle cx="500" cy="190" r="10" class="fill-ink">
+            <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+        <div class="caption">Spinning coin — neither until you look</div>
+      `;
+      return {
+        in: tl => {
+          tl.from(root.querySelector('.eyebrow'), { y: -20, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0);
+          tl.from(root.querySelector('.subhead'), { y: -10, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0.15);
+          tl.from(root.querySelector('svg'), { scale: 0.85, opacity: 0, duration: 0.9, transformOrigin: 'center', ease: 'back.out(1.4)' }, 0.2);
+          tl.from(root.querySelector('.caption'), { y: 20, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0.8);
+        },
+      };
+    },
+    // 3 — Entanglement
+    (root) => {
+      root.innerHTML = `
+        <div class="eyebrow">Entanglement</div>
+        <div class="subhead" style="margin-top:0;margin-bottom:32px;">Two qubits, linked across any distance</div>
+        <svg class="stage-svg" viewBox="0 0 1000 380">
+          <line x1="220" y1="190" x2="780" y2="190" class="stroke-accent-2" stroke-width="3" stroke-dasharray="10 8">
+            <animate attributeName="stroke-dashoffset" values="0;-36" dur="1.5s" repeatCount="indefinite"/>
+          </line>
+          <circle cx="220" cy="190" r="80" class="fill-surface stroke-accent" stroke-width="3">
+            <animate attributeName="r" values="76;88;76" dur="2.5s" repeatCount="indefinite"/>
+          </circle>
+          <text x="220" y="212" text-anchor="middle" font-size="68" font-weight="500" class="fill-ink">
+            <animate attributeName="opacity" values="1;0.3;1" dur="1.8s" repeatCount="indefinite"/>↑
+          </text>
+          <circle cx="780" cy="190" r="80" class="fill-surface stroke-accent-2" stroke-width="3">
+            <animate attributeName="r" values="76;88;76" dur="2.5s" repeatCount="indefinite"/>
+          </circle>
+          <text x="780" y="212" text-anchor="middle" font-size="68" font-weight="500" class="fill-ink">
+            <animate attributeName="opacity" values="0.3;1;0.3" dur="1.8s" repeatCount="indefinite"/>↓
+          </text>
+        </svg>
+        <div class="caption">Measure one — instantly know the other</div>
+      `;
+      return {
+        in: tl => {
+          tl.from(root.querySelectorAll('.eyebrow, .subhead'), { y: 20, opacity: 0, duration: 0.6, stagger: 0.12, ease: 'power2.out' }, 0);
+          tl.from(root.querySelector('svg'), { scale: 0.9, opacity: 0, duration: 0.8, transformOrigin: 'center', ease: 'power2.out' }, 0.2);
+          tl.from(root.querySelector('.caption'), { y: 20, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0.7);
+        },
+      };
+    },
+    // 4 — Stat: 300 qubits
+    (root) => {
+      root.innerHTML = `
+        <div class="caption" style="margin-top:0;margin-bottom:24px;">Three hundred qubits can explore</div>
+        <div style="font-size:200px; font-weight:500; line-height:1; letter-spacing:-8px; color:var(--accent);">
+          <span id="num">0</span><span style="font-size:80px; color:var(--accent-2);">+</span>
+        </div>
+        <div class="subhead" style="margin-top:24px;">more possibilities than atoms in the universe — all at once</div>
+      `;
+      return {
+        in: tl => {
+          const numEl = root.querySelector('#num');
+          const t = { v: 0 };
+          tl.from(root.querySelectorAll('.caption, .subhead'), { y: 20, opacity: 0, duration: 0.6, stagger: 0.15, ease: 'power2.out' }, 0);
+          tl.to(t, { v: 1000000000, duration: 1.8, ease: 'power2.out',
+            onUpdate: () => { numEl.textContent = Math.round(t.v).toLocaleString(); }
+          }, 0.2);
+        },
+      };
+    },
+    // 5 — Payoff
+    (root) => {
+      root.innerHTML = `
+        <div class="headline" style="font-size:52px;">The future of computing</div>
+        <div class="headline accent" style="font-size:60px; margin-top:14px;">isn't faster.</div>
+        <div class="headline accent-2" style="font-size:60px; margin-top:6px;">It's fundamentally different.</div>
+        <div class="caption" style="margin-top:48px;">Codes. Medicines. Reality itself.</div>
+      `;
+      return {
+        in: tl => {
+          tl.from(root.querySelectorAll('.headline, .caption'), { y: 30, opacity: 0, duration: 0.7, stagger: 0.18, ease: 'power3.out' }, 0);
+        },
+      };
+    },
+  ];
+
+  async function play() {
+    for (let i = 0; i < scenes.length; i++) {
+      const root = document.createElement('div');
+      root.className = 'scene';
+      stage.appendChild(root);
+      const handle = scenes[i](root);
+      requestAnimationFrame(() => root.classList.add('active'));
+      const tl = gsap.timeline();
+      handle.in(tl);
+      await tl.then();
+      // hold the rest of this scene's allocated time
+      const used = tl.duration() * 1000;
+      const remain = Math.max(0, dur(i) * 1000 - used - 600);
+      await new Promise(r => setTimeout(r, remain));
+      // exit
+      const out = gsap.timeline();
+      out.to(root.children, { opacity: 0, y: -20, duration: 0.5, ease: 'power2.in', stagger: 0.04 });
+      await out.then();
+      root.remove();
+    }
+    window.__done = true;
+  }
+
+  window.addEventListener('load', () => setTimeout(play, 400));
+</script>
+</body>
+</html>

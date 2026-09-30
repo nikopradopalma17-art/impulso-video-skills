@@ -1,0 +1,15 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    name: Run the full CI suite for the tagged source
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read

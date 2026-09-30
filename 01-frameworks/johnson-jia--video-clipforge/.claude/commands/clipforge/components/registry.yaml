@@ -1,0 +1,569 @@
+# ClipForge 组件注册表
+# 由组件文件头 @ComponentMeta 汇总生成
+# 匹配算法的粗筛索引
+
+components:
+  # ── 背景层 ──
+  - name: gradient_mesh
+    layer: bg
+    file: bg/gradient_mesh.html
+    tags: [gradient, background, ambient, wave, sway, glass]
+    emotion_range: [calm, mystery, depth]
+    visual_density: medium
+    complexity: css-only
+
+  - name: light_field
+    layer: bg
+    file: bg/light_field.html
+    tags: [glow, orbs, ambient, background, atmosphere, glass]
+    emotion_range: [warmth, mystery, depth, calm]
+    visual_density: medium
+    complexity: css-only
+
+  - name: contour_lines
+    layer: bg
+    file: bg/contour_lines.html
+    tags: [contour, topographic, lines, data, analysis, structured, glass]
+    emotion_range: [analysis, depth, focus, precision]
+    visual_density: medium
+    complexity: css-only
+
+  - name: radial_beams
+    layer: bg
+    file: bg/radial_beams.html
+    tags: [beams, rays, radial, light, dramatic, epic, glass]
+    emotion_range: [shock, excitement, climax, revelation]
+    visual_density: medium
+    complexity: css-only
+
+  - name: scan_grid
+    layer: bg
+    file: bg/scan_grid.html
+    tags: [grid, scan, tech, cyber, digital, futuristic, glass]
+    emotion_range: [tension, focus, tech, analysis]
+    visual_density: medium
+    complexity: css-only
+
+  - name: wave_ripple
+    layer: bg
+    file: bg/wave_ripple.html
+    tags: [wave, ripple, pulse, organic, calm, flow, glass]
+    emotion_range: [calm, mystery, depth, transition]
+    visual_density: medium
+    complexity: css-only
+
+  - name: noise_field
+    layer: bg
+    file: bg/noise_field.html
+    tags: [noise, texture, svg, turbulence, atmospheric, grain]
+    emotion_range: [tension, mystery, atmospheric]
+    visual_density: medium
+    complexity: css-only
+
+  - name: vignette_glow
+    layer: bg
+    file: bg/vignette_glow.html
+    tags: [vignette, glow, focus, warmth, center, soft]
+    emotion_range: [warmth, focus, conclusion]
+    visual_density: low
+    complexity: css-only
+
+  - name: aurora_flow
+    layer: bg
+    file: bg/aurora_flow.html
+    tags: [aurora, flow, horizontal, color-bands, northern-lights, atmospheric, glass, rays]
+    emotion_range: [wonder, beauty, calm, curiosity]
+    visual_density: medium
+    complexity: css-only
+
+  - name: hex_grid
+    layer: bg
+    file: bg/hex_grid.html
+    tags: [hexagon, grid, honeycomb, emerald, tech, pattern, pulse, glass]
+    emotion_range: [confidence, precision, tech]
+    visual_density: high
+    complexity: css-only
+
+  - name: nebula_cloud
+    layer: bg
+    file: bg/nebula_cloud.html
+    tags: [nebula, cloud, cosmic, deep-space, drift, stars, twinkle, glass]
+    emotion_range: [wonder, mystery, beauty]
+    visual_density: medium
+    complexity: css-only
+
+  - name: ember_glow
+    layer: bg
+    file: bg/ember_glow.html
+    tags: [ember, warm, amber, glow, rising, particles, vignette, glass]
+    emotion_range: [warmth, nostalgia, beauty]
+    visual_density: low
+    complexity: css-only
+
+  - name: amber_aura
+    layer: bg
+    file: bg/amber_aura.html
+    tags: [amber, warm, gold, aura, soft, glow, drift, dust, comfort, hope]
+    emotion_range: [warmth, comfort, hope]
+    visual_density: low
+    complexity: css-only
+
+  - name: ruby_pulse
+    layer: bg
+    file: bg/ruby_pulse.html
+    tags: [ruby, warm, deep-red, pulse, danger, warning, beams, tension, alarm]
+    emotion_range: [warning, danger, tension]
+    visual_density: medium
+    complexity: css-only
+
+  - name: forge_ember
+    layer: bg
+    file: bg/forge_ember.html
+    tags: [forge, warm, sparks, burst, hammer, energy, industry, tension, bright]
+    emotion_range: [energy, tension, industry]
+    visual_density: medium
+    complexity: css-only
+
+  - name: diamond_lattice
+    layer: bg
+    file: bg/diamond_lattice.html
+    tags: [diamond, lattice, grid, 45deg, gold, elegant, diagonal, drift, glass]
+    emotion_range: [pride, confidence, elegance]
+    visual_density: medium
+    complexity: css-only
+
+  - name: electric_pulse
+    layer: bg
+    file: bg/electric_pulse.html
+    tags: [electric, pulse, energy, arc, conic, rotate, core, ring, expand, dramatic, glass]
+    emotion_range: [excitement, power, climax]
+    visual_density: high
+    complexity: css-only
+
+  - name: cosmic_planet
+    layer: bg
+    file: bg/cosmic_planet.html
+    tags: [cosmic, planet, earth, space, stars, atmosphere, ocean, continent, glass]
+    emotion_range: [wonder, epic, mystery]
+    visual_density: medium
+    complexity: css-only
+
+  - name: frost_crystal
+    layer: bg
+    file: bg/frost_crystal.html
+    tags: [ice, crystal, cold, blue, energy, core, starburst, ring, clinical, science]
+    emotion_range: [clinical, precision, cold, sterile]
+    visual_density: medium
+    complexity: css-only
+
+  - name: moss_garden
+    layer: bg
+    file: bg/moss_garden.html
+    tags: [nature, green, organic, moss, garden, growth, calm, leaf, firefly, dapple, mist]
+    emotion_range: [organic, growth, nature, calm]
+    visual_density: medium
+    complexity: css-only
+
+  - name: clean_slate
+    layer: bg
+    file: bg/clean_slate.html
+    tags: [clean, minimal, professional, slate, grid, focus, dark, corporate, geometric, calm]
+    emotion_range: [clarity, focus, professional, minimal]
+    visual_density: low
+    complexity: css-only
+
+  - name: dark_cipher
+    layer: bg
+    file: bg/dark_cipher.html
+    tags: [dark, cipher, suspense, red, crack, fog, mystery, thriller, scan, glitch, rain]
+    emotion_range: [tension, mystery, suspense, dark]
+    visual_density: high
+    complexity: css-only
+
+  - name: soft_linen
+    layer: bg
+    file: bg/soft_linen.html
+    tags: [linen, warm, cozy, fabric, gentle, soft, daily, bokeh, candle, petal]
+    emotion_range: [warmth, cozy, gentle, daily]
+    visual_density: low
+    complexity: css-only
+
+  - name: aurora_night
+    layer: bg
+    file: bg/aurora_night.html
+    tags: [aurora, night, arctic, snow-mountain, stars, moonlight, polar, nature, deep, majestic, glass]
+    emotion_range: [wonder, tranquility, grandeur]
+    visual_density: medium
+    complexity: css-only
+
+  - name: cosmic_void
+    layer: bg
+    file: bg/cosmic_void.html
+    tags: [cosmic, deep-space, planet, star-gate, wormhole, nebula, starlight, energy-flow, star-force, sci-fi, dreamy, majestic, glass]
+    emotion_range: [wonder, awe, grandeur, mystery]
+    visual_density: high
+    complexity: css-only
+
+  - name: ruin_city
+    layer: bg
+    file: bg/ruin_city.html
+    tags: [ruin, city, apocalypse, wasteland, blood-sun, silhouette, danger, desolation, dust, post-apocalyptic, glass]
+    emotion_range: [desolation, danger, tension, melancholy]
+    visual_density: high
+    complexity: css-only
+
+  - name: ancient_relic
+    layer: bg
+    file: bg/ancient_relic.html
+    tags: [relic, ancient, temple, rune, glyph, altar, mystery, sacred, magic, purple-gold, floating-stone, glass]
+    emotion_range: [mystery, sacred, wonder, awe]
+    visual_density: high
+    complexity: css-only
+
+  - name: starforce_ocean
+    layer: bg
+    file: bg/starforce_ocean.html
+    tags: [starforce, energy, golden, ocean, vortex, breakthrough, power, transcendence, flow, cultivation, majestic, glass]
+    emotion_range: [power, transcendence, awe, energy]
+    visual_density: high
+    complexity: css-only
+
+  - name: virtual_universe
+    layer: bg
+    file: bg/virtual_universe.html
+    tags: [virtual, digital, grid, data-stream, hologram, matrix, sci-fi, cyber, futuristic, tech, cyan, glass]
+    emotion_range: [tech, futuristic, immersion, sci-fi]
+    visual_density: high
+    complexity: css-only
+
+  - name: bloodmoon_wild
+    layer: bg
+    file: bg/bloodmoon_wild.html
+    tags: [blood-moon, bloodmoon, wasteland, dead-tree, wilderness, danger, dread, primal, ominous, beast, purple-red, glass]
+    emotion_range: [danger, dread, ominous, tension]
+    visual_density: high
+    complexity: css-only
+
+  # ── 特效层 ──
+  - name: code_rain
+    layer: fx
+    file: fx/code_rain.html
+    tags: [tech, coding, matrix, rain, background, hacker]
+    emotion_range: [tension, focus]
+    visual_density: low
+    complexity: canvas-js
+
+  - name: pulse_orb
+    layer: fx
+    file: fx/pulse_orb.html
+    tags: [energy, pulse, glow, focus, orb, ambient]
+    emotion_range: [focus, energy]
+    visual_density: low
+    complexity: gsap
+
+  - name: particle_burst
+    layer: fx
+    file: fx/particle_burst.html
+    tags: [celebration, burst, confetti, climax, particles]
+    emotion_range: [excitement, climax]
+    visual_density: low
+    complexity: canvas-js
+
+  - name: three_scene
+    layer: fx
+    file: fx/three_scene.html
+    tags: [3d, immersive, spatial, cubes, three-js]
+    emotion_range: [immersion, wonder]
+    visual_density: low
+    complexity: three-js
+
+  - name: spectrum
+    layer: fx
+    file: fx/spectrum.html
+    tags: [spectrum, impact, analysis, gradient, levels, color-strip]
+    emotion_range: [analysis, depth]
+    visual_density: medium
+    complexity: css-only
+
+  - name: scan_line
+    layer: fx
+    file: fx/scan_line.html
+    tags: [scan, sweep, tech, detection, analysis, alert]
+    emotion_range: [tension, analysis, focus, tech]
+    visual_density: low
+    complexity: gsap
+
+  - name: alert_border
+    layer: fx
+    file: fx/alert_border.html
+    tags: [alert, border, warning, pulse, frame, critical]
+    emotion_range: [tension, warning, urgency, alert]
+    visual_density: low
+    complexity: gsap
+
+  - name: float_particles
+    layer: fx
+    file: fx/float_particles.html
+    tags: [particles, float, drift, ambient, dreamy, ethereal]
+    emotion_range: [calm, mystery, wonder, depth]
+    visual_density: low
+    complexity: gsap
+
+  - name: light_streak
+    layer: fx
+    file: fx/light_streak.html
+    tags: [light, streak, diagonal, band, cinematic, dramatic]
+    emotion_range: [excitement, shock, climax, dynamic]
+    visual_density: low
+    complexity: gsap
+
+  - name: data_stream
+    layer: fx
+    file: fx/data_stream.html
+    tags: [data, stream, flow, binary, code, matrix, tech]
+    emotion_range: [tech, tension, focus, analysis]
+    visual_density: medium
+    complexity: canvas-gsap
+
+  - name: constellation
+    layer: fx
+    file: fx/constellation.html
+    tags: [constellation, network, nodes, connection, stars, links, proximity]
+    emotion_range: [wonder, connection, depth, mystery]
+    visual_density: low
+    complexity: canvas-gsap
+
+  - name: vortex
+    layer: fx
+    file: fx/vortex.html
+    tags: [vortex, spiral, energy, whirlpool, particles, kepler, orbit]
+    emotion_range: [energy, power, dynamic, immersion]
+    visual_density: medium
+    complexity: canvas-gsap
+
+  - name: lightning
+    layer: fx
+    file: fx/lightning.html
+    tags: [lightning, electric, storm, dramatic, shock, fractal, arc, flash]
+    emotion_range: [shock, dramatic, energy, climax]
+    visual_density: low
+    complexity: canvas-gsap
+
+  - name: wildfire
+    layer: fx
+    file: fx/wildfire.html
+    tags: [fire, spark, wildfire, ember, flame, particles, prairie, ignite, heat, glow]
+    emotion_range: [energy, power, climax, passion, determination]
+    visual_density: medium
+    complexity: canvas-gsap
+
+  # ── 内容层 ──
+  - name: hero_card
+    layer: content
+    file: content/hero_card.html
+    tags: [hook, intro, hero, opening, stunning]
+    emotion_range: [shock, excitement, curiosity]
+    visual_density: generous
+    complexity: css-only
+
+  - name: star_counter
+    layer: content
+    file: content/star_counter.html
+    tags: [stats, reveal, counting, growth, star]
+    emotion_range: [pride, excitement]
+    visual_density: medium
+    complexity: css-only
+
+  - name: compare_split
+    layer: content
+    file: content/compare_split.html
+    tags: [compare, versus, dual, split]
+    emotion_range: [tension, surprise]
+    visual_density: medium
+    complexity: css-only
+
+  - name: timeline_flow
+    layer: content
+    file: content/timeline_flow.html
+    tags: [timeline, history, steps, roadmap, evolution]
+    emotion_range: [progress, anticipation]
+    visual_density: standard
+    complexity: css-only
+
+  - name: data_viz
+    layer: content
+    file: content/data_viz.html
+    tags: [data, stats, chart, metrics, bar]
+    emotion_range: [curiosity, confidence]
+    visual_density: compact
+    complexity: css-only
+
+  - name: text_reveal
+    layer: content
+    file: content/text_reveal.html
+    tags: [reveal, surprise, highlight, cta, punchline]
+    emotion_range: [surprise, warmth]
+    visual_density: generous
+    complexity: css-only
+
+  - name: project_full_card
+    layer: content
+    file: content/project_full_card.html
+    tags: [project-card, listing, full-screen, single-project]
+    emotion_range: [confidence, interest]
+    visual_density: compact
+    complexity: css-only
+
+  - name: verdict_box
+    layer: content
+    file: content/verdict_box.html
+    tags: [conclusion, summary, thesis, verdict, key-point]
+    emotion_range: [certainty, conviction]
+    visual_density: standard
+    complexity: css-only
+
+  - name: num_grid
+    layer: content
+    file: content/num_grid.html
+    tags: [data, stats, metrics, grid, matrix, kpi]
+    emotion_range: [curiosity, confidence]
+    visual_density: compact
+    complexity: css-only
+
+  - name: market_bars
+    layer: content
+    file: content/market_bars.html
+    tags: [market, growth, comparison, progress, forecast]
+    emotion_range: [progress, confidence]
+    visual_density: compact
+    complexity: css-only
+
+  - name: score_compare
+    layer: content
+    file: content/score_compare.html
+    tags: [compare, versus, battle, score, ab_test, winner]
+    emotion_range: [tension, excitement]
+    visual_density: medium
+    complexity: css-only
+
+  - name: rec_strip
+    layer: content
+    file: content/rec_strip.html
+    tags: [recommendation, ranking, priority, verdict, tier]
+    emotion_range: [certainty, guidance]
+    visual_density: standard
+    complexity: css-only
+
+  # ── 内容层：电影级特效 ──
+
+  - name: cinematic_title
+    layer: content
+    file: content/cinematic_title.html
+    tags: [cinematic, title, opening, chapter, transition, epic, dramatic]
+    emotion_range: [epic, grand, anticipation]
+    visual_density: generous
+    complexity: css-only
+
+  - name: glass_card
+    layer: content
+    file: content/glass_card.html
+    tags: [glass, frosted, modern, card, blur, premium, feature]
+    emotion_range: [elegance, sophistication]
+    visual_density: standard
+    complexity: css-only
+
+  - name: countdown_reveal
+    layer: content
+    file: content/countdown_reveal.html
+    tags: [countdown, reveal, suspense, milestone, dramatic, timer, anticipation]
+    emotion_range: [anticipation, excitement, suspense]
+    visual_density: generous
+    complexity: css-only
+
+  - name: split_story
+    layer: content
+    file: content/split_story.html
+    tags: [split, dual, story, compare, before-after, narrative, cinematic]
+    emotion_range: [contrast, tension, narrative]
+    visual_density: medium
+    complexity: css-only
+
+  - name: neon_title
+    layer: content
+    file: content/neon_title.html
+    tags: [neon, glow, cyber, title, announcement, highlight, tech, futuristic]
+    emotion_range: [excitement, energy, cyber]
+    visual_density: generous
+    complexity: css-only
+
+  - name: quote_block
+    layer: content
+    file: content/quote_block.html
+    tags: [quote, citation, documentary, expert, opinion, insight, authority]
+    emotion_range: [authority, gravitas, wisdom]
+    visual_density: standard
+    complexity: css-only
+
+  - name: layered_cards
+    layer: content
+    file: content/layered_cards.html
+    tags: [stacked, layered, depth, 3d, perspective, cards, showcase, portfolio]
+    emotion_range: [depth, richness, showcase]
+    visual_density: medium
+    complexity: css-only
+
+  - name: spotlight_card
+    layer: content
+    file: content/spotlight_card.html
+    tags: [spotlight, focus, dramatic, stage, emphasis, highlight, theatrical]
+    emotion_range: [focus, drama, spotlight]
+    visual_density: standard
+    complexity: css-only
+
+  - name: kinetic_text
+    layer: content
+    file: content/kinetic_text.html
+    tags: [kinetic, typography, motion, dynamic, impact, statement, punchline, cta]
+    emotion_range: [energy, impact, power]
+    visual_density: generous
+    complexity: css-only
+
+  - name: breakthrough
+    layer: content
+    file: content/breakthrough.html
+    tags: [breakthrough, crack, shatter, reveal, shock, dramatic, climax, milestone]
+    emotion_range: [shock, breakthrough, revelation]
+    visual_density: generous
+    complexity: css-only
+
+  - name: terminal
+    layer: content
+    file: content/terminal.html
+    tags: [terminal, console, coding, developer, command-line, cli, hack, tech, typing, code-block]
+    emotion_range: [tech, focus, immersion, confidence]
+    visual_density: compact
+    complexity: css-only
+
+  - name: slide_drawer
+    layer: content
+    file: content/slide_drawer.html
+    tags: [slide, drawer, reveal, panel, sweep, transition, entrance, kinetic, drawer, compare]
+    emotion_range: [anticipation, energy, dynamism]
+    visual_density: standard
+    complexity: css-only
+
+  - name: nest_tree
+    layer: content
+    file: content/nest_tree.html
+    tags: [nest, tree, hierarchy, level, tier, parent-child, architecture, object-model, directory, inheritance, containment, layered]
+    emotion_range: [analysis, depth, structure, clarity]
+    visual_density: standard
+    complexity: css-only
+
+  - name: goldminer_intro
+    layer: content
+    file: content/goldminer_intro.html
+    tags: [goldminer, intro, opening, signature, kai-tao, gold-rush, amber, gold, spark, hook]
+    emotion_range: [excitement, energy, curiosity]
+    visual_density: generous
+    complexity: css-only

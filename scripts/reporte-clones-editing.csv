@@ -1,0 +1,39 @@
+categoria,repo,estado,error,tamano_mb,licencia,stars
+editing,FireRedTeam/FireRed-OpenStoryline,ok,,1.2,Apache-2.0,3456
+editing,Agentchengfeng/chengfeng-videocut-skills,fallo,and retry with 'git restore --source=HEAD :/',0.0,Apache-2.0,3025
+editing,hetpatel-11/Adobe_Premiere_Pro_MCP,ok,,7.1,MIT,630
+editing,cartesiancs/cartcut,ok,,65.0,MIT,759
+editing,zenstory-ai/video-recap-skills,ok,,3.7,MIT,541
+editing,hassancs91/claude-youtube-editor,ok,,65.9,MIT,316
+editing,JimLiu/baocut,ok,,24.1,MIT,522
+editing,leancoderkavy/premiere-pro-mcp,ok,,9.1,MIT,307
+editing,AgriciDaniel/claude-shorts,ok,,1.4,MIT,218
+editing,Cassette-Editor/oh-my-cassette,ok,,1.9,MIT,158
+editing,YeJe-cpu/SeeCut,ok,,0.4,NOASSERTION,152
+editing,znyupup/ai-video-editing-skill,ok,,0.1,MIT,138
+editing,blixvip/easyedit,ok,,0.4,MIT,135
+editing,naive-kun/naive-video-skill,ok,,0.3,MIT,130
+editing,erduo1998-cell/erduo-broll-loop-engineering,fallo,and retry with 'git restore --source=HEAD :/',0.0,MIT,205
+editing,Monet-AI-Editor/Monet,ok,,6.5,MIT,116
+editing,ayushozha/AdobePremiereProMCP,ok,,4.8,MIT,111
+editing,louisedesadeleer/cut-video,ok,,0.1,MIT,104
+editing,AKMessi/vex,ok,,5.3,NOASSERTION,85
+editing,JUNKDOGE-JOE/after-effects-mcp,ok,,8.7,MIT,75
+editing,kurbaitaev/ghost-editor,ok,,0.8,MIT,63
+editing,hahadu4520/vlog-cut,ok,,0.4,NOASSERTION,49
+editing,Kappaemme-git/codex-video-short-maker-skill,ok,,0.0,MIT,35
+editing,ops120/video-recap-skills-plus,ok,,19.8,MIT,40
+editing,0xsline/OpenChatCut,ok,,84.9,AGPL-3.0,2061
+editing,darrenli6/JJKoubo,ok,,28.9,NOASSERTION,33
+editing,manthanpatelll/leadgenman-video-skills,ok,,0.1,MIT,18
+editing,krusemediallc/video-editor-agent,ok,,1.3,,21
+editing,jincheng2026/jc-remotion-skills,ok,,0.6,NOASSERTION,14
+editing,PoetCoderJun/MotionTalk,ok,,0.7,NOASSERTION,12
+editing,cocolayuan/videoclip-AI-skill,ok,,7.4,MIT,13
+editing,qingyunAGI/qingyun-cine-skill,ok,,0.1,,10
+editing,ZiadAbdelkarim/beat-synced-edit,ok,,20.1,MIT,11
+editing,misbahsy/tiktok-ig-shorts,ok,,90.9,,11
+editing,Agentchengfeng/chengfeng-videocut-skills,fallo,and retry with 'git restore --source=HEAD :/',0.0,Apache-2.0,3025
+editing,erduo1998-cell/erduo-broll-loop-engineering,fallo,and retry with 'git restore --source=HEAD :/',0.0,MIT,205
+editing,Agentchengfeng/chengfeng-videocut-skills,ok,,1.6,Apache-2.0,3025
+editing,erduo1998-cell/erduo-broll-loop-engineering,ok,,7.2,MIT,205

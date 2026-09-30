@@ -1,0 +1,246 @@
+rules:
+  - id: "R-S6-001"
+    type: FORBIDDEN_METHOD
+    pattern: "Phase 切换使用硬切而非渐变过渡"
+    positive: "Phase 间使用 opacity 渐变过渡（0.3-0.4s），上一个 phase 淡化到 0"
+    guardrail: "Phase 切换无过渡效果或使用 display:none 切换"
+    detection: {keywords: [], semantic_check: true}
+    severity: HARD
+    class: EXPERIENTIAL
+    scope: SKILL
+    skill: "stage6-production"
+    source: "stage6-production.md §6.11"
+
+  - id: "R-S6-002"
+    type: FORBIDDEN_ACTION
+    pattern: "相邻 phase 的 visual_type 重复"
+    positive: "相邻 phase 必须使用不同的 visual_type 确保视觉多样性"
+    guardrail: "同一场景内连续两个 phase 的 visual_type 相同"
+    detection: {keywords: [], semantic_check: true}
+    severity: SOFT
+    class: EXPERIENTIAL
+    scope: SKILL
+    skill: "stage6-production"
+    source: "shared/shared-rules.md §6"
+
+  - id: "R-S6-003"
+    type: FORBIDDEN_METHOD
+    pattern: "使用 setInterval/setTimeout 控制动画时序"
+    positive: "使用 GSAP timeline 控制所有动画时序，确保与音频同步"
+    guardrail: "JS 中使用 setInterval 或 setTimeout 控制视觉切换"
+    detection:
+      keywords: ["setInterval", "setTimeout"]
+    severity: HARD
+    class: EXPERIENTIAL
+    scope: SKILL
+    skill: "stage6-production"
+    source: "stage6-production.md"
+
+  - id: "R-S6-004"
+    type: FORBIDDEN_ACTION
+    pattern: "未从 content.md 和 design.md 推导视觉效果"
+    positive: "所有视觉效果必须从内容自主推导，禁止套用固定特效/查表"
+    guardrail: "视觉组件选择不基于内容主题而是固定模板"
+    detection: {keywords: [], semantic_check: true}
+    severity: HARD
+    class: EXPERIENTIAL
+    scope: SKILL
+    skill: "stage6-production"
+    source: "用户反馈: 组件应作参考而非机械套用"
+
+  - id: "R-S6-005"
+    type: FORBIDDEN_METHOD
+    pattern: "封面结构与主视频在同一 index.html"
+    positive: "封面 HTML 独立文件，渲染前重命名为 .renderbak"
+    guardrail: "index.html 中同时包含封面和主视频场景"
+    detection: {keywords: [], semantic_check: true}
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "shared/render-safety.md §1.10"
+
+  - id: "R-S6-006"
+    type: FORBIDDEN_ACTION
+    pattern: "清理阶段删除了非目标文件"
+    positive: "cleanup 严格按保留清单操作，只删除 schema.yaml 中未声明的临时文件"
+    guardrail: "cleanup 删除了产出物或必要中间文件"
+    detection: {keywords: [], semantic_check: true}
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "用户反馈: cleanup 过度删除有效文件"
+
+  - id: "R-S6-007"
+    type: FORBIDDEN_ACTION
+    pattern: "index.html 缺少 window.__hf 声明"
+    positive: "在 </script> 前注入 window.__hf = { duration: TOTAL, seek: fn }，其中 TOTAL 从 segment_durations.json 计算"
+    guardrail: "HyperFrames 渲染时轮询 window.__hf（45s 超时），缺失则渲染崩溃"
+    detection:
+      keywords: ["window.__hf"]
+      regex: "window\\.__hf\\s*="
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "事故: window.__hf 缺失导致渲染超时崩溃"
+
+  - id: "R-S6-008"
+    type: FORBIDDEN_ACTION
+    pattern: "场景包裹 div 缺少 id 属性导致 GSAP 选择器失效"
+    positive: "每个场景的包裹 div 必须有 id=\"sN\"（如 id=\"s1\"），与 narration_segments.json 的 scene 字段前缀对应"
+    guardrail: "GSAP 使用 #sN .xxx 选择器控制入场动画，缺少 id 则动画静默丢失"
+    detection:
+      keywords: []
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "事故: 场景包裹 div 缺少 id 导致 GSAP 选择器失效"
+
+  - id: "R-S6-009"
+    type: FORBIDDEN_ACTION
+    pattern: "index.html 缺少 HyperFrames composition 结构"
+    positive: "必须包含: (1) data-composition-id 包裹层 (2) window.__timelines 声明并注册 timeline (3) gsap.timeline({paused: true})"
+    guardrail: "缺少 composition 结构导致 HyperFrames 无法正确管理场景切换，渲染后文字层层覆盖"
+    detection:
+      keywords: ["data-composition-id", "__timelines", "paused"]
+      regex: "data-composition-id"
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "事故: 缺少 composition 结构导致渲染文字层层覆盖"
+
+  - id: "R-S6-010"
+    type: FORBIDDEN_ACTION
+    pattern: "output_no_bgm.mp4 使用 color=c=black 生成导致纯黑屏"
+    positive: "output_no_bgm.mp4 必须从 output.mp4 视频轨 + narration.mp3 音频轨合成: ffmpeg -i output.mp4 -i narration.mp3 -map 0:v -map 1:a -c:v copy -c:a aac"
+    guardrail: "黑屏 no_bgm 文件的大小比率通常 <30%，正常应 >50%"
+    detection:
+      keywords: []
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "事故: output_no_bgm.mp4 纯黑屏"
+
+  - id: "R-S6-011"
+    type: FORBIDDEN_METHOD
+    pattern: "使用 CSS class 切换场景可见性（.active / .show / .visible）"
+    positive: "场景可见性由 GSAP timeline .set()/.fromTo() 控制，HyperFrames 通过 seek 驱动，不执行 CSS class 切换"
+    guardrail: "CSS 中 .scene-wrap 设置 opacity:0 + visibility:hidden，依赖 .active class 切换，HyperFrames 不会添加/移除 class → 所有场景永远不可见 → 黑屏"
+    detection:
+      keywords: [".active", "visibility:hidden", "opacity:0"]
+      regex: "\\.scene[_-]?wrap\\s*\\{[^}]*opacity\\s*:\\s*0[^}]*visibility\\s*:\\s*hidden"
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "事故: CSS class 切换可见性导致黑屏 + engine/gate.py check_html_no_css_visibility"
+
+  - id: "R-S6-012"
+    type: FORBIDDEN_ACTION
+    pattern: "渲染输出视频码率异常低（<500 kbps），疑似黑屏"
+    positive: "1080x1920 视频正常码率应 >500 kbps。低于 500 kbps 通常意味着内容大面积不可见"
+    guardrail: "HyperFrames 渲染的 output.mp4 码率 <500 kbps，说明 HTML 内容在 seek 过程中不可见"
+    detection:
+      keywords: []
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "事故: 渲染码率异常低疑似黑屏 + engine/gate.py check_video_bitrate_valid"
+
+  # R-S6-020~022: gate.py checker 内联校验规则，无独立 inject prompt
+  # 编号与 gate.py 输出消息对齐，跳过 013-019 保持引用一致
+
+  - id: "R-S6-020"
+    type: FORBIDDEN_ACTION
+    pattern: "design.md 声明的 orientation 与 HTML 实际画布尺寸方向不一致"
+    positive: "design.md 的 orientation 字段（portrait/landscape）必须与 index.html data-width/data-height 的宽高比一致"
+    guardrail: "design.md 写 portrait 但 HTML 画布 width > height（或反之）"
+    detection:
+      keywords: ["orientation", "data-width", "data-height"]
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "engine/gate.py check_orientation_consistency"
+
+  - id: "R-S6-021"
+    type: FORBIDDEN_METHOD
+    pattern: ".grad-text 元素使用 background: 简写属性"
+    positive: "渐变文字元素使用 background-image: linear-gradient(...) 独立属性，不使用 background: 简写"
+    guardrail: "background: 简写会覆盖 background-clip: text，导致渐变文字失效变为纯色"
+    detection:
+      keywords: ["grad-text", "background:"]
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "engine/gate.py check_grad_text_shorthand"
+
+  - id: "R-S6-022"
+    type: FORBIDDEN_ACTION
+    pattern: "多 phase 场景的 phase-2+ 无 GSAP 可见性恢复"
+    positive: "骨架将 phase-2+ 设为 opacity:0，GSAP timeline 必须包含 .to()/.set() 将其恢复为 opacity:1"
+    guardrail: "phase 被设为 opacity:0 但从未恢复 → 渲染时该 phase 内容空白"
+    detection:
+      keywords: []
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "engine/gate.py check_phase_visibility_present"
+
+  - id: "R-S6-023"
+    type: FORBIDDEN_METHOD
+    pattern: "渐变文字（background-clip:text / -webkit-text-fill-color:transparent）搭配黑色 text-shadow rgba(0,0,0,...)"
+    positive: "渐变文字使用同色系发光 text-shadow（如渐变主色 rgba），黑色阴影只用于不透明纯色文字"
+    guardrail: "黑色 text-shadow 叠加在透明填充的渐变文字上产生黑色光晕，压低文字亮度；DOM 元素同时携带渐变类+黑色阴影类同样违规"
+    detection:
+      keywords: ["background-clip: text", "-webkit-text-fill-color: transparent", "text-shadow", "rgba(0,0,0"]
+      regex: "background-clip\\s*:\\s*text|text-shadow\\s*:[^;]*rgba\\(\\s*0\\s*,\\s*0\\s*,\\s*0"
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "engine/gate.py check_gradient_text_no_dark_shadow"
+
+  - id: "R-S6-025"
+    type: FORBIDDEN_ACTION
+    pattern: ".clip 与 .layer-bg/.layer-fx/.layer-content 之间插入中间包裹层（如 .scene-wrap）"
+    positive: ".clip 必须直系包含 .layer-bg / .layer-fx / .layer-content 三层，中间不夹任何 div"
+    guardrail: ".clip > .scene-wrap > .layer-* 三层直系铁律违反，HyperFrames seek 时内容不可见"
+    detection:
+      keywords: ["scene-wrap", "class=\"clip\"", "layer-bg", "layer-fx", "layer-content"]
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "渲染安全: .clip 三层直系（checker 待评估启用，历史项目多有 scene-wrap 但渲染成功）"
+
+  - id: "R-S6-027"
+    type: FORBIDDEN_METHOD
+    pattern: "全局通配选择器（* 或 .xxx *）设置 text-shadow / opacity / filter"
+    positive: "text-shadow / opacity / filter 写在具体元素或具体类选择器上，禁止用通配 * 批量套用"
+    guardrail: ".safe-pad * { text-shadow:... } 类全局通配会连带影响渐变文字导致整体偏暗"
+    detection:
+      keywords: ["* {", "*{", "text-shadow", "opacity:", "filter:"]
+      regex: "(?:\\*|\\.?\\w+\\s\\*)\\s*\\{[^}]*(text-shadow\\s*:|opacity\\s*:|filter\\s*:)"
+      semantic_check: true
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage6-production"
+    source: "engine/gate.py check_no_global_text_shadow"

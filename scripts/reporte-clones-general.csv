@@ -1,0 +1,21 @@
+categoria,repo,estado,error,tamano_mb,licencia,stars
+general,hypit-ai/hypit,ok,,23.5,NOASSERTION,17871
+general,remotion-dev/skills,ok,,2.3,,4777
+general,NarratorAI-Studio/narrator-ai-cli-skill,ok,,0.1,MIT,2979
+general,digitalsamba/claude-code-video-toolkit,ok,,28.4,MIT,2151
+general,vibe-motion/skills,ok,,33.5,,1294
+general,iart-ai/motion-skills,ok,,3.5,MIT,598
+general,bangtutorial/bang-motion,ok,,2.2,MIT,548
+general,kangarooking/director-skills,ok,,0.1,MIT,156
+general,video-db/skills,ok,,0.3,MIT,122
+general,jhartquist/claude-remotion-kickstart,ok,,6.7,MIT,120
+general,Johnson-Jia/video-clipforge,ok,,11.5,Apache-2.0,39
+general,iart-ai/motion-design-skills,ok,,4.2,MIT,39
+general,zhouyuechuan2025-ui/ai-self-media-video-packaging-skill,ok,,5.9,MIT,36
+general,GordenSun/react-bits-video,ok,,47.5,NOASSERTION,28
+general,bbylw/hyperframes-cn,ok,,0.3,MIT,28
+general,smwbev/framewright,ok,,15.4,MIT,21
+general,doublesq97-ui/su-card-to-video,ok,,1.3,MIT,18
+general,gloweaseco-leo/hyperdirector,ok,,0.8,Apache-2.0,17
+general,calesthio/OpenMontage,ok,,84.5,AGPL-3.0,61947
+general,heygen-com/hyperframes,fallo,and retry with 'git restore --source=HEAD :/',0.0,Apache-2.0,54384

@@ -1,0 +1,899 @@
+"""Tripwires for the two root installers (install.sh and install.ps1).
+
+Both installers resolve the latest release from the release page redirect
+and derive every other URL from that one directory: the wheel, the locked
+constraints and raven-plugins.txt, the list of plugin wheels the release
+ships beside raven. The list is what they hand to `uv tool install
+--with-requirements`; nothing in either script knows a plugin's name or
+guesses one from an asset list, and neither script calls the GitHub API.
+
+The optional capability steps (the chromium download, the LibreOffice offer)
+get pins of their own: they stay skippable via RAVEN_MINIMAL, they read the
+interactive answer and sudo's password prompt from /dev/tty (stdin is the
+script itself under `curl | sh`), and they stay above install.sh's closing
+launch -- that call holds the terminal until Ctrl-C, so anything placed after
+it would not run at all on a normal install.
+
+install.ps1 mirrors the capability steps for Windows (Install-Browser,
+Install-Office) and the closing launch (Start-Web): same decisions, same
+degrade-loudly warns, with the /dev/tty gate traded for a console gate --
+under `irm | iex` Read-Host still reads the console, but CI has none, so the
+guard must make a non-interactive run skip the winget offer cleanly instead of
+hanging on it.
+
+Both launches obey the probe rule: the scripts are served from main and install
+the latest release, which can predate a subcommand main already knows about
+(`raven web` shipped after 0.1.13 did, and the install ended in "No such
+command 'web'"). So every `raven <sub>` call is preceded by `raven <sub>
+--help`, the probe's failure branch finishes on the one command every release
+has, and neither the stop nor the page's own exit code becomes the script's.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import pytest
+
+INSTALL_SH = Path(__file__).resolve().parents[1] / "install.sh"
+INSTALL_PS1 = Path(__file__).resolve().parents[1] / "install.ps1"
+
+
+def test_the_installer_is_where_this_tripwire_thinks_it_is() -> None:
+    assert INSTALL_SH.is_file()
+
+
+def test_the_installers_read_the_release_plugin_list_and_never_the_api() -> None:
+    """The release writes what it ships; the installer reads it. Grepping the
+    API's JSON for asset names decided on the user's machine what a complete
+    install was, said nothing when an asset was missing, and ran against a
+    60-requests-per-hour quota one office shares."""
+    for script in (INSTALL_SH, INSTALL_PS1):
+        text = script.read_text(encoding="utf-8")
+        assert "api.github.com" not in text, script.name
+        assert "raven-plugins.txt" in text, script.name
+        assert "--with-requirements" in text, script.name
+        assert "everos_memory" not in text, script.name
+    sh = INSTALL_SH.read_text(encoding="utf-8")
+    assert "releases/latest" in sh and "redirect_url" in sh
+    # Without a list the release installs raven alone and says so, as 0.1.13 did.
+    assert "carries no plugin list" in sh
+    assert "carries no plugin list" in INSTALL_PS1.read_text(encoding="utf-8")
+
+
+def test_the_optional_capability_steps_exist_and_are_skippable() -> None:
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    for fn in ("install_browser", "install_office"):
+        assert f"{fn}() {{" in text
+    assert '[ -n "${RAVEN_MINIMAL:-}" ] || install_browser' in text
+    assert '[ -n "${RAVEN_MINIMAL:-}" ] || install_office' in text
+
+
+def test_the_install_ends_on_a_running_page() -> None:
+    """install.sh finishes in the product: it clears a resident gateway an
+    earlier install left behind, then holds the terminal on a fresh one so the
+    browser opens on the build that just landed. RAVEN_NO_LAUNCH=1 skips the
+    launch, so CI and Dockerfiles get a script that returns."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert "launch_web() {" in text
+    assert "web --stop" in text
+    assert "web --foreground" in text
+    assert '  [ -n "${RAVEN_NO_LAUNCH:-}" ] || launch_web\n' in text
+
+
+def test_the_launch_invokes_raven_by_absolute_path() -> None:
+    """`uv tool update-shell` only fixes future shells, so this one's PATH may
+    still not carry the shim -- a bare `raven web` here would not be found."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    launch = text[text.index("launch_web() {") :]
+    assert 'bin="$(uv tool dir --bin 2>/dev/null || true)/raven"' in launch
+    assert '"$bin" web --foreground' in launch
+
+
+def _unprobed_subcommands(text: str, call: str) -> list[str]:
+    """Subcommands the script calls without an earlier `<call> <sub> --help`."""
+    probed: set[str] = set()
+    unprobed: list[str] = []
+    for line in text.splitlines():
+        for m in re.finditer(call + r" ([a-z][a-z-]*)(.*)$", line):
+            sub, rest = m.group(1), m.group(2)
+            if "--help" in rest:
+                probed.add(sub)
+            elif sub not in probed:
+                unprobed.append(sub)
+    return unprobed
+
+
+def test_the_launch_probes_before_calling_a_subcommand_the_release_may_lack() -> None:
+    """The script is served from main and installs the latest release, which
+    can predate a subcommand main already knows about: `raven web` shipped
+    after 0.1.13 did, and every one-line install ended in "No such command
+    'web'" with exit 2. So every `"$bin" <sub>` call is preceded by a `"$bin"
+    <sub> --help` probe whose failure branch ends the install on the one
+    command every release has."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert '"$bin" web --help' in text
+    assert _unprobed_subcommands(text, r'"\$bin"') == []
+    launch = text[text.index("launch_web() {") :]
+    assert "Raven installed." in launch
+
+
+@pytest.mark.skipif(sys.platform == "win32" or shutil.which("sh") is None, reason="POSIX sh only")
+def test_launch_web_answers_each_release_shape_it_exists_for(tmp_path: Path) -> None:
+    """The text pins cannot tell a probe that gates the launch from one that is
+    merely present. Two fake ravens stand in: the shape of the latest release,
+    which answers `web` the way typer does (usage on stderr, exit 2), and the
+    shape of main, which has it. Every call the fakes receive is logged, so the
+    assertions read what reached the product, not what the script printed."""
+    body = re.search(r"^launch_web\(\) \{.*?^\}$", INSTALL_SH.read_text(encoding="utf-8"), re.S | re.M)
+    assert body is not None
+    harness = tmp_path / "harness.sh"
+    harness.write_text(
+        "ok() { printf 'OK %s\\n' \"$1\"; }\n"
+        "warn() { printf 'WARN %s\\n' \"$1\" >&2; }\n" + body.group(0) + "\nlaunch_web\n",
+        encoding="utf-8",
+    )
+
+    # One pair of fake executables for every case: macOS scans a freshly written
+    # executable on its first run, so a fresh pair per case is what made this
+    # test idle. The shape of the fake raven is chosen per run through the env.
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    log = tmp_path / "calls.log"
+    started_in = tmp_path / "pwd.log"
+    # `uv tool dir --bin` names the shim directory; the fake answers with ours.
+    (bin_dir / "uv").write_text(f"#!/bin/sh\nprintf '%s' '{bin_dir}'\n", encoding="utf-8")
+    (bin_dir / "raven").write_text(
+        "#!/bin/sh\n"
+        f"echo \"$*\" >> '{log}'\n"
+        f"[ \"$1:$2\" = web:--foreground ] && pwd >> '{started_in}'\n"
+        'case "$FAKE_SHAPE:$1:$2" in\n'
+        # The latest release: typer answers an unknown command with usage and exit 2.
+        '  without-web:web:*) echo "Usage: raven [OPTIONS] COMMAND [ARGS]..." >&2; '
+        "echo \"No such command 'web'.\" >&2; exit 2 ;;\n"
+        "  stop-fails:web:--stop) exit 1 ;;\n"
+        "  interrupted:web:--foreground) exit 130 ;;\n"
+        "esac\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    for exe in ("uv", "raven"):
+        (bin_dir / exe).chmod(0o755)
+
+    def run(shape: str) -> tuple[int, str, str, list[str]]:
+        log.unlink(missing_ok=True)
+        started_in.unlink(missing_ok=True)
+        r = subprocess.run(
+            ["sh", str(harness)],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={"PATH": f"{bin_dir}:/usr/bin:/bin", "HOME": str(tmp_path), "FAKE_SHAPE": shape},
+        )
+        calls = log.read_text(encoding="utf-8").splitlines() if log.is_file() else []
+        return r.returncode, r.stdout, r.stderr, calls
+
+    code, out, _err, calls = run("without-web")
+    assert code == 0, "a release without `web` must still end the install cleanly"
+    assert "run: raven" in out, "the fallback names the command every release has"
+    assert calls == ["web --help"], "only the probe may reach a release without `web`"
+
+    code, _out, _err, calls = run("with-web")
+    assert code == 0
+    assert calls == ["web --help", "web --stop", "web --foreground"], "a release with `web` gets the launch"
+    # pytest runs this from the repository root, which is exactly the source
+    # checkout the launch must not start the page from.
+    assert started_in.read_text(encoding="utf-8").strip() == str(tmp_path), "the page starts from HOME"
+
+    code, _out, err, calls = run("stop-fails")
+    assert code == 0
+    assert calls[-1] == "web --foreground", "a failed --stop is a warning, not the end of the launch"
+    assert "could not stop" in err
+
+    code, _out, err, calls = run("interrupted")
+    assert code == 0, "the page's own exit code is not the script's"
+    assert calls[-1] == "web --foreground"
+    assert "130" in err and "raven web" in err
+
+
+def test_the_launch_leaves_the_working_directory_before_starting_the_page() -> None:
+    """`raven web` starts its engine as `python -m raven`, which puts the working
+    directory first on sys.path -- so an install run from inside a source
+    checkout would bring the release up on that checkout's raven. Both
+    installers move to the home directory first. The PowerShell one moves back
+    afterwards: under `irm | iex` it runs in the caller's own shell."""
+    sh = INSTALL_SH.read_text(encoding="utf-8")
+    launch = sh[sh.index("launch_web() {") :]
+    assert launch.index('cd "${HOME:-/}"') < launch.index('"$bin" web --stop')
+    ps1 = INSTALL_PS1.read_text(encoding="utf-8")
+    start = ps1[ps1.index("function Start-Web") :]
+    assert start.index("Push-Location $HOME") < start.index("& $bin web --stop")
+    assert start.index("Pop-Location") > start.index("& $bin web --foreground")
+
+
+def test_the_path_hint_precedes_the_launch() -> None:
+    """`uv tool update-shell` only fixes future shells. The page holds this one
+    until Ctrl-C, so the hint about the shim's directory has to land before
+    the launch, and RAVEN_NO_LAUNCH runs must still get it."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    main = text[text.index("main() {") :]
+    hint = main.index("open a new terminal, or run: export PATH=")
+    assert hint < main.index("|| launch_web")
+
+
+def test_the_web_assets_rebuild_when_the_frontend_moved_on() -> None:
+    """An editable install relinks Python and nothing else. Built once and then
+    only ever checked for existence, the TUI bundle and the served page keep
+    serving whatever the tree held at first install, which reads as a frontend
+    that ignores your edits -- so both artifacts are compared against their
+    sources, not merely tested for presence."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert "is_stale() {" in text
+    assert 'if is_stale "$src/ui-tui/dist/entry.js" "$src/ui-tui"; then need_tui=1; fi' in text
+    assert '-newer "$artifact"' in text
+    assert '[ -f "$src/ui-tui/dist/entry.js" ] || need_tui=1' not in text
+
+
+def test_the_page_staleness_covers_the_shared_catalogue() -> None:
+    """ui-web/build.py inlines i18n/messages.json, so a catalogue-only change
+    is a page change -- watching ui-web alone would miss it."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert 'is_stale "$src/ui-web/dist/index.html" "$src/ui-web" "$src/i18n"' in text
+
+
+def test_the_staleness_walk_prunes_what_the_build_itself_writes() -> None:
+    """node_modules is rewritten by this script's own `npm ci` and dist holds
+    the artifact being judged: left in the walk, either makes every artifact
+    permanently stale and every re-run a full rebuild."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    walk = text[text.index("is_stale() {") : text.index("build_web_assets() {")]
+    assert r"\( -name node_modules -o -name dist -o -name .modern \) -prune -o" in walk
+
+
+@pytest.mark.skipif(sys.platform == "win32" or shutil.which("sh") is None, reason="POSIX sh only")
+def test_is_stale_answers_each_case_it_exists_for(tmp_path: Path) -> None:
+    """The text pins above cannot tell a working mtime comparison from a broken
+    one, and this is the half that decides whether a rebuild happens at all."""
+    body = re.search(r"^is_stale\(\) \{.*?^\}$", INSTALL_SH.read_text(encoding="utf-8"), re.S | re.M)
+    assert body is not None
+    harness = tmp_path / "harness.sh"
+    harness.write_text(
+        body.group(0) + '\nif is_stale "$1" "$2" "$3"; then echo STALE; else echo FRESH; fi\n',
+        encoding="utf-8",
+    )
+
+    web, catalog = tmp_path / "ui-web", tmp_path / "i18n"
+    (web / "src").mkdir(parents=True)
+    (web / "node_modules").mkdir()
+    (web / ".modern").mkdir()
+    (web / "dist").mkdir()
+    catalog.mkdir()
+    artifact = web / "dist" / "index.html"
+
+    # An explicit clock, not sleeps: every step stamps a second further out than
+    # the last, so the comparison under test is the only thing being measured.
+    epoch = time.time()
+
+    def stamp(path: Path, tick: int, body: str = "x") -> None:
+        path.write_text(body, encoding="utf-8")
+        os.utime(path, (epoch + tick, epoch + tick))
+
+    def verdict() -> str:
+        r = subprocess.run(
+            ["sh", str(harness), str(artifact), str(web), str(catalog)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return r.stdout.strip()
+
+    stamp(web / "src" / "page.html", 1)
+    stamp(catalog / "messages.json", 1)
+    assert verdict() == "STALE", "a missing artifact must build"
+
+    stamp(artifact, 2)
+    assert verdict() == "FRESH", "an artifact newer than every source must not rebuild"
+
+    stamp(web / "src" / "page.html", 3)
+    assert verdict() == "STALE", "a touched page source must rebuild"
+
+    stamp(artifact, 4)
+    stamp(catalog / "messages.json", 5)
+    assert verdict() == "STALE", "a touched catalogue must rebuild"
+
+    stamp(artifact, 6)
+    for junk in (web / "node_modules" / "x", web / ".modern" / "modern.iife.js", web / "dist" / "extra.css"):
+        stamp(junk, 7)
+    assert verdict() == "FRESH", "the build's own output must not count as a source change"
+
+
+def test_a_node_without_npm_fetches_the_runtime_that_carries_one() -> None:
+    """Debian and Ubuntu package node and npm separately, so a system node >= 22
+    satisfies ensure_node and the build then finds no npm with no private
+    runtime ever fetched. The official tarball carries both, so that case
+    provisions rather than skipping the TUI and page builds."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert "provision_private_node() {" in text
+    probe = text[text.index("resolve_node_dir() {") : text.index("build_web_assets() {")]
+    assert "provision_private_node" in probe
+
+
+def test_the_build_time_node_fetch_cannot_fail_the_install() -> None:
+    """ensure_node dies on a failed download because raven needs node at all.
+    This second fetch is for npm only: the node already present still runs
+    `raven tui`, so its failure is a skipped build. provision_private_node dies
+    internally, so the build-time caller must subshell it."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    probe = text[text.index("resolve_node_dir() {") : text.index("build_web_assets() {")]
+    assert "if ( provision_private_node ); then" in probe
+    assert 'blocker="Found node but not npm"' in probe
+
+
+@pytest.mark.skipif(sys.platform == "win32" or shutil.which("sh") is None, reason="POSIX sh only")
+def test_resolve_node_dir_answers_each_case_it_exists_for(tmp_path: Path) -> None:
+    """The text pins cannot tell a working fallback from one that never fires."""
+    source = INSTALL_SH.read_text(encoding="utf-8")
+    bodies = []
+    for name in ("private_node_bin", "resolve_node_dir"):
+        body = re.search(rf"^{name}\(\) \{{.*?^\}}$", source, re.S | re.M)
+        assert body is not None, name
+        bodies.append(body.group(0))
+
+    harness = tmp_path / "harness.sh"
+    harness.write_text(
+        "info() { :; }\n"
+        # Stands in for the download: writes the runtime layout private_node_bin
+        # looks for, or fails the way a dead network would.
+        "provision_private_node() {\n"
+        '  [ "$PROVISION_OK" = 1 ] || { echo "download failed" >&2; exit 1; }\n'
+        '  mkdir -p "$NODE_RUNTIME_DIR/node-v22.20.0-x/bin"\n'
+        "  for exe in node npm; do\n"
+        "    printf '#!/bin/sh\\necho ok\\n' > \"$NODE_RUNTIME_DIR/node-v22.20.0-x/bin/$exe\"\n"
+        '    chmod +x "$NODE_RUNTIME_DIR/node-v22.20.0-x/bin/$exe"\n'
+        "  done\n"
+        "}\n" + "\n".join(bodies) + "\n"
+        "resolve_node_dir >/dev/null 2>&1\n"
+        'printf \'%s|%s\' "${node_dir:-}" "${blocker:-}"\n',
+        encoding="utf-8",
+    )
+
+    def verdict(*, system_node: bool, system_npm: bool, provision_ok: bool) -> tuple[str, str]:
+        case = tmp_path / f"case-{system_node}-{system_npm}-{provision_ok}"
+        sysbin, runtime = case / "sysbin", case / "runtime"
+        sysbin.mkdir(parents=True)
+        runtime.mkdir(parents=True)
+        for name, wanted in (("node", system_node), ("npm", system_npm)):
+            if wanted:
+                exe = sysbin / name
+                exe.write_text("#!/bin/sh\necho ok\n", encoding="utf-8")
+                exe.chmod(0o755)
+        r = subprocess.run(
+            ["sh", str(harness)],
+            capture_output=True,
+            text=True,
+            check=True,
+            env={
+                "PATH": f"{sysbin}:/usr/bin:/bin",
+                "NODE_RUNTIME_DIR": str(runtime),
+                "PROVISION_OK": "1" if provision_ok else "0",
+                "HOME": str(case),
+            },
+        )
+        node_dir, _, blocker = r.stdout.partition("|")
+        return node_dir, blocker
+
+    node_dir, blocker = verdict(system_node=True, system_npm=True, provision_ok=True)
+    assert node_dir.endswith("sysbin") and not blocker, "a system node with npm is used as is"
+
+    node_dir, blocker = verdict(system_node=True, system_npm=False, provision_ok=True)
+    assert "node-v22.20.0-x" in node_dir and not blocker, "node without npm provisions a runtime"
+
+    node_dir, blocker = verdict(system_node=True, system_npm=False, provision_ok=False)
+    assert not node_dir and blocker == "Found node but not npm", "a failed fetch warns, never aborts"
+
+    node_dir, blocker = verdict(system_node=False, system_npm=False, provision_ok=True)
+    assert not node_dir and blocker == "No usable node found", "ensure_node owns the no-node case"
+
+
+def test_the_office_prompt_and_sudo_both_read_the_tty() -> None:
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert "read -r answer < /dev/tty" in text
+    assert "sudo apt-get install -y libreoffice fonts-noto-cjk < /dev/tty" in text
+
+
+def test_a_failed_tty_read_declines_instead_of_defaulting_yes() -> None:
+    """Ctrl-D and a tty lost after the gate are not consent: with a default-yes
+    prompt, read's failure branch must return, never fall through to sudo."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert "read -r answer < /dev/tty || {" in text
+    assert "no answer read" in text
+
+
+def test_the_tty_gate_probes_openability_not_existence() -> None:
+    """/dev/tty can exist with no controlling terminal (CI, cron, `docker run
+    -t` without -i), where a read on it errors or hangs -- the gate must open
+    the node, not stat it."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert ": < /dev/tty" in text
+    assert "[ ! -e /dev/tty ]" not in text
+
+
+def test_the_office_offer_defaults_to_yes_in_both_installers() -> None:
+    """Enter means install, and only an explicit no declines -- including the
+    spelled-out word, which the bare `n|N)` arm used to fall through to yes."""
+    sh = INSTALL_SH.read_text(encoding="utf-8")
+    assert "[Y/n]" in sh
+    assert "n|N|[nN][oO])" in sh
+    ps1 = INSTALL_PS1.read_text(encoding="utf-8")
+    assert "[Y/n]" in ps1
+    assert '-match "^[nN]"' in ps1
+
+
+def test_the_capability_steps_stay_above_the_closing_launch() -> None:
+    """launch_web holds the terminal until Ctrl-C, so a capability step placed
+    after it would never run."""
+    closing = INSTALL_SH.read_text(encoding="utf-8")
+    closing = closing[closing.index("launch_web() {") :].lower()
+    assert "playwright" not in closing
+    assert "libreoffice" not in closing
+
+
+def test_the_ci_gate_installs_the_latest_release_the_way_users_do() -> None:
+    """The text pins above cannot catch the class of defect that shipped: a
+    script on main calling something the latest release lacks. Only a real
+    install of that release with this script can, so CI does one -- piped, as
+    `curl | sh` and `irm | iex` arrive, which is what selects remote mode; run
+    as a file, the script would detect the checkout and install it editable
+    instead, and the gate would be measuring the wrong thing."""
+    workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    job = workflow[workflow.index("  installer:") :]
+    job = job[: job.index("\n  windows-upgrade:")]
+    assert "cat install.sh | sh" in job
+    assert "Get-Content install.ps1 -Raw | Invoke-Expression" in job
+    assert 'RAVEN_NO_LAUNCH: "1"' in job
+    assert 'raven.exe" --version' in job and '"$UV_TOOL_BIN_DIR/raven" --version' in job
+
+
+def test_the_windows_installer_is_where_this_tripwire_thinks_it_is() -> None:
+    assert INSTALL_PS1.is_file()
+
+
+def test_the_windows_capability_steps_exist_and_are_skippable() -> None:
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    for fn in ("Install-Browser", "Install-Office"):
+        assert f"function {fn}" in text
+    assert "if (-not $env:RAVEN_MINIMAL) { Install-Browser $uv }" in text
+    assert "if (-not $env:RAVEN_MINIMAL) { Install-Office }" in text
+
+
+def test_the_windows_install_ends_on_a_running_page() -> None:
+    """install.ps1 ends the same way install.sh does, by absolute path for the
+    same reason: this session's PATH may not carry the shim yet."""
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    assert "function Start-Web" in text
+    assert "web --stop" in text
+    assert "    & $bin web --foreground" in text
+    assert "    if (-not $env:RAVEN_NO_LAUNCH) { Start-Web $uv }\n" in text
+
+
+def test_the_windows_launch_warns_instead_of_exiting_on_a_non_zero_page() -> None:
+    """Under `irm | iex` the installer runs in the reader's own interactive
+    PowerShell, and Ctrl-C -- the ordinary way to end a foreground page --
+    returns non-zero. Exiting on that would close the window they are standing
+    in, so the launch reports instead. install.sh does the same since the
+    probe rule landed: the page's exit code is never the script's."""
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    launch = text[text.index("function Start-Web") :]
+    assert "exit $LASTEXITCODE" not in launch
+    assert "the page ended with exit code $LASTEXITCODE" in launch
+
+
+def test_the_windows_launch_puts_the_shim_on_path_before_holding_the_session() -> None:
+    """The page holds the session until Ctrl-C, so a PATH fix placed after it
+    would only land once the reader had already stopped the page."""
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    main = text[text.index("function Main") :]
+    assert main.index("Add-ProcessPath") < main.index("Start-Web $uv")
+
+
+def test_the_windows_launch_probes_before_calling_web() -> None:
+    """Same rule as install.sh. The message the old unguarded `--stop` printed
+    on a release without `web` ("could not clear the gateway a previous install
+    left running") described a gateway that never existed."""
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    assert _unprobed_subcommands(text, r"& \$bin") == []
+    launch = text[text.index("function Start-Web") :]
+    assert "& $bin web --help" in launch
+    assert "Raven installed." in launch
+    assert "could not clear the gateway" not in text
+
+
+def test_the_windows_office_offer_needs_a_real_console() -> None:
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    assert "[Environment]::UserInteractive -and -not [Console]::IsInputRedirected" in text
+
+
+def test_the_windows_web_assets_rebuild_when_the_frontend_moved_on() -> None:
+    """Same decision as install.sh: compare the artifacts against their
+    sources, and give the page the shared catalogue it inlines."""
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    assert "function Test-AssetStale" in text
+    assert "$needTui = Test-AssetStale" in text
+    assert "$needPage = Test-AssetStale" in text
+    assert '(Join-Path $ScriptDir "i18n")' in text
+    assert "$needTui = -not (Test-Path" not in text
+
+
+def test_the_windows_staleness_walk_prunes_what_the_build_itself_writes() -> None:
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    walk = text[text.index("function Test-AssetStale") : text.index("function Build-WebAssets")]
+    assert '$pruned = @("node_modules", "dist", ".modern")' in walk
+    assert "$pruned -contains $_.Name" in walk
+
+
+def test_the_windows_node_without_npm_fetches_the_runtime_that_carries_one() -> None:
+    """Same decision as install.sh, with try/catch standing in for the subshell:
+    the fetch raises on failure and the build-time caller must not abort."""
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    assert "function Install-PrivateNode" in text
+    assert "return Install-PrivateNode" in text
+    build = text[text.index("function Build-WebAssets") :]
+    assert "try { $privateNode = Install-PrivateNode } catch { $privateNode = $null }" in build
+
+
+def test_the_windows_capability_steps_stay_above_the_closing_launch() -> None:
+    """Start-Web holds the session until Ctrl-C, so a capability step placed
+    after it would never run."""
+    closing = INSTALL_PS1.read_text(encoding="utf-8")
+    closing = closing[closing.index("function Start-Web") :].lower()
+    assert "playwright" not in closing
+    assert "libreoffice" not in closing
+
+
+# --- the Chinese-font step --------------------------------------------------
+# Every case below is a box on a rendered page when it goes wrong, and none of
+# them raises: the conversion succeeds, the PDF is well formed, and only whoever
+# looks at the picture finds out. So each branch runs for real, against files.
+
+_FONT_STEP = (
+    "sha256_of",
+    "linux_has_han_face",
+    "install_linux_cjk_font",
+    "install_cjk_fonts",
+)
+
+
+def _font_step_harness(tmp_path: Path, *, office: bool = True, **overrides: str) -> Path:
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    bodies = []
+    for name in _FONT_STEP:
+        match = re.search(rf"^{name}\(\) \{{.*?^\}}$", text, re.S | re.M)
+        assert match is not None, name
+        bodies.append(match.group(0))
+    names = ("HAN_FONT_NAME",)
+    settings = [re.search(rf"^{name}=.*$", text, re.M).group(0) for name in names]
+    settings += [f"{name}='{value}'" for name, value in overrides.items()]
+    harness = tmp_path / "font-step.sh"
+    harness.write_text(
+        "info() { :; }\n"
+        "ok() { printf 'OK %s\\n' \"$1\"; }\n"
+        "warn() { printf 'WARN %s\\n' \"$1\" >&2; }\n"
+        'have() { command -v "$1" >/dev/null 2>&1; }\n'
+        + (
+            ""
+            if office
+            else 'have() { case "$1" in soffice|libreoffice) return 1 ;; esac; command -v "$1" >/dev/null 2>&1; }\n'
+        )
+        + "\n".join(settings)
+        + "\n"
+        + "\n".join(bodies)
+        + "\ninstall_cjk_fonts\n",
+        encoding="utf-8",
+    )
+    return harness
+
+
+def _run_font_step(tmp_path: Path, harness: Path, *, os_name: str, fc_list: str = "", tools: tuple[str, ...] = ()):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    log = tmp_path / "calls.log"
+    (bin_dir / "fc-list").write_text(f"#!/bin/sh\nprintf '%s' '{fc_list}'\n", encoding="utf-8")
+    (bin_dir / "fc-cache").write_text(f"#!/bin/sh\necho \"fc-cache $*\" >> '{log}'\n", encoding="utf-8")
+    for tool in ("fc-list", "fc-cache"):
+        (bin_dir / tool).chmod(0o755)
+    for tool in tools:
+        (bin_dir / tool).write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        (bin_dir / tool).chmod(0o755)
+    home = tmp_path / "home"
+    cached = home / ".raven" / "cache" / "pdf-preview" / "old-render.pdf"
+    cached.parent.mkdir(parents=True, exist_ok=True)
+    cached.write_bytes(b"%PDF drawn without a Han face")
+    result = subprocess.run(
+        ["sh", str(harness)],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            "PATH": f"{bin_dir}:/usr/bin:/bin",
+            "HOME": str(home),
+            "RAVEN_HOME": str(home / ".raven"),
+            "XDG_DATA_HOME": str(home / "share"),
+            "NODE_OS": os_name,
+            "RAVEN_MACOS_APPS": str(tmp_path / "Applications"),
+        },
+    )
+    calls = log.read_text(encoding="utf-8").splitlines() if log.is_file() else []
+    return result, calls, cached, home
+
+
+def _published_face(tmp_path: Path, payload: bytes = b"OTTO a face that is not really one") -> dict[str, str]:
+    import hashlib
+
+    source = tmp_path / "upstream" / "NotoSansSC-Regular.otf"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_bytes(payload)
+    return {
+        "HAN_FONT_URL": source.as_uri(),
+        "HAN_FONT_SHA256": hashlib.sha256(payload).hexdigest(),
+        "HAN_FONT_BYTES": str(len(payload)),
+    }
+
+
+def test_the_font_step_is_skippable_and_runs_before_the_launch() -> None:
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert "install_cjk_fonts() {" in text
+    assert '[ -n "${RAVEN_MINIMAL:-}" ] || install_cjk_fonts' in text
+    main_body = text[text.index("main() {") :]
+    assert main_body.index("install_cjk_fonts") < main_body.index("launch_web")
+
+
+def test_a_linux_host_with_a_han_face_downloads_nothing_and_keeps_its_previews(tmp_path: Path) -> None:
+    """LibreOffice reads the same fontconfig as fc-list on Linux, so a Chinese
+    family listed there is one a page is drawn with."""
+    harness = _font_step_harness(tmp_path, **_published_face(tmp_path))
+    result, calls, cached, home = _run_font_step(
+        tmp_path, harness, os_name="linux", fc_list="Noto Sans CJK SC\n", tools=("soffice",)
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not (home / "share" / "fonts").exists()
+    assert cached.is_file(), "previews drawn with a Han face are not thrown away"
+    assert calls == []
+
+
+def test_a_linux_host_without_one_gets_the_face_and_loses_its_stale_previews(tmp_path: Path) -> None:
+    harness = _font_step_harness(tmp_path, **_published_face(tmp_path))
+    result, calls, cached, home = _run_font_step(tmp_path, harness, os_name="linux", tools=("soffice",))
+
+    installed = home / "share" / "fonts" / "NotoSansSC-Regular.otf"
+    assert result.returncode == 0, result.stderr
+    assert installed.is_file()
+    assert calls == [f"fc-cache -f {installed.parent}"], "fontconfig only sees a new face once its cache is rebuilt"
+    assert not cached.exists(), "a preview cached before the face existed shows boxes forever"
+
+
+def test_a_download_that_does_not_match_its_digest_is_not_installed(tmp_path: Path) -> None:
+    """A truncated or substituted OTF still parses and draws nothing, which is
+    exactly the failure the step is for -- so a mismatch installs nothing."""
+    pins = _published_face(tmp_path)
+    pins["HAN_FONT_SHA256"] = "0" * 64
+    harness = _font_step_harness(tmp_path, **pins)
+    result, _calls, cached, home = _run_font_step(tmp_path, harness, os_name="linux", tools=("soffice",))
+
+    fonts_dir = home / "share" / "fonts"
+    assert result.returncode == 0, "a failed download is a warning, not the end of the install"
+    assert list(fonts_dir.iterdir()) == [], "neither the face nor its partial download is left behind"
+    assert "package: fonts-noto-cjk" in result.stderr, "the hint names the package, not one distro's command"
+    assert "apt-get" not in result.stderr
+    assert cached.is_file()
+
+
+def test_a_mac_is_left_alone_by_the_font_step(tmp_path: Path) -> None:
+    """A Mac already ships Han faces, and raven links them into LibreOffice's
+    profiles itself (raven/utils/office.py): no download, no password, and no
+    file written outside the user's home."""
+    harness = _font_step_harness(tmp_path, **_published_face(tmp_path))
+    result, calls, cached, home = _run_font_step(tmp_path, harness, os_name="darwin")
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "" and result.stderr == ""
+    assert calls == []
+    assert not (home / "share" / "fonts").exists()
+    assert cached.is_file()
+    assert "/usr/local/etc/fonts" not in INSTALL_SH.read_text(encoding="utf-8")
+
+
+# --- LibreOffice on a Mac without Homebrew ------------------------------------
+
+_OFFICE_STEP = ("sha256_of", "write_soffice_launcher", "install_libreoffice_dmg", "install_office")
+
+
+def _office_step_harness(tmp_path: Path, **overrides: str) -> Path:
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    bodies = [re.search(rf"^{name}\(\) \{{.*?^\}}$", text, re.S | re.M).group(0) for name in _OFFICE_STEP]
+    names = ("LO_VERSION", "LO_BUILD", "LO_SHA256_ARM64", "LO_SHA256_X64", "MACOS_APPS")
+    settings = [re.search(rf"^{name}=.*$", text, re.M).group(0) for name in names]
+    settings += [f"{name}='{value}'" for name, value in overrides.items()]
+    harness = tmp_path / "office-step.sh"
+    harness.write_text(
+        "set -eu\n"
+        "info() { :; }\n"
+        "ok() { printf 'OK %s\\n' \"$1\"; }\n"
+        "warn() { printf 'WARN %s\\n' \"$1\" >&2; }\n"
+        # The host running the suite may have its own soffice; this Mac has none.
+        'have() { case "$1" in soffice|libreoffice|brew) return 1 ;; esac; command -v "$1" >/dev/null 2>&1; }\n'
+        + "\n".join(settings)
+        + "\n"
+        + "\n".join(bodies)
+        + "\ninstall_office\n",
+        encoding="utf-8",
+    )
+    return harness
+
+
+def _run_office_step(tmp_path: Path, harness: Path, dmg: bytes = b"a dmg that is not really one"):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    log = tmp_path / "calls.log"
+    payload = tmp_path / "payload.dmg"
+    payload.write_bytes(dmg)
+    (bin_dir / "curl").write_text(
+        "#!/bin/sh\n"
+        'while [ $# -gt 0 ]; do case "$1" in -o) out="$2"; shift 2 ;; http*) url="$1"; shift ;; *) shift ;; esac; done\n'
+        f"echo \"curl $url\" >> '{log}'\n"
+        f"cp '{payload}' \"$out\"\n",
+        encoding="utf-8",
+    )
+    (bin_dir / "hdiutil").write_text(
+        "#!/bin/sh\n"
+        f"echo \"hdiutil $1\" >> '{log}'\n"
+        '[ "$1" = attach ] || exit 0\n'
+        'while [ $# -gt 0 ]; do case "$1" in -mountpoint) mnt="$2"; shift 2 ;; *) shift ;; esac; done\n'
+        'mkdir -p "$mnt/LibreOffice.app/Contents/MacOS"\n'
+        "printf '#!/bin/sh\\n' > \"$mnt/LibreOffice.app/Contents/MacOS/soffice\"\n"
+        'chmod +x "$mnt/LibreOffice.app/Contents/MacOS/soffice"\n',
+        encoding="utf-8",
+    )
+    (bin_dir / "ditto").write_text('#!/bin/sh\ncp -R "$1" "$2"\n', encoding="utf-8")
+    for tool in ("curl", "hdiutil", "ditto"):
+        (bin_dir / tool).chmod(0o755)
+    home = tmp_path / "home"
+    home.mkdir(exist_ok=True)
+    apps = tmp_path / "Applications"
+    apps.mkdir(exist_ok=True)
+    result = subprocess.run(
+        ["sh", str(harness)],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            "PATH": f"{bin_dir}:/usr/bin:/bin",
+            "HOME": str(home),
+            "TMPDIR": str(tmp_path),
+            "NODE_OS": "darwin",
+            "NODE_ARCH": "arm64",
+            "RAVEN_MACOS_APPS": str(apps),
+        },
+    )
+    calls = log.read_text(encoding="utf-8").splitlines() if log.is_file() else []
+    return result, calls, apps, home
+
+
+def test_a_mac_without_homebrew_still_gets_libreoffice(tmp_path: Path) -> None:
+    """Deck preview is the render-truth capability, and it was off on every Mac
+    without Homebrew: the script only warned. The release dmg is fetched,
+    verified, and copied in, with a launcher on PATH for the model's own soffice."""
+    import hashlib
+
+    dmg = b"the release dmg"
+    harness = _office_step_harness(tmp_path, LO_SHA256_ARM64=hashlib.sha256(dmg).hexdigest())
+    result, calls, apps, home = _run_office_step(tmp_path, harness, dmg)
+
+    assert result.returncode == 0, result.stderr
+    app = apps / "LibreOffice.app"
+    assert (app / "Contents" / "MacOS" / "soffice").is_file()
+    assert calls[0] == (
+        "curl https://download.documentfoundation.org/libreoffice/stable/26.8.0/mac/aarch64/"
+        "LibreOffice_26.8.0_MacOS_aarch64.dmg"
+    )
+    assert calls[1:] == ["hdiutil attach", "hdiutil detach"], "the image is detached again"
+    launcher = home / ".local" / "bin" / "soffice"
+    assert f'exec "{app}/Contents/MacOS/soffice" "$@"' in launcher.read_text(encoding="utf-8")
+    assert os.access(launcher, os.X_OK)
+    assert [p.name for p in tmp_path.glob("raven-libreoffice.*")] == [], "the download does not outlive the step"
+
+
+def test_a_dmg_that_does_not_match_its_digest_is_never_mounted(tmp_path: Path) -> None:
+    """An app copied from an image nobody verified is the one thing worse than
+    no preview. Both sources are tried, then the step gives up and says so."""
+    harness = _office_step_harness(tmp_path, LO_SHA256_ARM64="0" * 64)
+    result, calls, apps, home = _run_office_step(tmp_path, harness)
+
+    assert result.returncode == 0, "a failed download is a warning, not the end of the install"
+    assert [call.split("/")[2] for call in calls] == [
+        "download.documentfoundation.org",
+        "downloadarchive.documentfoundation.org",
+    ]
+    assert not (apps / "LibreOffice.app").exists()
+    assert not (home / ".local" / "bin" / "soffice").exists()
+    assert "libreoffice.org" in result.stderr
+
+
+def test_an_app_already_in_applications_gets_a_launcher_and_no_second_copy(tmp_path: Path) -> None:
+    """The libreoffice.org dmg puts nothing on PATH. Downloading again would
+    copy a second bundle over the one the user installed."""
+    harness = _office_step_harness(tmp_path)
+    existing = tmp_path / "Applications" / "LibreOffice.app" / "Contents" / "MacOS" / "soffice"
+    existing.parent.mkdir(parents=True)
+    existing.write_text("#!/bin/sh\n# theirs\n", encoding="utf-8")
+    existing.chmod(0o755)
+    result, calls, _apps, home = _run_office_step(tmp_path, harness)
+
+    assert result.returncode == 0, result.stderr
+    assert calls == [], "nothing is downloaded or mounted"
+    assert "theirs" in existing.read_text(encoding="utf-8")
+    assert (home / ".local" / "bin" / "soffice").is_file()
+
+
+def test_a_launcher_that_cannot_be_written_does_not_abort_the_install(tmp_path: Path) -> None:
+    """The step is best effort: an existing app whose launcher cannot be written
+    (here ~/.local is a file, which blocks root as well) is a warning, and the
+    installer carries on under set -e."""
+    harness = _office_step_harness(tmp_path)
+    existing = tmp_path / "Applications" / "LibreOffice.app" / "Contents" / "MacOS" / "soffice"
+    existing.parent.mkdir(parents=True)
+    existing.write_text("#!/bin/sh\n", encoding="utf-8")
+    existing.chmod(0o755)
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / ".local").write_text("not a directory", encoding="utf-8")
+    harness.write_text(harness.read_text(encoding="utf-8") + "echo STEP_FINISHED\n", encoding="utf-8")
+
+    result, calls, _apps, _home = _run_office_step(tmp_path, harness)
+
+    assert result.returncode == 0, result.stderr
+    assert "STEP_FINISHED" in result.stdout, "set -e must not abort the installer here"
+    assert "Could not write ~/.local/bin/soffice" in result.stderr
+    assert calls == []
+
+
+def test_a_linux_host_without_libreoffice_downloads_no_font(tmp_path: Path) -> None:
+    """The LibreOffice offer declined, or a distro without apt: nothing will
+    render, so the 8 MB face would be fetched for nobody."""
+    harness = _font_step_harness(tmp_path, office=False, **_published_face(tmp_path))
+    result, calls, cached, home = _run_font_step(tmp_path, harness, os_name="linux")
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "" and result.stderr == ""
+    assert not (home / "share" / "fonts").exists()
+    assert calls == []
+    assert cached.is_file()
+
+
+def test_the_pinned_face_by_name_counts_as_a_han_face(tmp_path: Path) -> None:
+    """A host with the fontconfig library but no fc-list binary: the file this
+    step installs, found by its own name, means a second run downloads nothing."""
+    harness = _font_step_harness(tmp_path, **_published_face(tmp_path))
+    fonts = tmp_path / "home" / "share" / "fonts"
+    fonts.mkdir(parents=True)
+    (fonts / "NotoSansSC-Regular.otf").write_bytes(b"already here")
+    result, calls, cached, _home = _run_font_step(tmp_path, harness, os_name="linux", tools=("soffice",))
+
+    assert result.returncode == 0, result.stderr
+    assert (fonts / "NotoSansSC-Regular.otf").read_bytes() == b"already here"
+    assert calls == []
+    assert cached.is_file()
+
+
+def test_the_helpers_are_defined_before_the_sections_that_use_them() -> None:
+    """The file reads top-down; sha256_of is first called from the LibreOffice
+    step, so it lives with the other helpers."""
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    assert text.index("sha256_of() {") < text.index("install_libreoffice_dmg() {")
+    assert text.index("sha256_of() {") < text.index("# --- 0. platform detection")

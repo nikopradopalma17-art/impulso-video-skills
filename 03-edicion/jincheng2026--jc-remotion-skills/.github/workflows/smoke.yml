@@ -1,0 +1,72 @@
+# 跨平台冒烟：Windows + macOS 各跑一遍「建工程→体检→质检脚本→真渲一帧一段」
+# 目的：任何改动如果悄悄弄坏了 Windows 支持，这里先红，不用等真实用户踩坑。
+name: smoke
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install ffmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
+      - name: Install ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg -y --no-progress
+
+      - name: setup.mjs 建工程（模板 + skill + 底座 + npm install）
+        shell: bash
+        run: node setup.mjs "$RUNNER_TEMP/koubo-studio"
+
+      - name: doctor.mjs 体检（--ci 豁免 codex/claude CLI）
+        shell: bash
+        run: node doctor.mjs "$RUNNER_TEMP/koubo-studio" --ci
+
+      - name: qc-master.mjs 质检断言（合成一条交付规格测试片，期望全 PASS）
+        shell: bash
+        run: |
+          ffmpeg -v error -f lavfi -i "testsrc2=size=1920x1080:rate=30" -f lavfi -i "sine=frequency=440" \
+            -t 2 -c:v libx264 -bf 0 -g 30 -pix_fmt yuv420p -c:a aac -b:a 128k \
+            -movflags +faststart -y "$RUNNER_TEMP/qc-test.mp4"
+          node scripts/qc-master.mjs "$RUNNER_TEMP/qc-test.mp4" 2
+          cat "$RUNNER_TEMP/qc-test.qc.txt"
+
+      - name: render-service.cjs 真渲冒烟（注册一个最小合成，渲 1 帧 + 渲 1 秒段）
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP/koubo-studio"
+          cat > src/Root.tsx <<'EOF'
+          import "./index.css";
+          import React from "react";
+          import { Composition, AbsoluteFill } from "remotion";
+          import "./design/fonts";
+          import { FONT } from "./design/tokens";
+
+          const CiScene: React.FC = () => (
+            <AbsoluteFill style={{ background: "#16161A", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ fontFamily: FONT.zh, fontWeight: 900, fontSize: 108, color: "#fff" }}>CI 冒烟</div>
+            </AbsoluteFill>
+          );
+
+          export const RemotionRoot: React.FC = () => (
+            <Composition id="Koubo-ci" component={CiScene} durationInFrames={60} fps={30} width={1920} height={1080} />
+          );
+          EOF
+          RS_ALLOW_STUDIO=1 COMP_ID=Koubo-ci node scripts/render-service.cjs stills 10 --out previews/ci
+          RS_ALLOW_STUDIO=1 COMP_ID=Koubo-ci node scripts/render-service.cjs segment 0 29 --out previews/ci/seg.mp4
+          node -e "const fs=require('fs');for(const f of ['previews/ci/f10.jpg','previews/ci/seg.mp4']){if(!fs.existsSync(f)||fs.statSync(f).size===0){console.error('缺产物 '+f);process.exit(1)}console.log('✓ '+f+' '+fs.statSync(f).size+' bytes')}"

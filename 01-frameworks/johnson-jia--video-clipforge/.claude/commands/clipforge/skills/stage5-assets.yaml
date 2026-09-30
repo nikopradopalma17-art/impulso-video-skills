@@ -1,0 +1,34 @@
+skill:
+  meta:
+    id: "skill.clipforge.stage5-assets"
+    version: "1.1.0"
+    type: EXECUTIVE
+    tags: ["assets", "images"]
+    rigor: LITE
+  intent:
+    objective: "视觉素材就绪，所有场景所需图片/图标已备齐"
+    criteria:
+      - "assets/ 目录包含所需的所有素材文件"
+  boundary:
+    rules:
+      - ref: "R-G-*"
+    preferences:
+      - text: "优先使用项目自身截图和官方素材，减少第三方图片"
+        weight: "MEDIUM"
+  guard:
+    red_flags:
+      - thought: "素材放在其他路径也可以"
+        reality: "渲染时工作目录是项目目录，外部路径会 404"
+        trigger: "试图从 assets/ 以外的路径引用素材"
+    spirit_vs_letter: []
+  gate:
+    hard:
+      - gate: file_exists
+        params:
+          files: ["assets/manifest.md"]
+    soft: []
+    max_retries: 1
+  trace:
+    capture: true
+    level: SUMMARY
+    sensitive_fields: []

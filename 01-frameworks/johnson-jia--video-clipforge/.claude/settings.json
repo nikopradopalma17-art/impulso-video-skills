@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=$PWD; while [ \"$d\" != \"/\" ]; do f=\"$d/.claude/commands/clipforge/scripts/rm_guard.py\"; if [ -f \"$f\" ]; then python \"$f\"; exit $?; fi; d=$(dirname \"$d\"); done; exit 0"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/cron_health_check.py\" 2>&1 || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/cwd_restore.py\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}

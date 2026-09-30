@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>easyedit</title>
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #0b0c0f; --panel: #14161b; --panel-2: #1b1e25; --line: #272b34;
+    --text: #eef0f4; --dim: #9aa2b1; --accent: #ffe27a; --good: #8dff8a; --bad: #ff5570;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", system-ui, sans-serif;
+    padding: 28px 22px 80px; max-width: 1180px; margin-inline: auto;
+  }
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  h1 { margin: 0; line-height: 0; }
+  h1 img { height: 34px; width: auto; display: block; }
+  header p { color: var(--dim); margin: 0; font-size: 13px; }
+  nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+  nav a { color: var(--dim); text-decoration: none; font-size: 13.5px; padding: 6px 10px; border-radius: 8px; }
+  nav a:hover { color: var(--text); background: var(--panel); }
+  a { color: var(--accent); }
+  .notice { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap;
+            margin-bottom: 12px; background: #1d1a0e; border: 1px solid #3a3722; color: #e9dfb4;
+            border-radius: 12px; padding: 10px 14px; font-size: 13.5px; }
+  .notice span, .section-lead, .acct p, .bot p { min-width: 0; overflow-wrap: anywhere; }
+  .notice[hidden] { display: none; }
+  .notice a { white-space: nowrap; font-weight: 600; }
+  .writer { margin-left: 14px; font-size: 13px; color: var(--dim); }
+  .writer b { color: var(--good); font-weight: 600; }
+  .section-lead { color: var(--dim); margin: -4px 0 14px; font-size: 14px; max-width: 760px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .acct { display: flex; flex-direction: column; gap: 8px; }
+  .acct .row, .bot .row { justify-content: space-between; flex-wrap: wrap; }
+  .acct h3, .bot h3, .card h3 { margin: 0; font-size: 16px; display: flex; align-items: center; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #4a505c; display: inline-block; margin-right: 9px; }
+  .dot.on { background: var(--good); box-shadow: 0 0 10px #8dff8a66; }
+  .acct p, .bot p { margin: 0; color: var(--dim); font-size: 13.5px; }
+  .acct .actions { display: flex; gap: 8px; margin-top: auto; padding-top: 6px; flex-wrap: wrap; }
+  .acct button, .bot button { padding: 8px 13px; font-size: 13px; border-radius: 8px; }
+  code { font: 12.5px ui-monospace, Consolas, monospace; background: #0e1014; border: 1px solid var(--line);
+         border-radius: 6px; padding: 1px 6px; color: #d6dbe4; }
+  .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .checks li { display: flex; gap: 10px; align-items: baseline; font-size: 13.5px; }
+  .checks .st { width: 18px; flex: none; text-align: center; font-weight: 700; }
+  .checks .ok { color: var(--good); } .checks .bad { color: var(--bad); }
+  .checks .d { color: var(--dim); }
+  .bot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .bot pre { max-height: none; margin: 0; flex: 1; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  .step { font-size: 11px; letter-spacing: 1.3px; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+  .prompt { display: flex; gap: 10px; }
+  input, select { background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 12px 14px; font: inherit; width: 100%; }
+  input:focus, select:focus { outline: 2px solid #46506a; }
+  input[type="file"] { padding: 10px 12px; }
+  .design-result { display: block; width: min(100%, 420px); margin-top: 16px; border-radius: 16px; background: #05060a; }
+  button { background: var(--accent); color: #17181c; border: 0; border-radius: 10px; padding: 12px 20px;
+    font: 600 15px/1 "Segoe UI", system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+  button:hover { filter: brightness(1.08); }
+  button.ghost { background: transparent; color: var(--dim); border: 1px solid var(--line); font-weight: 500; }
+  button.ghost:hover { color: var(--text); }
+  button:disabled { opacity: .5; cursor: default; }
+  .opts { margin-top: 14px; display: none; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .opts.open { display: grid; }
+  label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 5px; letter-spacing: .3px; }
+  .optbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; }
+  .toggle { background: none; border: 0; color: var(--dim); font-size: 13px; padding: 0; cursor: pointer; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--dim);
+       margin: 34px 0 12px; font-weight: 600; }
+  .runs { display: grid; gap: 12px; }
+  .bar { height: 6px; background: #23262e; border-radius: 99px; overflow: hidden; margin: 10px 0 8px; }
+  .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--good));
+           transition: width .5s ease; }
+  pre { background: #0e1014; border: 1px solid var(--line); border-radius: 10px; margin: 10px 0 0;
+        padding: 10px 12px; max-height: 190px; overflow: auto; font: 12px/1.55 ui-monospace, Consolas, monospace;
+        color: #b9c0cc; white-space: pre-wrap; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+          display: flex; flex-direction: column; }
+  .tile .thumb { aspect-ratio: 16/9; background: #05060a center/cover no-repeat; cursor: pointer; position: relative; }
+  .tile .thumb::after { content: "▶"; position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 30px; color: #fff; text-shadow: 0 2px 14px rgba(0,0,0,.8); opacity: .88; }
+  .tile .thumb.empty::after { content: ""; }
+  .tile .body { padding: 13px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .tile h3 { margin: 0; font-size: 16px; }
+  .meta { color: var(--dim); font-size: 12.5px; }
+  .scene { color: #7f879a; font-size: 11.5px; letter-spacing: .4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+           overflow: hidden; }
+  .tile .actions { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; }
+  .tile .actions button { padding: 7px 11px; font-size: 12.5px; border-radius: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--accent);
+          border: 1px solid #3a3722; background: #241f0f; border-radius: 99px; padding: 2px 9px; }
+  .pill.on { color: var(--good); border-color: #24402a; background: #122016; }
+  .pill.err { color: var(--bad); border-color: #40222a; background: #26141a; }
+  dialog { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 16px;
+           padding: 0; max-width: min(1100px, 92vw); }
+  dialog::backdrop { background: rgba(2,3,6,.78); }
+  dialog video { display: block; width: 100%; max-height: 74vh; background: #000; }
+  dialog .bottom { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; }
+  .empty-state { color: var(--dim); }
+  @media (max-width: 640px) {
+    body { padding: 20px 16px 60px; }
+    .prompt { flex-direction: column; }
+    header, nav { width: auto; }
+    nav { margin-left: 0; flex-basis: 100%; }
+    .notice { display: block; }
+    .notice a { display: inline-block; margin-top: 6px; }
+    .cols, .checks { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body id="top">
+<header>
+  <h1><img src="/assets/logo.svg" alt="easyedit"></h1>
+  <p>type a movie, get a captioned speech + beat-cut montage</p>
+  <nav>
+    <a href="#top">Make</a><a href="#picture-design">Design</a><a href="#edits">Edits</a><a href="#connect">Connect</a><a href="#bot">Bot</a>
+    <a href="https://github.com/blixvip/easyedit" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="notice" id="notice" hidden></div>
+
+<div class="card">
+  <form class="prompt" id="form">
+    <input id="movie" placeholder="Movie name — e.g. Gladiator" autocomplete="off" autofocus>
+    <button id="go">Make the edit</button>
+  </form>
+  <div class="optbar"><button class="toggle" type="button" id="toggle">Options ▾</button><span class="writer" id="writer"></span></div>
+  <div class="opts" id="opts">
+    <div><label>Speech scene (file, URL or search)</label><input id="speech" placeholder="auto"></div>
+    <div><label>Montage sources (comma separated)</label><input id="montage" placeholder="auto"></div>
+    <div><label>Song (file, URL or search)</label><input id="music" placeholder="auto"></div>
+    <div><label>Frame rate</label><select id="fps"><option value="">60 (default)</option><option>30</option><option>24</option></select></div>
+    <div><label>Montage seconds</label><input id="montage_length" placeholder="21" inputmode="decimal"></div>
+    <div><label>Final shot seconds</label><input id="hero_length" placeholder="3.4" inputmode="decimal"></div>
+    <div><label>Writer</label><select id="llm"><option value="">auto</option><option>claude</option><option>codex</option><option>none</option></select></div>
+    <div><label>Speed</label><select id="draft"><option value="">full quality</option><option value="1">draft (30fps, fast)</option></select></div>
+  </div>
+</div>
+
+<div class="card" id="picture-design" style="margin-top:14px">
+  <h2 style="margin-top:0">Design from a picture</h2>
+  <p class="section-lead">Import a PNG, JPEG, or WebP. The page designs a poster from that picture's colors and light.</p>
+  <form class="prompt" id="designForm">
+    <input id="picture" name="picture" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+    <button type="submit" id="designGo">Design it</button>
+  </form>
+  <p class="meta" id="designStatus"></p>
+  <img id="designResult" class="design-result" alt="Designed from the imported picture" hidden>
+</div>
+
+<div id="runsWrap" hidden>
+  <h2>Working</h2>
+  <div class="runs" id="runs"></div>
+</div>
+
+<h2 id="edits">Edits</h2>
+<div class="grid" id="grid"></div>
+<p class="empty-state" id="empty" hidden>No edits yet. Type a movie name above — the first run downloads footage, so give it ~15 minutes.</p>
+
+<h2 id="connect">Connect</h2>
+<p class="section-lead">easyedit uses an AI account you already have to pick the scene, the quote and the song, so you don't need API keys. One account is enough. Without one it still makes an edit, using built-in heuristics.</p>
+<div class="cols" id="accounts"><div class="card empty-state">Checking your setup…</div></div>
+<div class="card" style="margin-top:14px">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <h3>This computer</h3>
+    <button class="ghost" id="recheck" style="padding:7px 12px;font-size:12.5px">Check again</button>
+  </div>
+  <ul class="checks" id="tools"><li class="d">Checking…</li></ul>
+</div>
+
+<h2 id="bot">Give it to your bot</h2>
+<p class="section-lead">Claude Code, Codex, or any agent that can use a terminal can make edits for you. Paste one of these into your bot. It uses the movie typed in the box at the top.</p>
+<div class="cols">
+  <div class="card bot">
+    <span class="step">New computer</span>
+    <h3>Install from GitHub</h3>
+    <p>The bot clones the repo, follows <a href="https://github.com/blixvip/easyedit/blob/main/AGENTS.md" target="_blank" rel="noopener">AGENTS.md</a>, fixes its setup, then makes the edit.</p>
+    <pre id="promptInstall"></pre>
+    <div class="row"><span class="meta">any coding agent</span><button data-copy="promptInstall">Copy prompt</button></div>
+  </div>
+  <div class="card bot">
+    <span class="step">Already running</span>
+    <h3>Use this app</h3>
+    <p>For a bot on this computer. The edit starts here, so you can watch its progress on this page.</p>
+    <pre id="promptLocal"></pre>
+    <div class="row"><span class="meta">local API, port <span id="port"></span></span><button data-copy="promptLocal">Copy prompt</button></div>
+  </div>
+  <div class="card bot">
+    <span class="step">Claude Code</span>
+    <h3>Add it as a skill</h3>
+    <p>After this, any Claude Code session makes an edit when you type <code>/easyedit Gladiator</code>.</p>
+    <pre id="promptSkill"></pre>
+    <div class="row"><span class="meta">run in the easyedit folder</span><button data-copy="promptSkill">Copy command</button></div>
+  </div>
+</div>
+
+<dialog id="player">
+  <video id="video" controls></video>
+  <div class="bottom"><strong id="playerTitle"></strong><button class="ghost" id="closePlayer">Close</button></div>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const api = (url, body) => fetch(url, body ? {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+} : undefined).then(r => r.json());
+
+const fmt = s => s == null ? '' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const ago = t => {
+  const m = (Date.now() / 1000 - t) / 60;
+  if (m < 1) return 'just now';
+  if (m < 60) return `${Math.round(m)}m ago`;
+  if (m < 1440) return `${Math.round(m / 60)}h ago`;
+  return `${Math.round(m / 1440)}d ago`;
+};
+
+$('toggle').onclick = () => {
+  const open = $('opts').classList.toggle('open');
+  $('toggle').textContent = open ? 'Options ▴' : 'Options ▾';
+};
+
+function editBody(movie) {
+  return {
+    movie,
+    speech: $('speech').value.trim() || null,
+    music: $('music').value.trim() || null,
+    montage: $('montage').value.split(',').map(s => s.trim()).filter(Boolean),
+    fps: $('fps').value || null,
+    montage_length: $('montage_length').value || null,
+    hero_length: $('hero_length').value || null,
+    llm: $('llm').value || null,
+    draft: !!$('draft').value,
+  };
+}
+
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  const movie = $('movie').value.trim();
+  if (!movie) return;
+  $('go').disabled = true;
+  try {
+    const res = await api('/api/new', editBody(movie));
+    if (res.error) return alert(res.error);
+    if (res.already) return alert('That edit is already running.');
+    openLogs.add(res.slug);
+    refresh();
+  } catch {
+    alert('The easyedit app did not answer. Leave this page open and try again.');
+  } finally {
+    $('go').disabled = false;
+  }
+};
+
+const openLogs = new Set();
+
+function runCard(job) {
+  const pct = Math.round((job.progress || 0) * 100);
+  const status = job.error ? 'error' : (job.stage || 'working');
+  return `<div class="card">
+    <div class="row" style="justify-content:space-between">
+      <strong>${esc(job.title)}</strong>
+      <span class="pill ${job.error ? 'err' : ''}">${esc(status)}</span>
+    </div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="row" style="justify-content:space-between">
+      <span class="meta">${pct}%</span>
+      <span class="row">
+        <button class="ghost" data-log="${job.slug}">${openLogs.has(job.slug) ? 'Hide log' : 'Show log'}</button>
+        <button class="ghost" data-stop="${job.slug}">Stop</button>
+      </span>
+    </div>
+    ${openLogs.has(job.slug) ? `<pre id="log-${job.slug}">loading…</pre>` : ''}
+  </div>`;
+}
+
+function tile(job) {
+  const thumb = job.thumb ? `background-image:url('${esc(job.thumb)}?t=${Math.round(job.updated)}')` : '';
+  const state = job.running ? (job.stage || 'working') : 'not rendered';
+  return `<div class="tile">
+    <div class="thumb ${job.video ? '' : 'empty'}" style="${thumb}" ${job.video ? `data-play="${esc(job.slug)}"` : ''}></div>
+    <div class="body">
+      <h3>${esc(job.title)}</h3>
+      <div class="meta">${job.video ? `${fmt(job.duration)} · ${job.size} MB · ${ago(job.updated)}`
+                                    : `${esc(state)} · ${ago(job.updated)}`}</div>
+      ${job.scene ? `<div class="scene">${esc(job.scene)}</div>` : ''}
+      <div class="actions">
+        ${job.video ? `<button data-play="${esc(job.slug)}">Play</button>` : ''}
+        <button class="ghost" data-again="${esc(job.slug)}">Re-run</button>
+        <button class="ghost" data-folder="${job.slug}">Folder</button>
+        <button class="ghost" data-delete="${job.slug}">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+let jobs = [];
+async function refresh() {
+  let data;
+  try { data = await api('/api/jobs'); } catch { return; }
+  jobs = data.jobs || [];
+  const running = jobs.filter(j => j.running);
+  const kept = {};
+  document.querySelectorAll('pre[id^="log-"]').forEach(el => {
+    if (el.textContent && el.textContent !== 'loading…') kept[el.id] = { text: el.textContent, scroll: el.scrollTop };
+  });
+  $('runsWrap').hidden = !running.length;
+  $('runs').innerHTML = running.map(runCard).join('');
+  $('grid').innerHTML = jobs.map(tile).join('');
+  $('empty').hidden = jobs.length > 0;
+  for (const [id, saved] of Object.entries(kept)) {
+    const el = $(id);
+    if (!el) continue;
+    el.textContent = saved.text;
+    el.scrollTop = saved.scroll;
+  }
+  running.forEach(j => openLogs.has(j.slug) && pullLog(j.slug));
+}
+
+async function pullLog(slug) {
+  const el = $(`log-${slug}`);
+  if (!el) return;
+  const data = await api(`/api/log/${slug}`);
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
+  el.textContent = data.log || '(no output yet)';
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button, [data-play]');
+  if (!b) return;
+  const d = b.dataset;
+  if (d.play) {
+    const job = jobs.find(j => j.slug === d.play);
+    $('video').src = job.video;
+    $('playerTitle').textContent = job.title;
+    $('player').showModal();
+    $('video').play();
+  } else if (d.log) {
+    openLogs.has(d.log) ? openLogs.delete(d.log) : openLogs.add(d.log);
+    refresh();
+  } else if (d.stop) {
+    await api('/api/stop', { slug: d.stop });
+    refresh();
+  } else if (d.folder) {
+    api('/api/reveal', { slug: d.folder });
+  } else if (d.again) {
+    const job = jobs.find(j => j.slug === d.again);
+    if (!job) return;
+    if (!confirm(`Start another edit of "${job.title}"?`)) return;
+    const res = await api('/api/new', { ...editBody(job.title), movie: job.title });
+    if (res.error) return alert(res.error);
+    if (res.already) return alert('That edit is already running.');
+    openLogs.add(res.slug);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    refresh();
+  } else if (d.delete) {
+    const job = jobs.find(j => j.slug === d.delete);
+    if (confirm(`Delete "${job.title}" and everything downloaded for it?`)) {
+      await api('/api/delete', { slug: d.delete });
+      refresh();
+    }
+  }
+});
+
+$('closePlayer').onclick = () => { $('video').pause(); $('player').close(); };
+$('player').addEventListener('close', () => { $('video').pause(); $('video').removeAttribute('src'); });
+
+// ---- connect + bot
+const REPO = 'https://github.com/blixvip/easyedit';
+let setup = null;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function accountCard(a) {
+  const short = a.name.split(' ')[0];
+  const action = a.connected
+    ? `<button class="ghost" data-connect="${a.id}">Switch account</button>`
+    : a.cli ? `<button data-connect="${a.id}">Connect ${esc(short)}</button>`
+            : `<button class="ghost" data-copytext="${esc(a.install)}">Copy install command</button>`;
+  const how = a.cli ? `Signs in with <code>${esc(a.login)}</code> in a new terminal window.`
+                    : `Install it with <code>${esc(a.install)}</code>, then connect.`;
+  return `<div class="card acct">
+    <div class="row"><h3><span class="dot ${a.connected ? 'on' : ''}"></span>${esc(a.name)}</h3>
+      <span class="pill ${a.connected ? 'on' : 'err'}">${a.connected ? 'connected' : 'not connected'}</span></div>
+    <p>${esc(a.detail)}</p>
+    <p>${how}</p>
+    <div class="actions">${action}</div>
+  </div>`;
+}
+
+function renderSetup() {
+  const r = setup && setup.report;
+  if (!r) return;
+  $('accounts').innerHTML = r.accounts.map(accountCard).join('');
+  $('tools').innerHTML = r.tools.map(t => `<li>
+    <span class="st ${t.ok ? 'ok' : 'bad'}">${t.ok ? '✓' : '✕'}</span>
+    <span><strong>${esc(t.name)}</strong> <span class="d">${esc(t.detail)}</span>
+    ${t.fix ? `<br><span class="d">Fix: <code>${esc(t.fix)}</code></span>` : ''}</span></li>`).join('');
+  $('writer').innerHTML = r.writer ? `writer: <b>${esc(r.writer)}</b>` : 'writer: heuristics';
+  const missing = r.tools.filter(t => !t.ok).map(t => t.name);
+  const msg = missing.length ? `Missing before you can render: ${missing.join(', ')}.`
+    : !r.writer ? 'Connect Claude or Codex so the AI picks the best scene, quote and song.' : '';
+  $('notice').hidden = !msg;
+  $('notice').innerHTML = msg ? `<span>${esc(msg)}</span><a href="#connect">Set up</a>` : '';
+}
+
+async function loadSetup(force) {
+  setup = await api('/api/setup' + (force ? '?refresh=1' : ''));
+  renderSetup();
+  renderPrompts();
+  if (setup.checking) setTimeout(() => loadSetup(false), 1500);
+}
+
+function renderPrompts() {
+  const movie = $('movie').value.trim() || 'Gladiator';
+  const origin = location.origin;
+  $('port').textContent = location.port || '80';
+  $('promptInstall').textContent =
+`Install easyedit from ${REPO}. Read its AGENTS.md first and follow it.
+Run "python -m easyedit.doctor" and fix anything it flags.
+Then make a fan edit of "${movie}" and tell me where the finished video is.`;
+  $('promptLocal').textContent =
+`easyedit is running at ${origin}.
+Start a fan edit of "${movie}": POST ${origin}/api/new with {"movie": "${movie}"}.
+Poll GET ${origin}/api/jobs every 30s until that job has a "video", then give me the file path.`;
+  const py = setup && setup.report ? setup.report.python : 'python';
+  $('promptSkill').textContent = `${/\s/.test(py) ? `"${py}"` : py} -m easyedit.skill install`;
+}
+$('movie').addEventListener('input', renderPrompts);
+
+$('designForm').onsubmit = async e => {
+  e.preventDefault();
+  const file = $('picture').files && $('picture').files[0];
+  if (!file) return;
+  $('designGo').disabled = true;
+  $('designStatus').textContent = 'Designing…';
+  try {
+    const body = new FormData();
+    body.append('picture', file);
+    const res = await fetch('/api/design', { method: 'POST', body });
+    if (!res.ok) {
+      let message = 'That picture could not be designed.';
+      try { message = (await res.json()).error || message; } catch { /* image errors are JSON */ }
+      $('designStatus').textContent = message;
+      return;
+    }
+    const blob = await res.blob();
+    const previous = $('designResult').src;
+    $('designResult').src = URL.createObjectURL(blob);
+    if (previous.startsWith('blob:')) URL.revokeObjectURL(previous);
+    $('designResult').hidden = false;
+    $('designStatus').textContent = 'Designed from ' + file.name;
+  } catch {
+    $('designStatus').textContent = 'The easyedit app did not answer.';
+  } finally {
+    $('designGo').disabled = false;
+  }
+};
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const d = b.dataset;
+  if (d.copy || d.copytext) {
+    const text = d.copytext || $(d.copy).textContent;
+    try { await navigator.clipboard.writeText(text); } catch { return prompt('Copy this:', text); }
+    const was = b.textContent;
+    b.textContent = 'Copied';
+    setTimeout(() => (b.textContent = was), 1400);
+  } else if (d.connect) {
+    const res = await api('/api/connect', { provider: d.connect });
+    if (res.error) return alert(res.error);
+    b.textContent = 'Finish in the terminal window';
+  }
+});
+$('recheck').onclick = () => { $('tools').innerHTML = '<li class="d">Checking…</li>'; loadSetup(true); };
+let lastFocusCheck = 0;
+window.addEventListener('focus', () => {  // back from a sign-in window
+  if (Date.now() - lastFocusCheck > 15000) { lastFocusCheck = Date.now(); loadSetup(true); }
+});
+
+renderPrompts();
+loadSetup(false);
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

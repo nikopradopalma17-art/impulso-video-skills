@@ -1,0 +1,60 @@
+rules:
+  - id: "R-S4-001"
+    type: FORBIDDEN_METHOD
+    pattern: "TTS 未分段生成直接整段合成"
+    positive: "TTS 必须按 narration_segments.json 的 segments 逐段生成，确保 actual_duration 精确"
+    guardrail: "narration.mp3 是一次性 TTS 合成而非分段拼接"
+    detection: {keywords: [], semantic_check: true}
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage4-audio"
+    source: "stage4-audio.md Common Rationalizations"
+
+  - id: "R-S4-002"
+    type: FORBIDDEN_METHOD
+    pattern: "BGM 选择未参考 design.md 的 mood"
+    positive: "BGM 风格必须与 design.md 的 mood/immersion_mode 匹配"
+    guardrail: "BGM 风格与视频情绪基调不匹配"
+    detection: {keywords: [], semantic_check: true}
+    severity: SOFT
+    class: EXPERIENTIAL
+    scope: SKILL
+    skill: "stage4-audio"
+    source: "stage4-audio.md Common Rationalizations"
+
+  - id: "R-S4-003"
+    type: FORBIDDEN_ACTION
+    pattern: "多音字未做预处理"
+    positive: "TTS 前对多音字/专有名词做拼音注音预处理"
+    guardrail: "TTS 输出中存在明显发音错误的多音字"
+    detection: {keywords: [], semantic_check: true}
+    severity: SOFT
+    class: EXPERIENTIAL
+    scope: SKILL
+    skill: "stage4-audio"
+    source: "stage4-audio.md"
+
+  - id: "R-S4-004"
+    type: REQUIRED_METHOD
+    pattern: "narration.mp3 未经过 loudnorm.sh 标准化"
+    positive: "narration.mp3 必须经过 loudnorm.sh 两 pass 标准化（I=-16 LUFS, 采样率 48kHz）"
+    guardrail: "narration.mp3 采样率为 24000 Hz（raw edge-tts 输出），loudnorm.sh 未执行"
+    detection: {keywords: [], semantic_check: false}
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage4-audio"
+    source: "stage4-audio.md §4.1 + engine/gate.py check_narration_sample_rate"
+
+  - id: "R-S4-005"
+    type: REQUIRED_METHOD
+    pattern: "bgm_volume 由手动硬编码而非 bgm_pipeline.sh 自动校准"
+    positive: "bgm_volume 必须由 bgm_pipeline.sh → bgm_gap_check.py 公式自动确定，禁止手动设置"
+    guardrail: "bgm_orig.wav 不存在 + bgm_volume 为常见硬编码值，bgm_pipeline.sh 未执行"
+    detection: {keywords: [], semantic_check: false}
+    severity: HARD
+    class: SAFETY
+    scope: SKILL
+    skill: "stage4-audio"
+    source: "stage4-audio.md §4.2 BGM 音量守恒铁律 + engine/gate.py check_bgm_volume_provenance"

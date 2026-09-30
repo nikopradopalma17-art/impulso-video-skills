@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "blender-education-video",
+  "displayName": "Blender Education Video",
+  "version": "1.0.0",
+  "description": "Create fact-checked cinematic educational videos in Blender with research, reusable assets, approval-frame review, subtitles, and delivery QA.",
+  "author": {
+    "name": "Sun Xiayi",
+    "url": "https://github.com/sunxiayi"
+  },
+  "homepage": "https://github.com/sunxiayi/make-blender-education-video-skill",
+  "repository": "https://github.com/sunxiayi/make-blender-education-video-skill",
+  "license": "MIT",
+  "keywords": [
+    "blender",
+    "animation",
+    "education",
+    "video",
+    "cinematic-explainer"
+  ]
+}

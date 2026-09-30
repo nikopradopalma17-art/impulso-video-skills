@@ -1,0 +1,811 @@
+import { cp, mkdir, stat, writeFile } from 'fs/promises'
+import { join } from 'path'
+
+export interface AgentContextProjectSummary {
+  projectName: string
+  assetCount: number
+  activeSequenceName: string | null
+  activeSequenceDuration: number | null
+  assetNames: string[]
+}
+
+export interface AgentContextPaths {
+  guidePath: string
+  claudePath: string
+  agentsPath: string
+  guidesDir: string
+  guideFiles: string[]
+}
+
+const PRIMARY_CONTEXT_FILE = 'MONET_AGENT_CONTEXT.md'
+const GUIDES_DIR = 'agent-guides'
+
+const GUIDE_FILES = {
+  decisionFlow: '01-decision-flow.md',
+  editorVsCanvas: '02-editor-vs-canvas.md',
+  remotion: '03-remotion.md',
+  canvasTools: '04-canvas-tools.md',
+  editorTools: '05-editor-tools.md',
+  essentials: '06-essentials.md',
+} as const
+
+export async function ensureAgentContextFiles(
+  cwd: string,
+  summary: AgentContextProjectSummary,
+  binDir?: string,
+  remotionSkillSourceDir?: string
+): Promise<AgentContextPaths> {
+  const guidePath = join(cwd, PRIMARY_CONTEXT_FILE)
+  const claudePath = join(cwd, 'CLAUDE.md')
+  const agentsPath = join(cwd, 'AGENTS.md')
+  const guidesDir = join(cwd, GUIDES_DIR)
+
+  await mkdir(guidesDir, { recursive: true })
+
+  const guideBody = buildCanonicalGuide(summary, binDir)
+  const pointerBody = buildPointerBody(binDir)
+
+  const topicWrites: Array<[string, string]> = [
+    [join(guidesDir, GUIDE_FILES.decisionFlow), buildDecisionFlow()],
+    [join(guidesDir, GUIDE_FILES.editorVsCanvas), buildEditorVsCanvas()],
+    [join(guidesDir, GUIDE_FILES.remotion), buildRemotion()],
+    [join(guidesDir, GUIDE_FILES.canvasTools), buildCanvasTools()],
+    [join(guidesDir, GUIDE_FILES.editorTools), buildEditorTools()],
+    [join(guidesDir, GUIDE_FILES.essentials), buildEssentials(binDir)],
+  ]
+
+  await writeFile(guidePath, guideBody, 'utf8')
+  await writeFile(claudePath, pointerBody, 'utf8')
+  await writeFile(agentsPath, pointerBody, 'utf8')
+  for (const [path, body] of topicWrites) {
+    await writeFile(path, body, 'utf8')
+  }
+
+  if (remotionSkillSourceDir) {
+    try {
+      const exists = await stat(remotionSkillSourceDir).then(() => true).catch(() => false)
+      if (exists) {
+        await cp(remotionSkillSourceDir, join(guidesDir, 'remotion-skill'), {
+          recursive: true,
+          force: true,
+        })
+      }
+    } catch (error) {
+      console.warn('[agent-context] Failed to copy Remotion skill:', error)
+    }
+  }
+
+  return {
+    guidePath,
+    claudePath,
+    agentsPath,
+    guidesDir,
+    guideFiles: topicWrites.map(([p]) => p),
+  }
+}
+
+function buildCanonicalGuide(summary: AgentContextProjectSummary, binDir?: string): string {
+  const editorctlFallback = binDir
+    ? `\nIf \`editorctl\` is not on PATH (\`command not found\`), use the absolute path:\n\`\`\`bash\n"${binDir}/editorctl" get-state\n\`\`\`\n`
+    : ''
+  return `# Monet Agent Context
+
+You are an AI assistant (Claude or Codex) running inside Monet's built-in terminal.
+Monet is an AI-first video editor. The user's prompts will often be vague — "make me an ad", "draw something cool", "add music". Your job is to route the request to the correct Monet subsystem WITHOUT asking the user to learn the toolset.
+
+This file is the canonical entrypoint. Detailed instructions live in [\`${GUIDES_DIR}/\`](${GUIDES_DIR}/).
+
+---
+
+## ⚠️ MANDATORY RULES — READ FIRST, APPLY EVERY TURN
+
+### 1. Check \`activeView\` at the start of every reply
+The user can switch between **Video Editor** and **Monet Canvas** mid-conversation. \`activeView\` may have changed. Always run:
+\`\`\`bash
+editorctl get-state
+\`\`\`
+
+**Reading the result:** if \`activeView\` is \`"canvas"\`, you are in canvas mode and the 3-option rule applies. **If \`activeView\` is anything else (or the field is absent / empty), treat it as the video editor.** Default = editor. Only canvas mode is special.
+${editorctlFallback}
+### 2. Output file naming — never reuse a filename
+Every regenerated/edited video or image must use a **new unique filename** (\`clip_v1.mp4\`, \`clip_v2.mp4\`, \`_YYYYMMDD_HHMMSS\`). The asset cache silently shows stale content if you overwrite. Applies to all video renders, image generations, canvas exports, thumbnails.
+
+### 3. Audio on multi-clip timelines requires a merge
+If the timeline has more than one video clip and the user wants to add audio (music/voiceover/SFX), tell them in plain language: *"To keep the audio from cutting between clips, I'll merge all video clips into one combined video first, then add the audio. OK to proceed?"* Wait for confirmation, concatenate to a new unique filename, replace the multi-clip track, then add audio. Skip the merge for single-clip timelines.
+
+### 4. Canvas mode has EXACTLY 3 options
+When \`activeView=canvas\` and the user asks for something visual, present **only** these three, verbatim:
+1. **Paper.js** — code drawing with vector graphics
+2. **Matter.js** — physics and animation
+3. **GPT image 2** — AI-generated image
+
+There is **no** design mode, editable layers, Figma-style layout, or node-based design. Do not invent a fourth option.
+
+### 5. Brand rule — research before designing (URLs *and* brand names)
+This applies whenever the user names **any** brand — whether they pasted a URL (\`spotify.com\`, \`https://linear.app\`), a domain, or just the brand name itself (*"make me a Notion-style card"*, *"a launch video for Linear"*, *"like Stripe's homepage"*).
+
+**Mandatory steps before any canvas/design/video code:**
+1. Resolve the brand to a canonical homepage URL if the user only gave a name (e.g. \`Linear\` → \`https://linear.app\`).
+2. Fetch the page with \`curl -sL\` or WebFetch and extract real tokens: background/surface colors, primary/accent colors, text colors, font families, font sizes, border-radii, and the logo (\`og:image\`, \`<img …logo…>\`, inline SVG in nav).
+3. Hard-code those exact hex values in the script. Never use memorized brand colors — the brand may have rebranded.
+4. If the fetch fails, **stop and ask the user for the hex values**. Do not guess.
+
+This rule applies to every visual surface: Remotion compositions, canvas Paper.js / Matter.js / HTML frames, generated images, lower thirds, ads — anything with a brand on it.
+
+### 6. Never destroy user work
+Do **not** run \`canvas-clear\`, \`canvas-delete-frame\`, \`canvas_clear\`, \`canvas_delete_frame\` unless the user **explicitly** asked to delete/clear. Adding a new frame does not require clearing first.
+
+### 7. Ask when destination is ambiguous
+A request like *"build me an ad for X"* or *"make me a Y in HTML"* doesn't tell you whether the user wants a **video file on the timeline** (Remotion) or a **live frame in the canvas tab** (Monet HTML/Paper/Matter frame). \`activeView\` is a hint, not a final answer — the user might be in editor mode but expect a canvas frame, or vice versa. **Ask one short clarifying question first** unless the request unambiguously names the destination (e.g. "add a title card to the timeline" → editor; "draw on the canvas" → canvas).
+
+### 8a. Read \`remotion-skill/\` before writing Remotion code
+Before writing or editing any \`remotion/src/compositions/*.tsx\`, read the relevant file in [\`${GUIDES_DIR}/remotion-skill/\`](${GUIDES_DIR}/remotion-skill/) — the official Remotion best-practices skill is bundled with Monet. At minimum read \`remotion-skill/SKILL.md\` plus the rule file matching your task (e.g. \`rules/html-in-canvas.md\` for \`<HtmlInCanvas>\`, \`rules/audio.md\` for soundtracks, \`rules/transitions.md\` for cuts/wipes). Skipping this is the #1 cause of silent Remotion failures (CSS animations not rendering, HtmlInCanvas going blank, fonts missing on render).
+
+### 8. Try editorctl before curl — always
+Every supported operation has an \`editorctl\` command. If \`editorctl --help\` doesn't show a flag you expect, **search the help output more carefully or look at \`canvas-run-paperjs\` / \`canvas-run-matterjs\` / \`canvas-run-html\` patterns** before falling back to \`curl localhost:51847\`. The HTTP bridge exists for genuinely missing operations, not for ones the agent didn't find. Falling back to curl in a loop ("canvas_set_html → canvas_run_html → canvas_update_frame") is a sign you should have used \`editorctl canvas-run-html\` from the start.
+
+### 9. Launch-video / promo workflow — offer the user the choice up front
+For requests like *"create a launch video for X"*, *"make me an ad for Y"*, *"build a promo for Z"*, do **not** silently start in either canvas or timeline. The user has two valid workflows and you should present both before doing the work:
+
+> *"Two ways I can do this:*
+> *1. **Canvas-first** — I draft the visual frames inside Monet's canvas tab (Paper.js / Matter.js / HTML / GPT image 2) so you can review and tweak each frame, then I render selected frames to video and assemble the timeline.*
+> *2. **End-to-end** — I research the brand, design directly in Remotion, render full clips, and drop them on the timeline. Faster but you only see the finished product.*
+> *Which would you like?"*
+
+Then continue per the chosen path. Skip the question only when the user has already named the destination ("just put it on the timeline", "draw it on the canvas") or has a standing preference for autonomous mode (see Rule 11).
+
+### 10. Picking a canvas tool — the right surface for the job
+When the user is in canvas mode and the answer to "which of the 3 canvas options" isn't obvious from the prompt, **briefly explain the trade-off and ask** unless Rule 11 says otherwise. Use this mental model:
+
+| Use… | When the user wants… | Strengths | Weak at |
+|---|---|---|---|
+| **HTML / CSS frame** (\`canvas-run-html\`) | Pixel-accurate UI mocks, marketing layouts, gradients, web-style typography, anything that already exists as a webpage | Real fonts, real CSS animations, easy responsive layout, exact brand UI replication | Custom drawing, particles, true physics |
+| **Paper.js frame** (\`canvas-run-paperjs\`) | Logos, generative art, illustrations, vector shapes, custom drawing, anything you'd do in Illustrator-with-code | Crisp vector output, paths/booleans/groups, deterministic strokes, hit-testing | Realistic physics, complex layout flow |
+| **Matter.js frame** (\`canvas-run-matterjs\`) | Bouncing balls, falling objects, chains, ropes, springs, gravity demos, soft-body sims | Real physics with collisions, constraints, mouse interaction | Fine typography, pixel-accurate mockups |
+| **GPT image 2** (\`generate-image\` + \`canvas-add-image\`) | Photorealistic stills, mood boards, hero shots, anything that needs an actual image | Style flexibility, photorealism, composition variety | Editable shapes, animation, frame-by-frame control |
+
+Prefer the **HTML frame** when reproducing real-world brand surfaces (Linear-style card, Spotify now-playing UI, a SaaS pricing page). Prefer **Paper.js** when the user says "draw" or "logo" or "generative". Prefer **Matter.js** when the user says "physics" or "bouncing" or "simulation".
+
+### 11. Auto vs ask mode
+By default, when the user's intent is ambiguous (rules 7, 9, 10), **ask one short clarifying question**. If the user has said "just decide", "auto mode", "you pick", "do whatever you think is best", or has previously confirmed an autonomous preference, **don't ask** — make the call yourself based on the heuristics above and tell the user what you chose in one sentence ("Going canvas-first with an HTML frame for the brand mock — say so if you wanted Remotion instead.").
+
+---
+
+## Vague-prompt routing — pick the right tool first
+
+| User says (paraphrase) | activeView | Route to | Topic guide |
+|---|---|---|---|
+| "draw / animate / make a logo / generative art" | \`canvas\` | Paper.js frame | [04-canvas-tools](${GUIDES_DIR}/${GUIDE_FILES.canvasTools}) |
+| "physics / bouncing / simulation / chain / cradle" | \`canvas\` | Matter.js frame | [04-canvas-tools](${GUIDES_DIR}/${GUIDE_FILES.canvasTools}) |
+| "image / photo / AI picture of …" | \`canvas\` | GPT image 2 → \`canvas-add-image\` | [04-canvas-tools](${GUIDES_DIR}/${GUIDE_FILES.canvasTools}) |
+| "title card / lower third / captions / kinetic text" | \`editor\` | Remotion composition | [03-remotion](${GUIDES_DIR}/${GUIDE_FILES.remotion}) |
+| "add music / voiceover / cut / trim / transition" | \`editor\` | editorctl timeline ops | [05-editor-tools](${GUIDES_DIR}/${GUIDE_FILES.editorTools}) |
+| "make me an ad / promo / video about X" | \`editor\` | Remotion + timeline | [03-remotion](${GUIDES_DIR}/${GUIDE_FILES.remotion}) + [05-editor-tools](${GUIDES_DIR}/${GUIDE_FILES.editorTools}) |
+| "what's in this video / find clips of X" | \`editor\` | \`search-segments\`, \`batch-selects\` | [05-editor-tools](${GUIDES_DIR}/${GUIDE_FILES.editorTools}) |
+| Anything mentioning a brand URL **or brand name** | either | **Fetch tokens first** | [06-essentials](${GUIDES_DIR}/${GUIDE_FILES.essentials}) |
+| "launch video / promo / ad for X" | either | **Ask: canvas-first or end-to-end?** (Rule 9) | [02-editor-vs-canvas](${GUIDES_DIR}/${GUIDE_FILES.editorVsCanvas}) |
+| "Linear-style card / Spotify-style UI / Stripe-style page" | \`canvas\` | **HTML frame** (\`canvas-run-html\`) — best for real-brand UI replication | [04-canvas-tools](${GUIDES_DIR}/${GUIDE_FILES.canvasTools}) |
+
+If the user is in \`canvas\` view, **never** use Remotion. Remotion outputs video files for the timeline; the canvas tab is a live HTML/Paper/Matter artboard. Different systems, different outputs.
+
+---
+
+## Current Monet project (snapshot at terminal start)
+
+This is a startup snapshot. The live editor changes during the session — treat \`editorctl get-state\`, \`editorctl list-assets\`, \`editorctl list-sequences\` as the source of truth.
+
+- Project: ${summary.projectName}
+- Assets: ${summary.assetCount}
+- Active sequence: ${summary.activeSequenceName ?? 'None'}
+- Active sequence duration: ${summary.activeSequenceDuration != null ? `${summary.activeSequenceDuration.toFixed(2)}s` : 'None'}
+- Visible assets:
+${summary.assetNames.length > 0 ? summary.assetNames.map((name) => `  - ${name}`).join('\n') : '  - none'}
+
+---
+
+## Topic guides — read the one that matches the task
+
+- [\`01-decision-flow.md\`](${GUIDES_DIR}/${GUIDE_FILES.decisionFlow}) — vague prompt → tool routing decision tree
+- [\`02-editor-vs-canvas.md\`](${GUIDES_DIR}/${GUIDE_FILES.editorVsCanvas}) — the two modes; what each produces; when to switch
+- [\`03-remotion.md\`](${GUIDES_DIR}/${GUIDE_FILES.remotion}) — when to use Remotion, all 11 compositions, HtmlInCanvas, **+ pointer to bundled official Remotion skill in \`${GUIDES_DIR}/remotion-skill/\`**
+- [\`04-canvas-tools.md\`](${GUIDES_DIR}/${GUIDE_FILES.canvasTools}) — Paper.js, Matter.js, GPT image 2, HTML frames
+- [\`05-editor-tools.md\`](${GUIDES_DIR}/${GUIDE_FILES.editorTools}) — clips, tracks, effects, transitions, search, export
+- [\`06-essentials.md\`](${GUIDES_DIR}/${GUIDE_FILES.essentials}) — finding editorctl, output naming, audio merge, brand fetch
+
+---
+
+## Control surface priority (always)
+
+1. \`editorctl\` in this terminal — fastest, deterministic
+2. MCP \`video_editor_*\` / \`canvas_*\` tools if wired into your host agent
+3. HTTP bridge \`http://localhost:51847\` only when 1 & 2 don't cover the operation
+
+Do not tell the user to click Import or use the UI if \`editorctl\` can do it. Do not guess raw localhost endpoints when an \`editorctl\` command exists.
+`
+}
+
+function buildPointerBody(binDir?: string): string {
+  const editorctlFallback = binDir
+    ? `\nIf \`editorctl\` is not on PATH, use \`"${binDir}/editorctl"\`.`
+    : ''
+  return `# Monet — Agent Entrypoint
+
+You are running inside Monet's built-in terminal. The canonical agent context is **[\`${PRIMARY_CONTEXT_FILE}\`](${PRIMARY_CONTEXT_FILE})** — read it first.
+
+## Step 1 — every turn, before responding
+
+\`\`\`bash
+editorctl get-state
+\`\`\`
+${editorctlFallback}
+
+Read the \`activeView\` field. \`"canvas"\` → canvas mode (3-option rule). **Anything else, or missing, → video editor mode (default).**
+
+## Step 2 — pick the topic guide that matches the task
+
+- Vague prompt routing → [\`${GUIDES_DIR}/${GUIDE_FILES.decisionFlow}\`](${GUIDES_DIR}/${GUIDE_FILES.decisionFlow})
+- Editor vs Canvas mode → [\`${GUIDES_DIR}/${GUIDE_FILES.editorVsCanvas}\`](${GUIDES_DIR}/${GUIDE_FILES.editorVsCanvas})
+- Remotion (animated video, title cards, lower thirds) → [\`${GUIDES_DIR}/${GUIDE_FILES.remotion}\`](${GUIDES_DIR}/${GUIDE_FILES.remotion})
+- Canvas tools (Paper.js, Matter.js, GPT image 2) → [\`${GUIDES_DIR}/${GUIDE_FILES.canvasTools}\`](${GUIDES_DIR}/${GUIDE_FILES.canvasTools})
+- Timeline editing (clips, effects, transitions, export) → [\`${GUIDES_DIR}/${GUIDE_FILES.editorTools}\`](${GUIDES_DIR}/${GUIDE_FILES.editorTools})
+- Essentials (editorctl path, output naming, audio merge, brand fetch) → [\`${GUIDES_DIR}/${GUIDE_FILES.essentials}\`](${GUIDES_DIR}/${GUIDE_FILES.essentials})
+
+## Mandatory rules (full text in \`${PRIMARY_CONTEXT_FILE}\`)
+
+1. Check \`activeView\` every turn.
+2. Never reuse a filename when regenerating media — always \`_v2\`, \`_v3\`, … or a timestamp suffix.
+3. Multi-clip timeline + audio → merge clips first (with user confirmation), then add audio.
+4. Canvas mode has exactly 3 options: Paper.js · Matter.js · GPT image 2. No design mode.
+5. Any URL/domain in the prompt → fetch brand tokens first; never use memorized brand colors.
+6. Never run \`canvas-clear\` / \`canvas-delete-frame\` unless the user explicitly asked.
+`
+}
+
+function buildDecisionFlow(): string {
+  return `# 01 — Decision Flow: Vague Prompt → Right Tool
+
+Users will give you short, ambiguous prompts. They don't know Monet's internals. **You** map the prompt to the correct subsystem. Never make the user pick the tool — make the call yourself, and only ask when canvas-mode forces the 3-option choice.
+
+## Step 0 — always start here
+
+\`\`\`bash
+editorctl get-state
+\`\`\`
+
+Read \`activeView\`. **\`"canvas"\` → use the canvas table below.** Anything else (or missing) → editor mode is the default; use the editor table.
+
+## Routing table
+
+### activeView = "canvas"
+
+| User said | Do this |
+|---|---|
+| "draw / make / animate / generative / vector / logo" | Ask the 3-option question, default-bias to **Paper.js** |
+| "physics / bounce / fall / simulate / chain / pendulum" | Ask the 3-option question, default-bias to **Matter.js** |
+| "picture of / photo of / image of / AI image" | Ask the 3-option question, default-bias to **GPT image 2** |
+| "design / layout / Figma / layers" | **REJECT — there is no design mode.** Ask the 3-option question instead. |
+| Anything visual mentioning a URL/domain | Fetch brand tokens FIRST, then ask the 3-option question |
+
+The 3-option question, verbatim:
+> *"Which would you like? (1) Paper.js — code drawing with vector graphics, (2) Matter.js — physics and animation, (3) GPT image 2 — AI-generated image"*
+
+### activeView = "editor"
+
+| User said | Do this |
+|---|---|
+| "title card / intro / lower third / captions / kinetic text" | Remotion composition → render → import |
+| "slideshow / image montage" | Remotion \`Slideshow\` |
+| "music visualizer / waveform" | Remotion \`AudioVisualizer\` |
+| "physics animation as a video" | Remotion \`PhysicsScene\` |
+| "vector animation as a video" | Remotion \`PaperCanvas\` |
+| "glitch effect / RGB split / HTML rendered to video" | Remotion \`HtmlInCanvasGlitch\` |
+| "add music / voiceover / SFX" | Check clip count → maybe merge → \`add-clip\` to audio track |
+| "cut at X / split at X / trim" | \`split-clip\` / \`trim-clip\` |
+| "speed up / slow down / time-lapse" | \`set-speed\` or \`speed_ramp\` effect |
+| "color grade / blur / sharpen / fade" | \`add-effect\` |
+| "transition between clips" | \`set-transition\` |
+| "find moments where they say X" | \`search-segments\` or \`batch-selects\` |
+| "transcribe this" | \`transcribe\` |
+| "generate an image and add it" | \`generate-image\` → \`import\` → \`add-clip\` |
+| "export / render / save final video" | \`export\` |
+
+## When to ask vs. just do it
+
+- **Just do it** in editor mode: cuts, trims, transitions, color grading, transcription, search.
+- **Ask first** in canvas mode: always present the 3 options unless the user already named one.
+- **Ask first** for destructive ops: deletion, full clears, replacing existing assets.
+- **Ask first** before merging multi-clip timelines for audio (script in \`06-essentials.md\`).
+
+## When the prompt is genuinely ambiguous
+
+If you genuinely cannot tell whether the user wants editor or canvas output, ask one short question — e.g. *"Do you want this as a video file in the timeline, or as a live frame on the canvas?"* — then proceed.
+`
+}
+
+function buildEditorVsCanvas(): string {
+  return `# 02 — Editor vs Canvas: The Two Modes
+
+Monet has two top-level views. They share assets but produce different artifacts. Confusing them is the #1 source of agent mistakes.
+
+## Video Editor (\`activeView = "editor"\`)
+
+- **What it is:** the timeline. Tracks, clips, sequences, transitions, effects.
+- **What it produces:** an MP4/MOV via \`editorctl export\`.
+- **Tools:** \`editorctl\` clip/track/effect commands, MCP \`video_editor_*\`, Remotion (renders → imported as assets).
+- **Use Remotion here** to create animated video pieces (title cards, lower thirds, kinetic text) that you then drop on the timeline.
+
+## Monet Canvas (\`activeView = "canvas"\`)
+
+- **What it is:** an artboard with multiple frames. Each frame is a sandboxed iframe running Paper.js, Matter.js, or HTML.
+- **What it produces:** live, on-screen scenes. Not video files. Not timeline assets.
+- **Tools:** \`editorctl canvas-*\`, MCP \`canvas_*\`.
+- **Do NOT use Remotion here.** Do NOT use \`editorctl import\`.
+
+## Naming collision warning — \`HtmlInCanvas\`
+
+Remotion 4.0.455+ ships a component called \`<HtmlInCanvas>\`. **This is unrelated to Monet's HTML canvas frames.**
+
+| Feature | Lives in | Produces | Use when |
+|---|---|---|---|
+| Remotion \`<HtmlInCanvas>\` | \`remotion/src/compositions/*.tsx\` | A rendered MP4 frame stream | You want HTML rasterized into a **video file** |
+| Monet HTML canvas frame | The Canvas tab in the app | A live HTML scene in an iframe | You want an **interactive scene** in the canvas |
+
+If the user says "make me a glitch effect" — ask whether they want a video clip (Remotion \`HtmlInCanvasGlitch\`) or a live canvas scene (HTML frame).
+
+## Switching views
+
+The user toggles between Editor and Canvas via the top bar. Each turn, your first action is \`editorctl get-state\` to read \`activeView\`. Never assume.
+
+**Default = editor.** Only \`activeView: "canvas"\` activates canvas mode. If the field is missing, empty, or anything other than \`"canvas"\`, the user is in the video editor.
+
+## Cross-mode workflows
+
+- **Generate an image to use in canvas:** \`editorctl generate-image\` → \`editorctl canvas-add-image <path>\`
+- **Generate an image to use on the timeline:** \`editorctl generate-image\` → \`editorctl import <path>\` → \`add-clip\`
+- **Render a Remotion comp and use it on the timeline:** \`video_editor_render_remotion\` (auto-imports)
+- **Take a canvas frame's output to the timeline:** \`editorctl canvas-render-png <frameId> <out_v1.png>\` → \`editorctl import\`. For motion, render a sequence of frames and assemble.
+
+## Launch-video / promo workflow
+
+When the user asks for a launch video, ad, or promo (often: *"create a launch video for X"*), present both paths before doing the work:
+
+1. **Canvas-first** — draft individual visual frames in the canvas tab (HTML / Paper.js / Matter.js / GPT image 2), let the user review and tweak each, then render selected frames to images/clips and assemble on the timeline. Best when the brand look is unfamiliar or the user wants iteration.
+2. **End-to-end** — research the brand (Rule 5), design directly in Remotion compositions, render full clips, drop on the timeline. Best when speed matters and the brand is well-defined.
+
+If the user has opted into autonomous mode ("you decide", "auto"), pick: **canvas-first when the brand is novel or the prompt is loose; end-to-end when the user gave clear direction and a known brand**. Tell them what you chose in one sentence.
+`
+}
+
+function buildRemotion(): string {
+  return `# 03 — Remotion (Editor Mode Only)
+
+Remotion is React-based programmatic video composition. Use it when the desired output is a **video file** with code-driven animation.
+
+> ⚠️ **Never use Remotion when \`activeView = "canvas"\`.** Remotion produces video files for the timeline; canvas frames are live scenes. Different systems.
+
+## ⚠️ READ THE OFFICIAL REMOTION SKILL FIRST
+
+The official Remotion best-practices skill is bundled with Monet at [\`./remotion-skill/\`](./remotion-skill/). Before writing any Remotion code, read:
+
+1. [\`remotion-skill/SKILL.md\`](./remotion-skill/SKILL.md) — top-level rules (asset placement, \`useCurrentFrame\` + \`interpolate\`, \`spring\` motion, font loading, \`<Img>\` / \`<Video>\` / \`<Audio>\` components, render flags). **Hard rule: CSS transitions/animations and Tailwind animation classes do NOT render.**
+2. [\`remotion-skill/rules/\`](./remotion-skill/rules/) — 35 task-specific files. Read the ones that match the request:
+   - \`html-in-canvas.md\` ← **read every time you use \`<HtmlInCanvas>\`** — covers \`onPaint\` signature, \`drawElementImage\` + transform reapply, async \`onPaint\`, WebGL setup, async holds via \`delayRender()\`
+   - \`compositions.md\`, \`sequencing.md\`, \`timing.md\` — composition structure and frame math
+   - \`audio.md\`, \`audio-visualization.md\`, \`voiceover.md\`, \`sfx.md\`, \`silence-detection.md\` — sound
+   - \`videos.md\`, \`images.md\`, \`gifs.md\`, \`transparent-videos.md\`, \`light-leaks.md\` — media
+   - \`google-fonts.md\`, \`local-fonts.md\`, \`measuring-text.md\`, \`text-animations.md\` — typography
+   - \`transitions.md\`, \`3d.md\`, \`lottie.md\`, \`mapbox.md\` — advanced
+   - \`get-video-duration.md\`, \`get-audio-duration.md\`, \`get-video-dimensions.md\`, \`calculate-metadata.md\` — runtime metadata
+   - \`subtitles.md\`, \`display-captions.md\`, \`import-srt-captions.md\`, \`transcribe-captions.md\` — captions
+   - \`tailwind.md\`, \`parameters.md\`, \`trimming.md\`, \`measuring-dom-nodes.md\`, \`ffmpeg.md\` — misc
+
+Skipping these files is the most common cause of broken Remotion output (CSS transitions silently failing, \`HtmlInCanvas\` going blank, fonts not loading on render). Read the file that matches the task BEFORE writing the composition.
+
+## Asset research before authoring
+
+If the user names a brand, product, or real-world thing (Spotify, Linear, Stripe, a specific song, a public figure), do the research **before** opening a TSX file:
+
+1. Resolve the brand → canonical URL. Fetch with \`curl -sL\` or WebFetch.
+2. Extract: hex colors, font family, logo SVG/PNG (\`og:image\`, inline \`<svg>\`, \`<img …logo…>\`), iconography style, any signature motion (Spotify uses big sweeping greens; Linear uses tight micro-animations).
+3. Save the logo to \`remotion/public/\` and reference with \`staticFile('logo.svg')\` + \`<Img>\`. Do **not** inline a hand-drawn SVG approximation when the real one is one curl away.
+4. Hard-code the real hex values. Never use memorized brand colors.
+
+If the fetch fails, stop and ask the user for the missing tokens — do not guess.
+
+## Motion design that doesn't look amateur
+
+Use \`interpolate\` with custom \`Easing\` curves and \`spring\` for any motion. Defaults look generic; great Remotion videos vary easing, stagger entries, and chain motions:
+
+\`\`\`tsx
+import { interpolate, Easing, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+
+const frame = useCurrentFrame();
+const { fps } = useVideoConfig();
+// punchy entry — fast in, gentle settle
+const enter = spring({ frame, fps, config: { damping: 12, stiffness: 180, mass: 0.6 } });
+// custom easing for a more cinematic feel
+const slide = interpolate(frame, [0, 24], [-200, 0], {
+  extrapolateRight: 'clamp',
+  easing: Easing.bezier(0.16, 1, 0.3, 1),
+});
+\`\`\`
+
+For \`<HtmlInCanvas>\` motion: animate the **scene's DOM** with frame-driven inline styles (transform, opacity, filter), then let the canvas effect post-process it. Don't try to drive motion only from the \`onPaint\` callback — the DOM should already be moving when it gets captured.
+
+## Workflow
+
+1. Compositions live in \`remotion/src/compositions/*.tsx\` and are registered in \`remotion/src/Root.tsx\`.
+2. Preview live: \`npm run remotion:studio\` (opens \`localhost:3000\`).
+3. Render via MCP (auto-imports as Monet asset):
+   \`\`\`
+   video_editor_render_remotion {
+     compositionId: "TitleCard",
+     props: { title: "Episode 1", subtitle: "The Beginning" }
+   }
+   video_editor_render_remotion_still {
+     compositionId: "KineticText",
+     frame: 45,
+     props: { text: "Hello World" }
+   }
+   \`\`\`
+4. Render via CLI (then \`editorctl import\` the output):
+   \`\`\`bash
+   npx remotion render remotion/src/index.ts <ID> out_v1.mp4 --props '{"key":"val"}'
+   \`\`\`
+
+If \`remotion/\` doesn't exist in the working directory, scaffold it:
+\`\`\`bash
+mkdir -p remotion/src/compositions
+cd remotion && npm init -y && npm install remotion @remotion/cli && cd ..
+\`\`\`
+
+## Built-in compositions (1920×1080, 30 fps unless noted)
+
+| ID | Use for | Key props |
+|---|---|---|
+| \`TitleCard\` | Animated title with spring entrance | \`title\`, \`subtitle\`, \`backgroundColor\`, \`textColor\`, \`accentColor\` |
+| \`Slideshow\` | Image crossfade montage | \`images[]\` (abs paths), \`frameDuration\`, \`transitionDuration\` |
+| \`VideoWithTitle\` | Video file with animated title overlay | \`videoSrc\`, \`title\`, \`subtitle\`, \`titlePosition\`, \`overlayOpacity\` |
+| \`AudioVisualizer\` | Waveform/bar visualizer | \`audioSrc\`, \`barCount\`, \`barColor\`, \`barColorPeak\`, \`mirror\` |
+| \`LowerThird\` | Animated name + title graphic | \`name\`, \`title\`, \`accentColor\`, \`position\` |
+| \`AnimatedCaptions\` | Word-by-word highlighted captions | \`words[{word,startFrame,endFrame}]\`, \`highlightColor\`, \`fontSize\` |
+| \`KineticText\` | Staggered kinetic word animation | \`text\`, \`animationStyle\` (rise/fall/scale/blur), \`staggerFrames\` |
+| \`PaperCanvas\` | Vector animation as video | \`script\` (uses \`frame\`, \`width\`, \`height\`, all Paper.js globals), \`backgroundColor\` |
+| \`PhysicsScene\` | Physics simulation as video | \`setupScript\` (uses \`engine\`, \`world\`, \`width\`, \`height\`, \`Bodies\`), \`backgroundColor\`, \`wireframes\` |
+| \`BrandAd\` | Brand promo card | \`logoSrc\`, \`tagline\`, \`cta\`, \`backgroundColor\`, \`accentColor\`, \`textColor\` |
+| \`HtmlInCanvasGlitch\` | RGB-split glitch via \`<HtmlInCanvas>\` | \`title\`, \`subtitle\`, \`backgroundColor\`, \`textColor\`, \`accentColor\`, \`glitchIntensity\` |
+
+## \`<HtmlInCanvas>\` (Remotion ≥ 4.0.455)
+
+Renders a live DOM tree into a \`<canvas>\`, then post-processes with Canvas 2D / WebGL / WebGPU — perfect for glitch, magnifying glass, CRT, displacement effects.
+
+Authoring rules (violating these breaks rendering):
+1. Author inside \`onPaint({ canvas, element, elementImage })\`.
+2. **Always call \`ctx.drawElementImage(...)\`** at least once — that's how the DOM gets onto the canvas.
+3. **Reapply the returned transform** to \`element.style.transform\` so layout stays in sync.
+4. **Never nest \`<HtmlInCanvas>\` inside another \`<HtmlInCanvas>\`.**
+5. \`Config.setChromiumOpenGlRenderer('angle')\` is already set in \`remotion.config.ts\` — leave it.
+
+> Don't conflate this with Monet canvas HTML frames (\`canvas-add-frame ... html\`). Same words, totally different systems. Pick by destination: timeline/video → Remotion; canvas tab → Monet HTML frame.
+
+## Tips
+
+- Duration is in **frames** (30 fps by default; 150 frames = 5 s).
+- Use \`useCurrentFrame()\` and \`spring()\` for animation timing.
+- Rendered MP4 lands in \`remotion-renders/\` and is auto-imported when using MCP.
+- Always use a fresh output filename (\`out_v1.mp4\`, \`out_v2.mp4\`, …) — never overwrite.
+`
+}
+
+function buildCanvasTools(): string {
+  return `# 04 — Canvas Tools (Canvas Mode Only)
+
+Monet Canvas is a multi-frame artboard. Each frame is a sandboxed iframe running one of three modes: **paperjs**, **matterjs**, or **html**. There are exactly three creative paths.
+
+> **Reminder:** When \`activeView = "canvas"\`, the user must pick one of the three options. There is no design mode, no editable layers, no Figma-style layout. Do not invent a fourth option.
+
+## Always wrap canvas work with a loading indicator
+
+\`\`\`bash
+editorctl canvas-loading "Drawing…"
+# … do the work …
+editorctl canvas-done
+\`\`\`
+
+## Destruction warning
+
+**Never** run \`canvas-clear\`, \`canvas_clear\`, \`canvas-delete-frame\`, \`canvas_delete_frame\` unless the user **explicitly** said to delete or clear. Adding a new frame does not require clearing first.
+
+## Core editorctl canvas commands
+
+\`\`\`bash
+editorctl canvas-frames                            # list all frames (id, name, mode, w, h)
+editorctl canvas-add-frame <name> <w> <h> [mode]   # mode: paperjs|matterjs|html (default paperjs)
+editorctl canvas-run-paperjs <frameId> "<script>"
+editorctl canvas-run-matterjs <frameId> "<script>"
+editorctl canvas-run-html <frameId> "<html>"
+editorctl canvas-update-frame <frameId> [name=X] [width=N] [height=N]
+editorctl canvas-add-image <path>                  # add a generated/imported image as a frame
+editorctl canvas-set-zoom <zoom>                   # 0.05 .. 8.0
+editorctl canvas-loading "msg"
+editorctl canvas-done
+\`\`\`
+
+## Option 1 — Paper.js (vector drawing, animation)
+
+Globals available in scope: \`Path\`, \`Shape\`, \`CompoundPath\`, \`Group\`, \`Layer\`, \`PointText\`, \`Raster\`, \`Color\`, \`Gradient\`, \`GradientStop\`, \`Point\`, \`Size\`, \`Rectangle\`, \`Matrix\`, \`SymbolDefinition\`, \`SymbolItem\`, \`view\`, \`project\`, \`layer\`.
+
+\`\`\`javascript
+new Path.Circle({ center: view.center, radius: 80, fillColor: '#5b82f7' })
+new Path.Star({ center: view.center, points: 5, radius1: 40, radius2: 90, fillColor: '#f07178' })
+new PointText({ point: view.center, content: 'Hello', fillColor: 'white', fontSize: 64, fontWeight: 700, justification: 'center' })
+
+// Animation
+view.onFrame = function(e) { circle.rotate(2); circle.position.y = height/2 + Math.sin(e.time*3)*100; };
+
+// Boolean ops
+path1.unite(path2); path1.subtract(path2); path1.intersect(path2);
+\`\`\`
+
+## Option 2 — Matter.js (physics)
+
+Globals: \`Engine\`, \`Render\`, \`Runner\`, \`Bodies\`, \`Body\`, \`Composite\`, \`World\`, \`Constraint\`, \`Events\`, \`Mouse\`, \`MouseConstraint\`, \`width\`, \`height\`, \`engine\`, \`render\`.
+
+### Two valid script patterns — pick ONE, never mix
+
+**Pattern A — self-contained** (rich custom UIs):
+\`\`\`javascript
+const { Engine, Bodies, Composite } = Matter;
+const engine = Engine.create({ gravity: { y: 1.5 } });
+const canvas = document.querySelector('canvas');   // never element: document.body
+const ctx = canvas.getContext('2d');
+Composite.add(engine.world, [Bodies.rectangle(width/2, height+25, width, 50, { isStatic: true })]);
+function loop() { Engine.update(engine, 1000/60); ctx.clearRect(0,0,width,height); /* draw */ requestAnimationFrame(loop); }
+loop();
+\`\`\`
+
+**Pattern B — bodies only** (template owns the engine):
+\`\`\`javascript
+// Do NOT redeclare engine/render/Engine — template uses var
+var ground = Bodies.rectangle(width/2, height+25, width, 50, { isStatic: true, render: { fillStyle: '#334155' } });
+var ball = Bodies.circle(width/2, 50, 30, { restitution: 0.8, render: { fillStyle: '#5b82f7' } });
+Composite.add(engine.world, [ground, ball]);
+engine.gravity.y = 1;
+\`\`\`
+
+### Hard rules (violations produce a blank canvas)
+
+| Rule | Why |
+|---|---|
+| Never \`element: document.body\` in \`Render.create\` | Spawns a hidden second canvas |
+| In Pattern B, never declare \`const engine\` / \`let engine\` / \`const { Engine } = Matter\` | Template uses \`var\` — redeclare = SyntaxError |
+| In Pattern A, never also call \`Render.run\`/\`Runner.run\` | Double loop = frozen output |
+| \`Runner.run\` requires two args: \`Runner.run(Runner.create(), engine)\` | 0.20.0 requirement |
+| Always \`document.querySelector('canvas')\` | The iframe has exactly one canvas |
+
+## Option 3 — HTML / CSS frame (\`canvas-run-html\`)
+
+Use \`html\` mode when the user wants pixel-accurate UI mockups, marketing layouts, brand-style cards, gradients, web typography, or anything you'd otherwise build as a web page. The frame is a sandboxed iframe — full HTML/CSS, no app JS access.
+
+\`\`\`bash
+editorctl canvas-add-frame "Brand Card" 1080 1080 html
+editorctl canvas-run-html <frameId> "$(cat scene.html)"
+\`\`\`
+
+Reach for HTML when the user references a real-world web brand (*"a Linear-style task card"*, *"Spotify now-playing UI"*, *"Stripe pricing page"*) — first follow the brand rule (Rule 5) to fetch real tokens, then write the HTML.
+
+## Option 4 — GPT image 2 (AI-generated image)
+
+> Note: Options 1–3 above are the THREE drawing surfaces. GPT image 2 is the fourth canvas creation path but it produces an *image asset*, not a script-driven frame.
+
+\`\`\`bash
+editorctl generate-image "<prompt>" [size] [quality] [background] [format]
+editorctl edit-image "<prompt>" <input1> [input2...] [size=...] [mask=<assetId|path>]
+
+# Then add the result to the canvas:
+editorctl canvas-add-image <pathReturnedAbove>
+\`\`\`
+
+## Picking the right canvas surface
+
+| Use… | When the user wants… | Strengths | Weak at |
+|---|---|---|---|
+| **HTML / CSS** | Brand UI mocks, web-style layouts, real fonts, CSS animations, Linear/Spotify/Stripe-style cards | Real fonts, gradients, exact brand replication, easy responsive | Custom drawing, particles, physics |
+| **Paper.js** | Logos, generative art, vector illustrations, custom drawing, hit-testing | Crisp vectors, paths/booleans, deterministic strokes | Realistic physics, complex layout |
+| **Matter.js** | Bouncing, falling objects, chains, springs, gravity, sims | Real physics with collisions and constraints | Fine typography, exact mockups |
+| **GPT image 2** | Photorealistic stills, mood boards, hero shots | Photorealism, style flexibility | Animation, editable shapes |
+
+If the user's prompt is ambiguous (just *"design something cool for X"*), **ask which surface** unless they've opted into autonomous mode — then make the call yourself based on the table and tell them what you picked in one sentence.
+
+## HTTP bridge fallback
+
+\`\`\`bash
+curl -s -X POST http://localhost:51847 -H 'Content-Type: application/json' -d '{"command":"canvas_get_frames"}'
+curl -s -X POST http://localhost:51847 -H 'Content-Type: application/json' -d '{"command":"canvas_add_frame","args":{"name":"My Frame","width":1280,"height":720,"mode":"paperjs"}}'
+curl -s -X POST http://localhost:51847 -H 'Content-Type: application/json' -d '{"command":"canvas_run_paperjs","args":{"frameId":"<id>","script":"..."}}'
+\`\`\`
+
+## MCP canvas tools
+
+\`canvas_get_frames\`, \`canvas_add_frame\`, \`canvas_run_paperjs\`, \`canvas_run_matterjs\`, \`canvas_update_frame\`, \`canvas_paperjs_draw_shape\`, \`canvas_paperjs_draw_text\`, \`canvas_paperjs_animate\`, \`canvas_matterjs_scene\`, \`canvas_matterjs_add_bodies\`, \`canvas_set_zoom\`. Use \`canvas_clear_canvas\` and \`canvas_delete_frame\` only when the user explicitly asks.
+`
+}
+
+function buildEditorTools(): string {
+  return `# 05 — Editor Tools (Timeline)
+
+Use these when \`activeView = "editor"\`. Everything is a deterministic \`editorctl\` command — prefer it over UI instructions or HTTP bridge calls.
+
+## Project & state
+
+\`\`\`bash
+editorctl get-state
+editorctl list-assets
+editorctl list-sequences
+editorctl list-tracks [sequenceId]
+editorctl list-clips [sequenceId]
+editorctl list-markers [sequenceId]
+editorctl get-asset-segments <assetId>
+editorctl import <path...>
+\`\`\`
+
+## Sequences
+
+\`\`\`bash
+editorctl activate-sequence <sequenceId>
+editorctl set-sequence-size <width> <height> [sequenceId]   # e.g. 1080 1920 for portrait
+\`\`\`
+
+## Tracks & clips
+
+\`\`\`bash
+editorctl add-track <video|audio|caption>
+editorctl add-clip <assetId> <trackId> <startTime> [duration] [inPoint]
+editorctl move-clip <clipId> <startTime>
+editorctl trim-clip <clipId> [inPoint] [duration] [startTime]
+editorctl split-clip <clipId> <time>
+editorctl duplicate-clip <clipId> [offsetSeconds]
+editorctl rename-clip <clipId> <label>
+editorctl remove-clip <clipId>
+editorctl ripple-delete-clip <clipId>
+editorctl ripple-insert-gap <time> <duration> [sequenceId]
+\`\`\`
+
+## Effects (\`add-effect <clipId> <type> [k=v ...]\`)
+
+Types: \`fade_in\`, \`fade_out\`, \`color_grade\`, \`blur\`, \`sharpen\`, \`transform\`, \`opacity\`, \`blend_mode\`, \`text_overlay\`, \`speed_ramp\`, \`drop_shadow\`, \`glow\`, \`chroma_key\`.
+
+Examples:
+\`\`\`bash
+editorctl add-effect clip_1 color_grade brightness=0.1 contrast=1.2 saturation=1.1
+editorctl add-effect clip_1 fade_in duration=1.0
+editorctl add-effect clip_1 text_overlay text="Hello" x=100 y=100 fontSize=48
+editorctl set-effect-keyframes <clipId> <effectId> <json>
+editorctl remove-effect <clipId> <effectId>
+\`\`\`
+
+## Properties
+
+\`\`\`bash
+editorctl set-speed <clipId> <0.1..10>
+editorctl set-volume <clipId> <0..2>          # 1 = normal, 2 = 200%
+editorctl set-transition <clipId> <in|out> <crossfade|dip_to_black|wipe|slide|null> [duration]
+\`\`\`
+
+## Markers & captions
+
+\`\`\`bash
+editorctl add-marker <time> <label> [duration] [color] [seqId]
+editorctl remove-marker <markerId> [sequenceId]
+editorctl generate-captions <assetId> [sequenceId]
+\`\`\`
+
+## Search & AI
+
+\`\`\`bash
+editorctl search-media "<query>" [limit]                            # semantic search over assets
+editorctl search-spoken "<query>" [limit]                            # substring search in transcripts
+editorctl search-segments "<query>" [limit]                          # time-based segment search
+editorctl batch-selects "<query>" [limit] [padding] [sequenceName]   # auto-build a selects sequence
+editorctl batch-markers "<query>" [limit] [seqId]                    # auto-place markers
+editorctl transcribe <assetId> [language]
+editorctl embed-assets [all]                                         # generate embeddings (pass 'all' to re-embed)
+editorctl generate-image "<prompt>" [size] [quality] [background] [format]
+editorctl edit-image "<prompt>" <input1> [...] [mask=<id|path>]
+\`\`\`
+
+## Utilities & export
+
+\`\`\`bash
+editorctl extract-frames <assetId> [count]
+editorctl contact-sheet <assetId> [count]
+editorctl set-playhead <time>
+editorctl select-clip <clipId|none>
+editorctl select-asset <assetId|none>
+editorctl create-sequence <name> [width] [height]
+editorctl undo
+editorctl redo
+editorctl export /absolute/output_v1.mp4 [quality] [resolution] [format]
+\`\`\`
+
+## API bridge — only when no editorctl equivalent
+
+Every operation listed above has an \`editorctl\` command. Reach for raw \`curl localhost:51847\` **only** if a capability is genuinely missing from the CLI — and prefer telling the user about the gap instead.
+
+## Editing rules
+
+- Treat unintended timeline gaps as bugs. Verify with \`list-clips\` after tightening cuts.
+- For audio on multi-clip timelines, **merge first** — see \`06-essentials.md\`.
+- Always export to a new unique filename (\`final_v1.mp4\`, \`final_v2.mp4\`, …).
+- Prefer deterministic commands over asking the user to perform UI steps.
+`
+}
+
+function buildEssentials(binDir?: string): string {
+  const fallbackBlock = binDir
+    ? `\n\nMonet keeps \`editorctl\` on PATH for every shell it starts (the bin dir is also persisted to your shell rc). If \`command -v editorctl\` returns nothing, fall back in order:
+
+1. \`"${binDir}/editorctl"\` — Monet's bundled CLI shim
+2. \`"$HOME/Library/Application Support/Monet/bin/editorctl"\` — macOS install path
+3. \`node /Applications/Monet.app/Contents/Resources/app.asar.unpacked/out/cli/cli/editorctl.js\` — packaged app
+4. \`node ./out/cli/cli/editorctl.js\` — dev tree
+
+Never give up after the first "command not found".`
+    : ''
+  return `# 06 — Essentials (Read Once, Apply Always)
+
+Cross-cutting rules that apply regardless of mode.
+
+## Finding \`editorctl\`${fallbackBlock}
+
+## Output file naming — never reuse a filename
+
+The asset cache holds onto previous file contents by path. Writing to the same name silently shows stale content.
+
+- ✅ \`clip_v1.mp4\`, \`clip_v2.mp4\`, \`clip_20260503_141502.mp4\`
+- ❌ Overwriting \`clip.mp4\` repeatedly
+
+Applies to **all** outputs the UI loads: video renders (Remotion, FFmpeg), image generations (GPT image 2, edits), canvas exports, thumbnails. If a target path already exists, append \`_v2\`, \`_v3\`, … or a timestamp.
+
+## Audio on multi-clip timelines
+
+When the user asks to add audio (music/voiceover/SFX) and the active sequence has more than one video clip, audio gets cut at every clip boundary. Required flow:
+
+1. Tell the user, in plain language:
+   > *"To keep the audio from cutting between clips, I'll merge all video clips into one combined video first, then add the audio. The individual clips will still exist in your project. OK to proceed?"*
+2. Wait for confirmation. Do **not** auto-merge.
+3. Concatenate every video clip into one continuous file (new unique filename, e.g. \`merged_v1.mp4\`).
+4. Replace the multi-clip video track with the merged clip.
+5. Add the audio track on top.
+
+Single-clip timelines: skip the merge.
+
+## Brand rule — fetch tokens before designing
+
+> **NO EXCEPTIONS.** If the user's message contains any URL or domain (e.g. \`spotify.com\`, \`https://linear.app\`, \`notion.so\`), fetch the page and extract brand tokens **before** writing a single line of canvas/design code. Do not use memorized brand colors even for well-known brands.
+
+\`\`\`bash
+# Step 1 — colors, fonts, border-radius
+curl -sL "<url>" | grep -Eo '(#[0-9a-fA-F]{3,8}|font-family:[^;"}]+|font-size:[^;"}]+|border-radius:[^;"}]+)' | sort -u | head -60
+
+# Step 2 — logo
+curl -sL "<url>" | grep -Eo '(src|href)="[^"]*logo[^"]*"' | head -10
+curl -sL "<url>" | grep 'og:image'
+\`\`\`
+
+Extract before coding: background/surface, primary/accent, text colors, font families, font sizes/weights, border radius, spacing, shadows, and the logo. Hard-code those exact values.
+
+If fetch fails, tell the user and ask for the hex values. Never fall back to guessing.
+
+## Control surface priority
+
+1. \`editorctl\` in this terminal
+2. MCP tools if wired into your host agent
+3. \`http://localhost:51847\` HTTP bridge as last resort
+4. \`window.__monetCanvas.*\` only inside DevTools / Playwright
+
+## "The app" means Monet, not the filesystem
+
+If the user asks about "the app", "what's in the editor", screenshots, assets, or clips — start with \`editorctl get-state\` / \`list-assets\`, not a filesystem search. Refresh live state before acting whenever the project may have changed.
+`
+}

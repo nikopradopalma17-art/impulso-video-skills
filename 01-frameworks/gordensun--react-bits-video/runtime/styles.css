@@ -1,0 +1,596 @@
+/* motion-video-maker / shared stylesheet
+ * ---------------------------------------------------------------
+ * Tiny opinionated base styles for cinematic compositions.
+ * Imported via <link rel="stylesheet" href="runtime/styles.css">.
+ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ============================================================
+ * Theme tokens — change these once on `:root` to retheme an entire
+ * composition. They are the single source of truth for all default
+ * colors so agents never need to invent values for plain text.
+ * ============================================================ */
+:root {
+  /* Default backdrop — deep neutral dark */
+  --mvm-bg:           #0a0a0f;
+  --mvm-bg-soft:      #15151c;
+
+  /* Default text — guaranteed-readable white on the default backdrop.
+     Every element inside #stage inherits this unless you override it. */
+  --mvm-text:         #ffffff;
+  --mvm-text-muted:   #cbd5e1;
+  --mvm-text-dim:     rgba(255, 255, 255, 0.6);
+  --mvm-text-strong:  #FFE87A;
+
+  /* Default accent (Raycast red — replace for your brand) */
+  --mvm-accent:       #FF6363;
+  --mvm-accent-warm:  #FF8B5E;
+  --mvm-accent-cool:  #5BC0EB;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  /* Elegant default — prefer serif (Noto Serif SC = 思源宋体) and
+     calligraphic wenkai (LXGW WenKai = 霞鹜文楷) for body Chinese text.
+     Use `.cn-sans` to opt into the heavier sans-serif family when
+     you need impact (e.g. big poster-style data numbers). */
+  font-family: "Noto Serif SC", "Source Han Serif SC", "LXGW WenKai",
+               "STSong", "Songti SC", "PingFang SC",
+               "Noto Sans SC", "Hiragino Sans GB",
+               -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, serif;
+  color: var(--mvm-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--mvm-bg);
+  color: var(--mvm-text);
+  transform-origin: top left;
+}
+
+/* ============================================================
+ * COLOR-CONTRAST SAFETY NET — the most common authoring mistake is
+ * forgetting to set `color: #fff` on a heading because browsers
+ * historically gave headings their own color in some reset stylesheets.
+ * Native elements like h1-h6, button, and a do not always inherit
+ * color from the parent without help, so we force them to.
+ *
+ * IMPORTANT: this rule is intentionally LIMITED to elements that have
+ * historically had their own UA color. Setting `color: inherit` on a
+ * broad `#stage *` selector would break legitimate author styles
+ * (e.g. `.mvm-card-light` setting a dark color on its descendants).
+ * ============================================================ */
+#stage h1, #stage h2, #stage h3, #stage h4, #stage h5, #stage h6,
+#stage a:not([style*="color"]),
+#stage button:not([style*="color"]) {
+  color: inherit;
+}
+
+/* Odometer renderer creates nested per-digit divs at runtime; force
+   them to inherit the host element's color so gradient / custom
+   colors survive the dynamic DOM swap. */
+.mvm-odom-col, .mvm-odom-col > *,
+.mvm-odom-stack, .mvm-odom-stack > *,
+.mvm-odom-sep {
+  color: inherit;
+}
+
+/* Center the stage in the viewport for preview mode (replaced when rendering) */
+body.mvm-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+}
+body.mvm-preview #stage {
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  border-radius: 4px;
+}
+
+/* Backgrounds occupy full stage by default */
+[data-background] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Foreground content lives above backgrounds */
+.scene, .layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  z-index: 10;
+}
+
+/* ============================================================
+ * CAMERA MOVES — `.mvm-cam` wrapper for scene-level zoom / pan / rotate
+ *
+ * Wrap a scene container in <div class="mvm-cam" data-camera-zoom="1.12">
+ * to get a film-style slow push-in over the clip's lifetime.  The
+ * runtime writes `--mvm-cam-transform` on the element; we apply it via
+ * `transform-origin: center center` so push-ins feel like the camera is
+ * dollying through the frame, not stretching a corner.
+ * ============================================================ */
+.mvm-cam {
+  transform-origin: center center;
+  will-change: transform;
+}
+
+/* ============================================================
+ * TYPOGRAPHY DEFAULTS & OVERFLOW GUARDS
+ *
+ * Agents constantly forget that:
+ *  (a) flex containers DON'T inherit text-align — once the inline
+ *      style="display:flex" is set, an h1 inside falls back to the
+ *      browser default (text-align: start) and a long title that
+ *      wraps will sit left-aligned on every line.
+ *  (b) writing `font-size: 180px` for "Motion Video Maker" overflows
+ *      the 1920-px stage and wraps mid-word.
+ *
+ * The rules below center every heading & paragraph by default,
+ * give them a 92% max-width safety margin, and use `text-wrap: balance`
+ * so a forced wrap at least produces an evenly-distributed line break.
+ * Authors can still override via inline style if they want left/right.
+ * ============================================================ */
+#stage {
+  text-align: center;
+}
+#stage h1, #stage h2, #stage h3, #stage h4, #stage h5, #stage h6,
+#stage p {
+  text-align: center;
+  margin: 0 auto;
+  max-width: 92%;
+  text-wrap: balance;
+  /* Use 'pretty' fallback first so older Chromium degrades gracefully */
+  text-wrap: pretty;
+  text-wrap: balance;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+/* Safe font-size scale tuned for the canonical 1920×1080 stage.
+ * Use these instead of writing px directly — every value has been
+ * checked not to overflow with a 22-character (CJK + ASCII mix) line.
+ *
+ * Approximate max width @ 1920px (no letter-spacing):
+ *   .title-3xl  ~14 chars latin  /  ~12 chars CJK
+ *   .title-2xl  ~18 chars latin  /  ~15 chars CJK
+ *   .title-xl   ~22 chars latin  /  ~18 chars CJK
+ *   .title-lg   ~28 chars latin  /  ~22 chars CJK
+ *   .title-md   ~38 chars latin  /  ~28 chars CJK
+ */
+.title-3xl { font-size: 160px; line-height: 1.05; font-weight: 900; }
+.title-2xl { font-size: 130px; line-height: 1.08; font-weight: 900; }
+.title-xl  { font-size: 100px; line-height: 1.10; font-weight: 800; }
+.title-lg  { font-size: 80px;  line-height: 1.15; font-weight: 800; }
+.title-md  { font-size: 60px;  line-height: 1.2;  font-weight: 700; }
+.title-sm  { font-size: 44px;  line-height: 1.25; font-weight: 600; }
+.body-lg   { font-size: 40px;  line-height: 1.35; }
+.body-md   { font-size: 32px;  line-height: 1.4; }
+.body-sm   { font-size: 24px;  line-height: 1.5; }
+
+/* Auto-shrink helper: applies to any heading/paragraph that should
+   never wrap. Use sparingly — it shrinks the WHOLE element to fit. */
+.no-wrap   { white-space: nowrap; }
+.fit-line  { white-space: nowrap; max-width: 92%; }
+
+/* Cinematic vignette helper */
+.vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center,
+    transparent 50%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* Typography presets — defaults are now elegant serif/wenkai.
+   Add `.cn-sans` for the modern Noto Sans SC look when you want
+   poster impact instead of literary feel. */
+.title {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "LXGW WenKai",
+               "STSong", "Songti SC", serif;
+  font-size: 160px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+.title-md { font-family: "Noto Serif SC", "LXGW WenKai", serif; font-size: 120px; font-weight: 900; letter-spacing: 0.02em; line-height: 1.12; }
+.title-sm { font-family: "Noto Serif SC", "LXGW WenKai", serif; font-size: 88px;  font-weight: 700; letter-spacing: 0.03em; }
+.subtitle { font-family: "LXGW WenKai", "Noto Serif SC", serif;
+            font-size: 44px;  font-weight: 500; opacity: 0.92; letter-spacing: 0.12em; }
+.caption  { font-family: "JetBrains Mono", "Noto Sans SC", monospace;
+            font-size: 28px;  font-weight: 400; opacity: 0.7; letter-spacing: 0.18em; text-transform: uppercase; }
+.huge     { font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+            font-size: 280px; font-weight: 900; line-height: 0.95; letter-spacing: 0.04em; }
+
+/* ===== Chinese typography utility classes =====
+   .cn-serif   →  Noto Serif SC (modern elegant serif — 思源宋体)
+   .cn-wenkai  →  LXGW WenKai (literary calligraphy — 霞鹜文楷)
+   .cn-sans    →  Noto Sans SC (modern bold — for poster numbers / labels)
+   .cn-mono    →  JetBrains Mono + Noto Sans SC fallback (for code/labels)
+   .cn-poster  →  ZCOOL XiaoWei (decorative — 小薇标题用)
+   .cn-brush   →  Ma Shan Zheng / Long Cang (毛笔 / 行草 — only short titles) */
+.cn-serif  { font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "Songti SC", serif; letter-spacing: 0.02em; }
+.cn-wenkai,
+.wenkai    { font-family: "LXGW WenKai", "Noto Serif SC", "Source Han Serif SC", serif;
+             font-weight: 500; letter-spacing: 0.08em; line-height: 1.5; }
+.cn-sans   { font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; letter-spacing: 0.02em; }
+.cn-mono,
+.mono      { font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace; letter-spacing: 0.05em; }
+.cn-poster { font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif; letter-spacing: 0.1em; }
+.cn-brush  { font-family: "Ma Shan Zheng", "Long Cang", "LXGW WenKai", cursive;
+             letter-spacing: 0.12em; line-height: 1.4; }
+.cn-running{ font-family: "Long Cang", "Liu Jian Mao Cao", "LXGW WenKai", cursive;
+             letter-spacing: 0.08em; line-height: 1.5; }
+
+.serif { font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", serif; }
+
+/* Stack helpers */
+.stack > * + * { margin-top: 24px; }
+.stack-sm > * + * { margin-top: 12px; }
+.stack-lg > * + * { margin-top: 48px; }
+
+/* Color helpers */
+.muted { opacity: 0.6; }
+.dim   { opacity: 0.4; }
+
+/* Frame border accent */
+.frame {
+  position: absolute;
+  inset: 40px;
+  border: 1px solid rgba(255,255,255,0.18);
+  z-index: 20;
+  pointer-events: none;
+}
+.frame::before, .frame::after {
+  content: ''; position: absolute; width: 24px; height: 24px;
+  border: 2px solid #fff;
+}
+.frame::before { top: -2px; left: -2px;  border-right: 0; border-bottom: 0; }
+.frame::after  { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+
+/* Lower third panel */
+.lower-third {
+  position: absolute;
+  left: 80px;
+  bottom: 80px;
+  padding: 18px 28px;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-left: 4px solid #ffaa3c;
+  z-index: 20;
+}
+
+/* Glass card */
+.glass {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.16);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 48px;
+}
+
+/* Position helpers */
+.pos-top    { justify-content: flex-start; padding-top: 12vh; }
+.pos-bottom { justify-content: flex-end;   padding-bottom: 12vh; }
+.pos-left   { align-items: flex-start; padding-left: 8vw; text-align: left; }
+.pos-right  { align-items: flex-end;   padding-right: 8vw; text-align: right; }
+
+/* Inline shiny / gradient overrides — purely visual */
+.text-gold {
+  background: linear-gradient(120deg, #f6d365 0%, #fda085 30%, #f6d365 60%, #fda085 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.text-aurora {
+  background: linear-gradient(120deg, #91EAE4, #86A8E7, #7F7FD5, #ff7e5f);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.text-fire {
+  background: linear-gradient(180deg, #ffe87a 0%, #ffae00 35%, #ff5a36 70%, #c81d11 100%);
+  background-size: 100% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.text-silver {
+  background: linear-gradient(110deg, #d7d7d7 0%, #ffffff 25%, #b6b6b6 50%, #ffffff 75%, #d7d7d7 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.text-stroke {
+  -webkit-text-stroke: 2px rgba(255,255,255,0.9);
+  color: transparent;
+}
+.glow {
+  text-shadow:
+    0 0 18px rgba(255,255,255,0.5),
+    0 0 40px rgba(255,200,120,0.35),
+    0 0 80px rgba(255,160,80,0.2);
+}
+.glow-cool {
+  text-shadow:
+    0 0 18px rgba(180,220,255,0.55),
+    0 0 50px rgba(120,180,255,0.35),
+    0 0 90px rgba(80,140,255,0.2);
+}
+
+/* ===============================================================
+ * PRE-VALIDATED PALETTE PAIRS — pick a named `data-palette` for any
+ * shader background, and the matching `.text-on-*` class to read on
+ * top.  This eliminates the #1 authoring failure mode: a gradient
+ * text class (.text-aurora / .text-fire) being the same hue family
+ * as the shader behind it (e.g. .text-aurora over a cool liquid-ether).
+ *
+ * Set on `[data-background]`:
+ *
+ *   <div data-background="liquid-ether" data-palette="cool-deep"></div>
+ *
+ * runtime/shaders.js maps the palette name to its 4-stop hex list,
+ * so you don't have to think about color again.
+ *
+ * Then on every text element inside that scene, apply the matching
+ * `.text-on-cool` / `.text-on-warm` / `.text-on-prismatic` class.
+ * ============================================================ */
+
+/* Safe text colors — these tones have been hand-tuned for at least
+   4.5:1 WCAG contrast over the matching shader palette family. */
+.text-on-cool       { color: #FFE87A !important; text-shadow: 0 2px 12px rgba(0,0,0,0.85); }
+.text-on-cool-soft  { color: #FFD9B0 !important; text-shadow: 0 2px 12px rgba(0,0,0,0.85); }
+.text-on-warm       { color: #E8F4FF !important; text-shadow: 0 2px 12px rgba(0,0,0,0.85); }
+.text-on-warm-soft  { color: #B0DCFF !important; text-shadow: 0 2px 12px rgba(0,0,0,0.85); }
+.text-on-prismatic  { color: #ffffff !important; text-shadow: 0 0 18px #000, 0 2px 8px rgba(0,0,0,0.95); }
+.text-on-mono       { color: #FFE87A !important; text-shadow: 0 2px 12px rgba(0,0,0,0.85); }
+.text-on-light      { color: #1a0a08 !important; text-shadow: 0 1px 3px rgba(255,255,255,0.6); }
+
+/* Stat-card preset — drop-in component that bundles all the safe
+   defaults: dark plate background, white digits, muted label.  No
+   author color decisions needed. */
+.mvm-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  padding: 24px 40px;
+  background: rgba(8, 8, 16, 0.72);
+  border-radius: 14px;
+  border-left: 4px solid var(--mvm-accent);
+  color: #ffffff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+}
+.mvm-stat-num   { font-family: "Noto Sans SC", system-ui, sans-serif; font-weight: 900; font-size: 120px; line-height: 1; color: #ffffff; }
+.mvm-stat-label { font-family: "Noto Serif SC", serif; font-size: 40px; color: #cbd5e1; letter-spacing: 0.08em; }
+.mvm-stat--warm { border-left-color: #FFD400; }
+.mvm-stat--cool { border-left-color: #5BC0EB; }
+.mvm-stat--red  { border-left-color: #FF6363; }
+
+/* ===============================================================
+ * GUARANTEED-CONTRAST PAIRS — bulletproof text/background combos.
+ * Use these when an agent needs "I just want text I can read" with
+ * zero color thinking.  Each class sets BOTH color and background so
+ * they can never desync.
+ * ============================================================ */
+
+/* Text-only color locks (use when you control the background) */
+.mvm-light       { color: #ffffff !important; }
+.mvm-dark        { color: #0a0a0f !important; }
+.mvm-light-muted { color: rgba(255, 255, 255, 0.7) !important; }
+.mvm-dark-muted  { color: rgba(10, 10, 15, 0.65)  !important; }
+
+/* Card-style pairs — apply to a container; text inside auto-inherits */
+.mvm-card-dark {
+  display: inline-block;
+  background: rgba(8, 8, 16, 0.88);
+  color: #ffffff;
+  padding: 20px 36px;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.mvm-card-light {
+  display: inline-block;
+  background: rgba(247, 245, 239, 0.95);
+  color: #0a0a0f;
+  padding: 20px 36px;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+/* Full-bleed background lock — guarantees the rest of the scene
+   text reads correctly. Apply to a scene wrapper. */
+.mvm-bg-dark  { background-color: var(--mvm-bg) !important; color: var(--mvm-text) !important; }
+.mvm-bg-light { background-color: #f7f5ef !important; color: #0a0a0f !important; }
+
+/* ===============================================================
+ * Text readability helpers — protect typography against busy
+ * (shader / particle / video) backgrounds.  Mix into ANY foreground
+ * element to lift it off the noise behind.
+ * ============================================================ */
+
+/* Auto-stroke (1.5–3px dark outline) – the safest single fix; combine
+   with `paint-order: stroke fill` so the stroke renders *under* the
+   fill instead of bloating glyphs. */
+.text-stroke-dark {
+  -webkit-text-stroke: 2px rgba(0, 0, 0, 0.75);
+  paint-order: stroke fill;
+}
+.text-stroke-dark-thick {
+  -webkit-text-stroke: 4px rgba(0, 0, 0, 0.85);
+  paint-order: stroke fill;
+}
+.text-stroke-light {
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.85);
+  paint-order: stroke fill;
+}
+
+/* Heavy drop shadow + ambient glow — preserves the readable color
+   while pushing it visually above the background. Works with white,
+   gradient, or colored fills. */
+.text-glow-dark {
+  text-shadow:
+    0 2px 8px  rgba(0, 0, 0, 0.85),
+    0 4px 24px rgba(0, 0, 0, 0.7),
+    0 8px 48px rgba(0, 0, 0, 0.5);
+}
+.text-glow-soft {
+  text-shadow:
+    0 1px 3px  rgba(0, 0, 0, 0.6),
+    0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* All-in-one "make text readable on anything" — heavy multi-layer
+   text-shadow only.  We deliberately don't use `filter: drop-shadow`
+   here so element-level filters (drop-shadow halos, blur etc.) keep
+   working.  Composes safely with .text-aurora / .text-fire / .text-
+   raycast gradient classes that use -webkit-text-fill-color: transparent.
+   For non-gradient text, combine with .text-stroke-dark for max contrast. */
+.text-readable {
+  text-shadow:
+    0 2px 6px  rgba(0, 0, 0, 0.9),
+    0 4px 18px rgba(0, 0, 0, 0.8),
+    0 6px 30px rgba(0, 0, 0, 0.6),
+    0 0 80px   rgba(0, 0, 0, 0.4);
+}
+
+/* Card backdrop — translucent rounded pill behind the text.
+   .text-card relies on backdrop-filter which can degrade gracefully if
+   the renderer doesn't support it; if you NEED guaranteed contrast on
+   any background (shader, video frame, etc.) use .text-plate instead. */
+.text-card {
+  display: inline-block;
+  padding: 26px 52px;
+  background: rgba(8, 8, 16, 0.72);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.text-card-tight  { padding: 14px 28px; border-radius: 12px; }
+.text-card-light  { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.18); }
+
+/* GUARANTEED-CONTRAST PLATE — solid dark background, NO backdrop-filter.
+   Works on every render path (Chromium headless, video frame buffers).
+   The element becomes inline-block so it sizes to its text.  Use this
+   whenever you absolutely cannot afford the text to blend into the bg. */
+.text-plate {
+  display: inline-block;
+  padding: 18px 40px;
+  background: rgba(6, 8, 14, 0.82);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55),
+              0 2px 8px rgba(0, 0, 0, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.text-plate-tight { padding: 10px 24px; border-radius: 8px; }
+.text-plate-loose { padding: 28px 60px; border-radius: 20px; }
+.text-plate-soft  { background: rgba(6, 8, 14, 0.55); }
+.text-plate-hard  { background: rgba(0, 0, 0, 0.92); }
+
+/* Scene-wide contrast scrim — a dark vignette painted on top of the
+   shader/canvas background but UNDER scene content. Add `.scene-scrim`
+   to any container that is ALREADY positioned (absolute, fixed, or
+   relative) and it paints a radial darkness layer that lifts foreground
+   typography.  We don't set `position` here so we never clobber the
+   author's existing layout. */
+.scene-scrim {
+  isolation: isolate;
+}
+.scene-scrim::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  /* Reduced from 0.55/0.35/0.6 → 0.4/0.2/0.45 so the shader behind
+     keeps its color/movement while text still lifts cleanly. */
+  background: radial-gradient(ellipse 80% 65% at center,
+              rgba(0, 0, 0, 0.4) 0%,
+              rgba(0, 0, 0, 0.2) 55%,
+              rgba(0, 0, 0, 0.45) 100%);
+}
+.scene-scrim-strong::before  { background: radial-gradient(ellipse 80% 65% at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.6)  100%); }
+.scene-scrim-soft::before    { background: radial-gradient(ellipse 90% 75% at center, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.22) 100%); }
+.scene-scrim-bottom::before  { background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 35%, rgba(0,0,0,0) 70%); }
+.scene-scrim-top::before     { background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 35%, rgba(0,0,0,0) 70%); }
+
+/* Direct children get bumped above the scrim layer so authors never
+   have to worry about z-index. We use position: relative without zero-
+   ing top/left so it doesn't shift them in the layout. */
+.scene-scrim > * { position: relative; z-index: 3; }
+
+/* Soft radial scrim — fades darkness from element center to edge,
+   does not need backdrop-filter (works on render frame buffers). */
+.text-scrim {
+  position: relative;
+  padding: 40px 70px;
+  isolation: isolate;
+}
+.text-scrim::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(ellipse at center,
+              rgba(0,0,0,0.72) 0%,
+              rgba(0,0,0,0.45) 50%,
+              rgba(0,0,0,0)   100%);
+  z-index: -1;
+  border-radius: inherit;
+}
+
+/* Top/bottom edge scrim — useful for fullscreen video over shader
+   backgrounds where you want a "broadcast lower-third" feel. */
+.scrim-top, .scrim-bottom {
+  position: absolute;
+  left: 0; right: 0;
+  height: 240px;
+  pointer-events: none;
+  z-index: 5;
+}
+.scrim-top    { top: 0;    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); }
+.scrim-bottom { bottom: 0; background: linear-gradient(to top,    rgba(0,0,0,0.7), transparent); }
+
+/* Subtle scanline */
+.scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.02) 0px,
+    rgba(255,255,255,0.02) 1px,
+    transparent 1px,
+    transparent 3px);
+  pointer-events: none;
+  z-index: 25;
+}

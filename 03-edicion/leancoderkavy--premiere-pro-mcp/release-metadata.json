@@ -1,0 +1,12 @@
+{
+  "version": "1.18.6",
+  "coreTools": 386,
+  "defaultProfileTools": 384,
+  "uxpAdditionalTools": 96,
+  "defaultProfileWithUxpTools": 480,
+  "toolModules": 57,
+  "resources": 4,
+  "guidedWorkflows": 19,
+  "premiereVersions": "2020–2026",
+  "uxpMinimumVersion": "25.6.0"
+}

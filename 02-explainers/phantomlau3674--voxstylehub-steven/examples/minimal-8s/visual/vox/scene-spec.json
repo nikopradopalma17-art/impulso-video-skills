@@ -1,0 +1,373 @@
+{
+  "schema_version": "1.4.0",
+  "project": {
+    "slug": "iceberg-vox-minimal",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "timeline_revision": 1,
+    "source_master": "visual/vox/renders/master.mp4",
+    "source_master_sha256": "ca655e62d50dcbb5c695b98bd7760e3a882780facbd7e68b1be4078aab06046b",
+    "timeline_fingerprint": "4c6f1390a0bb672987324192e68c7cc624027340382e3b83a025fffb71b6256f",
+    "evidence_input_fingerprint": "9ebf68c8483493cb727aa411947ff6376c2c56d9249cee3ecdccf62a74237936"
+  },
+  "style_ref": "visual/vox/DESIGN.md",
+  "scenes": [
+    {
+      "scene_id": "s01-below-waterline",
+      "beat_id": "b01",
+      "mode": "editorial-explainer",
+      "knowledge_change": "冰山不是浮在水面上的整块，而是约九成体积藏在水面之下。",
+      "visual_proposition": "一座完整剪纸冰山落入蓝色纸带水面，弹跳后稳定成只有十分之一露出水线的剖面。",
+      "dominant_visual": "buoyancy-section",
+      "motion_action": "build",
+      "hero_frame": {
+        "description": "左侧纸冰山大半沉入蓝纸水面，虚线水线横贯画面中部，右侧竖向比例条标出水上十分之一与水下十分之九。",
+        "focal_order": [
+          "半沉的剪纸冰山",
+          "水线虚线与箭头",
+          "90/10 比例条",
+          "命题印章"
+        ],
+        "subtitle_safe_region": "bottom 173 pixels remain clear",
+        "path": "visual/vox/renders/s01-hero.png",
+        "input_fingerprint": "9ebf68c8483493cb727aa411947ff6376c2c56d9249cee3ecdccf62a74237936"
+      },
+      "playable_clip": {
+        "path": "visual/vox/renders/s01-playable.mp4",
+        "audio_ref": "visual/vox/media/audio/s01-tones.m4a",
+        "input_fingerprint": "9ebf68c8483493cb727aa411947ff6376c2c56d9249cee3ecdccf62a74237936",
+        "phone_reviewed": true,
+        "phone_review_ref": "visual/vox/evidence/s01/phone-review.md",
+        "checkpoint_paths": {
+          "entry": "visual/vox/evidence/s01/entry.png",
+          "settled": "visual/vox/evidence/s01/settled.png",
+          "exit": "visual/vox/evidence/s01/exit.png"
+        }
+      },
+      "layers": [
+        {
+          "id": "substrate",
+          "role": "plate",
+          "source_kind": "code-native",
+          "asset_ref": "paper-substrate",
+          "settled": {
+            "x": 960,
+            "y": 540,
+            "scale": 1,
+            "rotation": 0
+          },
+          "entrance": {
+            "verb": "hold",
+            "start_frame": 0,
+            "duration_frames": 1
+          }
+        },
+        {
+          "id": "water-field",
+          "role": "prop",
+          "source_kind": "code-native",
+          "asset_ref": "water-field",
+          "motion_tier": "secondary",
+          "settled": {
+            "x": 960,
+            "y": 830,
+            "scale": 1,
+            "rotation": -0.4
+          },
+          "entrance": {
+            "verb": "slide",
+            "start_frame": 0,
+            "duration_frames": 20
+          }
+        },
+        {
+          "id": "iceberg",
+          "role": "cutout",
+          "source_kind": "code-native",
+          "asset_ref": "iceberg-cutout",
+          "motion_tier": "primary",
+          "settled": {
+            "x": 700,
+            "y": 760,
+            "scale": 1,
+            "rotation": -2
+          },
+          "entrance": {
+            "verb": "drop",
+            "start_frame": 12,
+            "duration_frames": 28
+          }
+        },
+        {
+          "id": "waterline",
+          "role": "annotation",
+          "source_kind": "code-native",
+          "asset_ref": "waterline-annotation",
+          "exact_text": "水面",
+          "settled": {
+            "x": 960,
+            "y": 655,
+            "scale": 1,
+            "rotation": 0
+          },
+          "entrance": {
+            "verb": "trace",
+            "start_frame": 70,
+            "duration_frames": 26
+          }
+        },
+        {
+          "id": "buoyancy-bar",
+          "role": "data",
+          "source_kind": "code-native",
+          "asset_ref": "buoyancy-data-bar",
+          "exact_text": "约90%在水下",
+          "settled": {
+            "x": 1560,
+            "y": 620,
+            "scale": 1,
+            "rotation": 0
+          },
+          "entrance": {
+            "verb": "peel",
+            "start_frame": 96,
+            "duration_frames": 30
+          }
+        },
+        {
+          "id": "title",
+          "role": "type",
+          "source_kind": "code-native",
+          "asset_ref": "scene-title-type",
+          "exact_text": "冰山为什么藏在水下？",
+          "settled": {
+            "x": 1330,
+            "y": 180,
+            "scale": 1,
+            "rotation": -1.5
+          },
+          "entrance": {
+            "verb": "stamp",
+            "start_frame": 120,
+            "duration_frames": 12
+          }
+        }
+      ],
+      "camera": {
+        "kind": "locked",
+        "from": 1,
+        "to": 1
+      },
+      "timing": {
+        "start_sec": 0.0,
+        "end_sec": 6.0
+      },
+      "checkpoints": [
+        "entry",
+        "settled",
+        "exit"
+      ],
+      "transitions": {
+        "in": "chapter-open: warm paper substrate establishes the material world",
+        "out": "carry-anchor: 水蓝色场（#2E6FA8）下沉压缩为 s02 底部蓝色轨道纸带，纸面 substrate 延续，冰山向左滑出"
+      }
+    },
+    {
+      "scene_id": "s02-density-balance",
+      "beat_id": "b02",
+      "mode": "editorial-explainer",
+      "knowledge_change": "同体积的冰比水轻（917 对 1000 kg/m³），密度差才是冰山漂浮且大半沉没的原因。",
+      "visual_proposition": "两台同大的纸方块落上纸天平，水块一侧下沉，天平倾斜，密度数字定格解释浮沉。",
+      "dominant_visual": "density-balance",
+      "motion_action": "resolve",
+      "hero_frame": {
+        "description": "纸天平横梁向右下倾斜，左侧白色冰块高于右侧蓝色水块，密度数字 917 与 1000 分列两方，底部蓝色轨道纸带承接上一场的色场。",
+        "focal_order": [
+          "倾斜的纸天平与两方纸块",
+          "密度数字 917/1000",
+          "倾斜方向箭头",
+          "命题印章"
+        ],
+        "subtitle_safe_region": "bottom 173 pixels remain clear",
+        "path": "visual/vox/renders/s02-hero.png",
+        "input_fingerprint": "9ebf68c8483493cb727aa411947ff6376c2c56d9249cee3ecdccf62a74237936"
+      },
+      "playable_clip": {
+        "path": "visual/vox/renders/s02-playable.mp4",
+        "audio_ref": "visual/vox/media/audio/s02-tones.m4a",
+        "input_fingerprint": "9ebf68c8483493cb727aa411947ff6376c2c56d9249cee3ecdccf62a74237936",
+        "phone_reviewed": true,
+        "phone_review_ref": "visual/vox/evidence/s02/phone-review.md",
+        "checkpoint_paths": {
+          "entry": "visual/vox/evidence/s02/entry.png",
+          "settled": "visual/vox/evidence/s02/settled.png",
+          "exit": "visual/vox/evidence/s02/exit.png"
+        }
+      },
+      "layers": [
+        {
+          "id": "substrate",
+          "role": "plate",
+          "source_kind": "code-native",
+          "asset_ref": "paper-substrate",
+          "settled": {
+            "x": 960,
+            "y": 540,
+            "scale": 1,
+            "rotation": 0
+          },
+          "entrance": {
+            "verb": "hold",
+            "start_frame": 0,
+            "duration_frames": 1
+          }
+        },
+        {
+          "id": "blue-rail",
+          "role": "prop",
+          "source_kind": "code-native",
+          "asset_ref": "water-field",
+          "motion_tier": "ambient",
+          "settled": {
+            "x": 960,
+            "y": 985,
+            "scale": 1,
+            "rotation": 0
+          },
+          "entrance": {
+            "verb": "slide",
+            "start_frame": 0,
+            "duration_frames": 12
+          }
+        },
+        {
+          "id": "balance",
+          "role": "prop",
+          "source_kind": "code-native",
+          "asset_ref": "balance-prop",
+          "motion_tier": "secondary",
+          "settled": {
+            "x": 1150,
+            "y": 620,
+            "scale": 1,
+            "rotation": 0
+          },
+          "entrance": {
+            "verb": "pivot",
+            "start_frame": 6,
+            "duration_frames": 18
+          }
+        },
+        {
+          "id": "ice-cube",
+          "role": "cutout",
+          "source_kind": "code-native",
+          "asset_ref": "ice-cube",
+          "motion_tier": "primary",
+          "settled": {
+            "x": 830,
+            "y": 470,
+            "scale": 1,
+            "rotation": -3
+          },
+          "entrance": {
+            "verb": "drop",
+            "start_frame": 14,
+            "duration_frames": 22
+          }
+        },
+        {
+          "id": "water-cube",
+          "role": "prop",
+          "source_kind": "code-native",
+          "asset_ref": "water-cube",
+          "motion_tier": "primary",
+          "settled": {
+            "x": 1470,
+            "y": 560,
+            "scale": 1,
+            "rotation": 2
+          },
+          "entrance": {
+            "verb": "drop",
+            "start_frame": 22,
+            "duration_frames": 22
+          }
+        },
+        {
+          "id": "tilt-arrow",
+          "role": "annotation",
+          "source_kind": "code-native",
+          "asset_ref": "tilt-annotation",
+          "exact_text": "更重的一侧下沉",
+          "settled": {
+            "x": 1470,
+            "y": 330,
+            "scale": 1,
+            "rotation": 0
+          },
+          "entrance": {
+            "verb": "trace",
+            "start_frame": 52,
+            "duration_frames": 22
+          }
+        },
+        {
+          "id": "density-data",
+          "role": "data",
+          "source_kind": "code-native",
+          "asset_ref": "density-data",
+          "exact_text": "冰 917 kg/m³ · 水 1000 kg/m³",
+          "settled": {
+            "x": 1150,
+            "y": 210,
+            "scale": 1,
+            "rotation": 0
+          },
+          "entrance": {
+            "verb": "stamp",
+            "start_frame": 74,
+            "duration_frames": 14
+          }
+        },
+        {
+          "id": "title",
+          "role": "type",
+          "source_kind": "code-native",
+          "asset_ref": "scene-title-type",
+          "exact_text": "同样大小，水更重",
+          "settled": {
+            "x": 430,
+            "y": 240,
+            "scale": 1,
+            "rotation": -1.5
+          },
+          "entrance": {
+            "verb": "stamp",
+            "start_frame": 88,
+            "duration_frames": 12
+          }
+        }
+      ],
+      "camera": {
+        "kind": "locked",
+        "from": 1,
+        "to": 1
+      },
+      "timing": {
+        "start_sec": 6.0,
+        "end_sec": 10.0
+      },
+      "checkpoints": [
+        "entry",
+        "settled",
+        "exit"
+      ],
+      "transitions": {
+        "in": "receive-anchor: 承接 s01 下沉后的水蓝色场（同 #2E6FA8、同纸面），蓝带作为底部轨道贯穿两场",
+        "out": "end-hold: settled balance composition holds to master end"
+      }
+    }
+  ]
+}

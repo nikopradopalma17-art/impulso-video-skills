@@ -1,0 +1,166 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.11"
+          - os: ubuntu-latest
+            python: "3.14"
+          - os: windows-latest
+            python: "3.12"
+          - os: macos-latest
+            python: "3.12"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install Vex and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Compile tracked Python files
+        shell: bash
+        run: |
+          while IFS= read -r file; do
+            python -m py_compile "$file"
+          done < <(git ls-files '*.py')
+
+      - name: Check whitespace
+        run: git diff --check
+
+  package:
+    name: Build and validate distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade build twine
+
+      - name: Build wheel and source distribution
+        run: python -m build
+
+      - name: Validate package metadata
+        run: python -m twine check dist/*.whl dist/*.tar.gz
+
+      - name: Inspect package contents
+        run: python scripts/release_checks.py --dist-dir dist --write-checksums
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-package-distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  wheel-smoke:
+    name: Wheel smoke (${{ matrix.os }}, Python ${{ matrix.python }})
+    needs: package
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.11"
+          - os: windows-latest
+            python: "3.14"
+          - os: macos-latest
+            python: "3.12"
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Download distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-package-distributions
+          path: dist
+
+      - name: Install wheel with pipx without a source checkout
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip "pipx==1.14.0"
+          python -m pipx install --backend pip dist/*.whl
+          python -m pipx runpip vex-video show vex-video
+          echo "$(python -m pipx environment --value PIPX_BIN_DIR)" >> "$GITHUB_PATH"
+
+      - name: Verify installed CLI and resources
+        shell: bash
+        run: |
+          vex --version
+          vex --help
+          vex setup config --path .vex-ci.env
+          vex setup transcription --help
+          vex renderers install remotion --help
+          vex renderers doctor
+          python -m pipx runpip vex-video show --files vex-video |
+            python -c "import sys; files = sys.stdin.read().replace(chr(92), '/'); required = ('visual_opportunity.py', 'visual_program.py', 'tools/auto_visuals.py', 'tools/auto_shorts.py', 'shorts/story_compiler.py', 'renderers/remotion_renderer.py', 'renderers/remotion_runner.mjs', 'renderers/remotion_entry.jsx', 'vex_remotion/compiler.py', 'vex_remotion/qa.py', 'vex_visuals/creative_direction.py', 'vex_visuals/aesthetic_critic.py', 'vex_runtime/imaging.py', 'vex_runtime/resources/hyperframes/package-lock.json'); missing = [path for path in required if path not in files]; assert not missing, f'missing installed files: {missing}'"
+          python - <<'PY'
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          pipx_home = Path(
+              subprocess.check_output(
+                  [sys.executable, "-m", "pipx", "environment", "--value", "PIPX_HOME"],
+                  text=True,
+              ).strip()
+          )
+          candidates = (
+              pipx_home / "venvs" / "vex-video" / "bin" / "python",
+              pipx_home / "venvs" / "vex-video" / "Scripts" / "python.exe",
+          )
+          vex_python = next(path for path in candidates if path.is_file())
+          subprocess.run(
+              [
+                  str(vex_python),
+                  "-c",
+                  "from vex_runtime.imaging import require_imaging_runtime; "
+                  "print(require_imaging_runtime())",
+              ],
+              check=True,
+          )
+          PY

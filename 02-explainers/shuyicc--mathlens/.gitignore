@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.env
+.venv/
+venv/
+*.DS_Store
+media/
+output/
+*.mp4
+*.mov
+*.wav
+*.mp3
+audio/
+
+# 允许 resource/ 目录的演示素材
+!resource/
+!resource/**

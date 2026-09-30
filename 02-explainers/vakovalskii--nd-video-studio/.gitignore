@@ -1,0 +1,9 @@
+node_modules/
+.DS_Store
+__pycache__/
+*.pcm
+# projects (videos, voice, music, briefs) are local, not for the public repo
+projects/
+.env
+# music generated in Music Studio (history in music/history.json)
+music/

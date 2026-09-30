@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  workflow_call:
+  push:
+    branches: [main]
+  pull_request: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  javascript-tests:
+    name: Windows JavaScript and contract tests
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Checkout the candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Select exact Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.17.0
+
+      - name: Verify the native SDK remains developer-supplied
+        run: node scripts/package/ae-sdk-input.mjs verify-repository --repo-root .
+
+      - name: Run script contracts
+        run: |
+          node --test scripts/package/test scripts/release/test scripts/dev/test
+
+      - name: Run frozen native protocol contracts
+        run: node --test native/ae-plugin/protocol/protocol.test.mjs
+
+      - name: Run connector and release version contracts
+        run: |
+          node --test clients/ae-mcp-jkdg/test/bin.test.mjs
+          node --test clients/ae-mcp-jkdg/test/package.test.mjs
+          node --test clients/ae-mcp-jkdg/test/sync.test.mjs
+
+      - name: Run host tests
+        working-directory: plugin/host
+        run: |
+          npm ci
+          npm test
+
+      - name: Run CEP Node 15 contract
+        working-directory: plugin/host
+        run: npm run test:node15
+
+      - name: Run panel tests
+        working-directory: plugin/panel
+        run: |
+          npm ci
+          npm test
+
+      - name: Verify panel dist is current
+        working-directory: plugin/panel
+        run: |
+          npm run build
+          git -C ../.. diff --exit-code --stat -- plugin/client/dist
+
+  node15-cep-contract:
+    name: CEP 11 peer-engine MCP contract (Node 15)
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: Checkout the candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Select Node 24 to install the host lockfile
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.17.0
+
+      - name: Install host dependencies with Node 24
+        working-directory: plugin/host
+        run: npm ci
+
+      - name: Select exact CEP 11 peer Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 15.14.0
+
+      - name: Assert Node 15 is active
+        run: |
+          if (-not ((node --version) -like 'v15.*')) { throw "Expected Node 15.x, got $(node --version)" }
+
+      - name: Run the real long-call MCP spike
+        run: node plugin/host/tests/node15-spike.js
+
+  macos-packaging-contract:
+    name: macOS packaging contract
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - name: Checkout the candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Select exact Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.17.0
+
+      - name: Run script contracts
+        run: node --test scripts/package/test scripts/release/test scripts/dev/test
+
+      - name: Run frozen native protocol contracts
+        run: node --test native/ae-plugin/protocol/protocol.test.mjs

@@ -1,0 +1,30 @@
+{
+  "name": "html2video-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remotion render engine for the html2video skill. Data-driven by storyboard.json.",
+  "scripts": {
+    "studio": "remotion studio",
+    "still": "remotion still",
+    "render": "remotion render",
+    "typecheck": "tsc --noEmit",
+    "lint:safety": "node scripts/lint-render-safety.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.409",
+    "@remotion/layout-utils": "4.0.409",
+    "@remotion/media": "4.0.409",
+    "@remotion/transitions": "4.0.409",
+    "@remotion/zod-types": "4.0.409",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.409",
+    "zod": "3.22.3"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.14",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "typescript": "5.9.3"
+  }
+}

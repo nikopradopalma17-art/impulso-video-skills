@@ -1,0 +1,10 @@
+{
+  "name": "explainer-video-skill",
+  "version": "1.0.0",
+  "private": true,
+  "main": "pipeline.js",
+  "dependencies": {
+    "msedge-tts": "^2.0.5",
+    "playwright": "^1.40.0"
+  }
+}

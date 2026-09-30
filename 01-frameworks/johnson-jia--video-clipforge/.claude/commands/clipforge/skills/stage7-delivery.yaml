@@ -1,0 +1,84 @@
+skill:
+  meta:
+    id: "skill.clipforge.stage7-delivery"
+    version: "1.2.0"
+    type: EXECUTIVE
+    tags: ["delivery", "publish"]
+    rigor: STANDARD
+  intent:
+    objective: "交付物就绪，封面和发布文案可发布"
+    criteria:
+      - "cover.html 存在且遵循封面模板"
+      - "douyin.md 包含发布文案和标签"
+      - "评论区格式正确（只列名称，不放链接）"
+  boundary:
+    rules:
+      - ref: "R-G-*"
+      - ref: "R-S7-*"
+    preferences:
+      - text: "封面设计基于 7 层模板，从内容推导而非套用"
+        weight: "HIGH"
+        source_pattern: "P-cover-design"
+      - text: "标签组合使用 broad + niche + trending 三层结构"
+        weight: "MEDIUM"
+  guard:
+    red_flags:
+      - thought: "评论区放个链接方便用户"
+        reality: "抖音审查禁止评论区放链接，只列项目名 + 搜索指引"
+        trigger: "试图在评论区放完整 URL"
+      - thought: "封面随便写个标题就行"
+        reality: "封面是第二眼看到的内容，必须严格遵循封面模板"
+        trigger: "试图简化封面设计"
+      - thought: "assemble_final.sh 太简单了，我自己用 ffmpeg 拼更灵活"
+        reality: "自行拼接必导致 A/V 脱节或时长膨胀（HARD，gate: final_duration_close_to_output）。assemble_final.sh 用 1 帧 TS concat 是唯一正确方式"
+        trigger: "试图绕过 assemble_final.sh 自行拼接视频"
+      - thought: "封面多放几秒让观众看清楚"
+        reality: "封面只应占 1 帧（~0.033s），多帧封面导致 A/V 全程偏移（HARD，gate: final_duration_close_to_output）"
+        trigger: "试图创建多帧或多秒的封面视频"
+    spirit_vs_letter:
+      - rule_ref: "R-S7-*"
+        mode: LETTER
+        intent: "发布格式规则必须精确遵守，平台审核敏感"
+  gate:
+    hard:
+      - gate: file_exists
+        params:
+          files: ["final.mp4", "final_no_bgm.mp4", "cover.png", "douyin.md", "cover.html", "cover_params.json"]
+      - gate: no_url_in_output
+        params:
+          files: ["douyin.md"]
+      - gate: final_duration_close_to_output
+        params:
+          final_file: "final.mp4"
+          output_file: "output.mp4"
+          tolerance: 0.2
+      - gate: assemble_final_verified
+        params: {}
+      - gate: cover_layers_present
+        params:
+          file: "cover.html"
+      - gate: douyin_platforms_complete
+        params:
+          file: "douyin.md"
+          platforms: ["抖音", "B站", "视频号", "小红书"]
+      - gate: no_forbidden_speech
+        params:
+          files: ["narration.txt", "douyin.md"]
+      - gate: no_real_person_name
+        params:
+          files: ["narration.txt", "douyin.md"]
+      - gate: no_school_name
+        params:
+          files: ["narration.txt", "douyin.md", "cover.html"]
+      - gate: no_app_name
+        params:
+          files: ["narration.txt", "douyin.md", "cover.html"]
+      - gate: no_competitor_attack
+        params:
+          files: ["narration.txt", "douyin.md", "index.html"]
+    soft: []
+    max_retries: 2
+  trace:
+    capture: true
+    level: FULL
+    sensitive_fields: []
