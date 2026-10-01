@@ -44,7 +44,16 @@ def main() -> int:
     data = json.loads(SKILLS_JSON.read_text(encoding="utf-8"))
     skills = data["skills"]
     trads = json.loads(TRADUCCIONES.read_text(encoding="utf-8")) if TRADUCCIONES.exists() else {}
-    estilos_meta = {e["id"]: e for e in json.loads(ESTILOS.read_text(encoding="utf-8"))["estilos"]} if ESTILOS.exists() else {}
+    estilos_meta = []
+    if ESTILOS.exists():
+        for e in json.loads(ESTILOS.read_text(encoding="utf-8"))["estilos"]:
+            e = dict(e)
+            skill_path = BASE / "estilos" / e["id"] / "SKILL.md"
+            if skill_path.exists():
+                e["skill_md"] = skill_path.read_text(encoding="utf-8")
+                e["ruta"] = f"estilos/{e['id']}"
+            estilos_meta.append(e)
+    estilos_meta = estilos_meta or []
 
     repos = []
     conteo = {k: {"clonado": 0, "pendiente": 0, "externo": 0} for k in CATEGORIAS}
@@ -92,7 +101,7 @@ def main() -> int:
             "catalogo_generado": data.get("generated"),
         },
         "generado": str(date.today()),
-        "estilos": list(estilos_meta.values()),
+        "estilos": estilos_meta,
         "resumen": {
             "total": len(repos),
             "clonados": clonados,

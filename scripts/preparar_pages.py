@@ -72,6 +72,8 @@ def main() -> int:
     estilos.mkdir(parents=True, exist_ok=True)
     for gif in sorted((BASE / "brand" / "estilos").glob("*.gif")):
         shutil.copy2(gif, estilos / gif.name)
+    if (BASE / "estilos").exists():
+        shutil.copytree(BASE / "estilos", docs / "estilos", dirs_exist_ok=True)
     (docs / ".nojekyll").write_text("", encoding="utf-8")
 
     gestionados = ["index.html", "indice.js", "indice.json", "brand", ".nojekyll"]

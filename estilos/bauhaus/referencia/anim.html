@@ -1,0 +1,300 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'ArchivoBlack';font-weight:400;src:url(../../fuentes/archivo-black-400.ttf) format('truetype');}
+html,body{margin:0;background:#f2ead8}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// BAUHAUS — "3 reglas para hablar en público". Cartel de formas primarias sobre retícula:
+// cada regla se ESTAMPA (caída + impacto + micro-sacudida + asiento), la retícula se
+// reorganiza entre reglas y las formas recogidas vuelven, ya pequeñas, al cartel final.
+// Movimiento seco y mecánico: easing cuarto, pasos cuantizados, cero blandura. 9 s.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const CREAM = '#f2ead8', INK = '#171512', RED = '#d0342c', BLUE = '#1f5fa8', YELLOW = '#e8b73a';
+
+// ---------- utilidades deterministas ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const out4 = p => 1 - Math.pow(1 - p, 4);                                    // salida seca
+const outBack = p => { const s = 2.4; p = clamp(p, 0, 1); return 1 + (s + 1) * Math.pow(p - 1, 3) + s * Math.pow(p - 1, 2); };
+const q = (p, n) => Math.ceil(clamp(p, 0, 1) * n) / n;                       // pasos de máquina
+const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const pulse = (tt, t0, d) => { const p = seg(tt, t0, t0 + d); return p > 0 && p < 1 ? Math.sin(p * Math.PI) : 0; };
+
+let t = 0; // tiempo del cuadro en curso (draw es pura respecto a t)
+
+// ---------- texturas precalculadas (medio tono) ----------
+let HT = null, PAPER = null;
+function buildTextures() {
+  HT = document.createElement('canvas'); HT.width = HT.height = 1500;
+  { const g = HT.getContext('2d'); g.fillStyle = 'rgba(0,0,0,0.6)'; const sp = 17;
+    for (let y = sp / 2; y < 1500; y += sp) for (let x = sp / 2; x < 1500; x += sp) {
+      const r = 5.4 * (1 - (x + y) / 2600); if (r > 0.6) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } } }
+  PAPER = document.createElement('canvas'); PAPER.width = W; PAPER.height = H;
+  { const g = PAPER.getContext('2d'); g.fillStyle = 'rgba(23,21,18,0.5)'; let k = 0;
+    for (let y = 12; y < H; y += 24) for (let x = 12; x < W; x += 24, k++) {
+      g.beginPath(); g.arc(x, y, 0.8 + 0.9 * hash(k * 1.7), 0, 7); g.fill(); } }
+}
+window.ready = document.fonts.load('400 100px ArchivoBlack').then(() => document.fonts.ready).then(buildTextures);
+
+// ---------- formas primarias ----------
+function pathShape(kind, x, y, r) {
+  ctx.beginPath();
+  if (kind === 'c') ctx.arc(x, y, r, 0, 7);
+  else if (kind === 's') { ctx.arc(x, y, r, Math.PI, 0); ctx.closePath(); }   // semicírculo, plano abajo
+  else { ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.87, y + r * 0.5); ctx.lineTo(x - r * 0.87, y + r * 0.5); ctx.closePath(); }
+}
+function drawShape(o) {
+  ctx.save();
+  ctx.translate(o.x, o.y); ctx.rotate(o.rot || 0);
+  const s = o.s || 1; ctx.scale(s, s);
+  ctx.globalAlpha = o.alpha == null ? 1 : o.alpha;
+  if (o.mult) ctx.globalCompositeOperation = 'multiply';
+  if (o.outline > 0) {                                                        // desc. registro de imprenta
+    ctx.save(); ctx.translate(7, 9); pathShape(o.kind, 0, 0, o.r);
+    ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.globalAlpha *= o.outline; ctx.stroke(); ctx.restore();
+  }
+  pathShape(o.kind, 0, 0, o.r); ctx.fillStyle = o.fill; ctx.fill();
+  if (HT) {                                                                   // trama de medio tono
+    ctx.save(); pathShape(o.kind, 0, 0, o.r); ctx.clip();
+    ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha *= (o.ht == null ? 0.55 : o.ht);
+    ctx.drawImage(HT, -o.r, -o.r); ctx.restore();
+  }
+  if (o.outline > 0) { pathShape(o.kind, 0, 0, o.r); ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.globalAlpha *= o.outline; ctx.stroke(); ctx.globalAlpha /= o.outline; }
+  if (o.num) {
+    ctx.globalCompositeOperation = 'source-over';
+    const off = o.kind === 'c' ? o.r * 0.04 : o.kind === 's' ? -o.r * 0.45 : o.r * 0.16;
+    const fs = o.kind === 'c' ? o.r * 1.15 : o.kind === 's' ? o.r : o.r * 0.95;
+    ctx.fillStyle = o.numCol; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = Math.round(fs) + 'px ArchivoBlack'; ctx.fillText(o.num, 0, off);
+  }
+  ctx.restore();
+}
+
+// ---------- estampado mecánico ----------
+function ring(x, y, r, p) {
+  ctx.save(); ctx.globalAlpha = (1 - p) * 0.9; ctx.strokeStyle = INK;
+  ctx.lineWidth = 3 + 20 * (1 - p);
+  ctx.beginPath(); ctx.arc(x, y, r * (1 + 0.55 * p), 0, 7); ctx.stroke(); ctx.restore();
+}
+function dust(x, y, r, pd, col) {                                            // confeti geométrico determinista
+  ctx.save();
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * 6.283 + hash(i * 3.7) * 0.6 - 0.3;
+    const d = r * 1.05 + (60 + 140 * hash(i * 7.3)) * pd, sz = 6 + 12 * hash(i * 13.1);
+    ctx.save(); ctx.translate(x + Math.cos(a) * d, y + Math.sin(a) * d); ctx.rotate(a); ctx.globalAlpha = 1 - pd;
+    ctx.fillStyle = i % 2 ? INK : col;
+    if (i % 3 === 0) ctx.fillRect(-sz / 2, -sz / 2, sz, sz);
+    else if (i % 3 === 1) { ctx.beginPath(); ctx.arc(0, 0, sz * 0.5, 0, 7); ctx.fill(); }
+    else { ctx.beginPath(); ctx.moveTo(0, -sz * 0.6); ctx.lineTo(sz * 0.55, sz * 0.4); ctx.lineTo(-sz * 0.55, sz * 0.4); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function stamped(o, t0, endT, tickT) {
+  if (t < t0 || t >= endT) return;
+  const u = (t - t0) / 0.42; let s, ty = 0, alpha = 1, outline = 1;
+  if (u < 0.55) { const pf = u / 0.55; s = 1.22 - 0.24 * pf * pf; ty = -o.r * 1.35 * (1 - pf * pf); alpha = clamp(u * 5, 0, 1); outline = 0; }
+  else { const ps = (u - 0.55) / 0.45; s = 0.95 + 0.075 * outBack(ps); outline = ps; }
+  s *= 1 + 0.035 * pulse(t, tickT, 0.14);                                    // tic mecánico en la pausa
+  drawShape({ ...o, y: o.y + ty, s, alpha, outline, mult: false });
+  const pi = seg(t, t0 + 0.23, t0 + 0.57); if (pi > 0 && pi < 1) ring(o.x, o.y, o.r, pi);
+  const pd = seg(t, t0 + 0.23, t0 + 0.65); if (pd > 0 && pd < 1) dust(o.x, o.y, o.r, pd, o.fill);
+}
+function fly(o, t0, dur, x1, y1, r1, turns, endT) {                          // vuelo escalonado con multiply
+  if (t < t0 || t >= endT) return;
+  const p = seg(t, t0, t0 + dur), pq = q(out4(p), 9), done = p >= 1;
+  drawShape({ ...o, x: o.x + (x1 - o.x) * pq, y: o.y + (y1 - o.y) * pq, r: o.r + (r1 - o.r) * pq,
+    rot: turns * 6.2832 * pq, s: 1, alpha: 1, outline: done ? 1 : 0, mult: !done });
+}
+
+// ---------- retícula viva ----------
+function gridOff(tt) {
+  if (tt < 2.50) return 0;
+  if (tt < 2.90) return 48 * q(out4(seg(tt, 2.50, 2.90)), 6);
+  if (tt < 4.80) return 48;
+  if (tt < 5.20) return 48 * (1 - q(out4(seg(tt, 4.80, 5.20)), 6));
+  if (tt < 7.10) return 0;
+  if (tt < 7.50) return 24 * q(out4(seg(tt, 7.10, 7.50)), 6);
+  return 24;
+}
+const inTrans = tt => (tt > 2.50 && tt < 2.95) || (tt > 4.80 && tt < 5.25) || (tt > 7.10 && tt < 7.55);
+function drawGrid() {
+  const off = gridOff(t), boost = inTrans(t) ? 2.8 : 1;
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(23,21,18,' + (0.10 * boost).toFixed(3) + ')';
+  for (let x = off % 96; x < W + 96; x += 96) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = off % 96; y < H + 96; y += 96) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(23,21,18,' + (0.4 * Math.min(boost, 1.6)).toFixed(3) + ')'; ctx.lineWidth = 1.6;
+  for (let k = -1; k < 8; k++) for (let m = 0; m < 4; m++) {
+    const x = off + k * 288, y = m * 288; if (x < 8 || x > W - 8) continue;
+    ctx.beginPath(); ctx.moveTo(x - 9, y); ctx.lineTo(x + 9, y); ctx.moveTo(x, y - 9); ctx.lineTo(x, y + 9); ctx.stroke();
+  }
+  [[672, 480, RED, 0.18], [1248, 768, BLUE, 0.26], [1536, 288, YELLOW, 0.34]].forEach(([x, y, c, tt]) => {
+    if (t < tt) return; ctx.fillStyle = c; ctx.fillRect(x - 8, y - 8, 16, 16); });
+}
+function frameDraw() {
+  const pts = [[[28, 28], [1892, 28]], [[1892, 28], [1892, 1052]], [[1892, 1052], [28, 1052]], [[28, 1052], [28, 28]]];
+  ctx.strokeStyle = INK; ctx.lineWidth = 4;
+  pts.forEach((sd, i) => { const p = q(out4(seg(t, 0.10 + i * 0.08, 0.40 + i * 0.08)), 6); if (p <= 0) return;
+    ctx.beginPath(); ctx.moveTo(sd[0][0], sd[0][1]);
+    ctx.lineTo(sd[0][0] + (sd[1][0] - sd[0][0]) * p, sd[0][1] + (sd[1][1] - sd[0][1]) * p); ctx.stroke(); });
+}
+function alignMark(x, y, r, a, b) {                                          // marca de registro = anticipación
+  const p = seg(t, a, a + 0.16) * (1 - seg(t, b - 0.12, b)); if (p <= 0) return;
+  ctx.save(); ctx.globalAlpha = 0.6 * p; ctx.strokeStyle = INK; ctx.lineWidth = 2;
+  ctx.setLineDash([10, 8]); ctx.beginPath(); ctx.arc(x, y, r + 46, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x - r - 70, y); ctx.lineTo(x - r - 24, y); ctx.moveTo(x + r + 24, y); ctx.lineTo(x + r + 70, y);
+  ctx.moveTo(x, y - r - 70); ctx.lineTo(x, y - r - 24); ctx.moveTo(x, y + r + 24); ctx.lineTo(x, y + r + 70); ctx.stroke();
+  ctx.restore();
+}
+
+// ---------- tipografía ----------
+function visF(t0, dur, exitT, exitDur) {
+  if (t < t0) return 0;
+  if (exitT != null && t >= exitT) return 1 - q(out4(seg(t, exitT, exitT + exitDur)), 7);
+  const p = seg(t, t0, t0 + dur); return p >= 1 ? 1 : q(out4(p), 7);
+}
+function trackText(txt, x, y, size, ls, col, f) {
+  ctx.font = size + 'px ArchivoBlack'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  const ws = [...txt].map(ch => ctx.measureText(ch).width);
+  const tot = ws.reduce((a, b) => a + b, 0) + ls * (txt.length - 1);
+  ctx.save(); ctx.beginPath(); ctx.rect(x - 4, y - size, (tot + 8) * f, size * 1.6); ctx.clip();
+  ctx.fillStyle = col; let cx = x;
+  [...txt].forEach((ch, i) => { ctx.fillText(ch, cx, y); cx += ws[i] + ls; });
+  ctx.restore();
+}
+const ACTS = [
+  { x: 150,  chip: 'REGLA 01', lines: ['RESPIRA'],  size: 158, yTop: 615, color: RED,    barY: 668, barW: 320,
+    cap: 'INHALA · EXHALA · EMPIEZA', capY: 738, t0: 1.30, exitT: 2.46 },
+  { x: 1050, chip: 'REGLA 02', lines: ['MIRA AL', 'FRENTE'], size: 138, yTop: 615, color: BLUE, barY: 795, barW: 320,
+    cap: 'CONTACTO VISUAL CON TODA LA SALA', capY: 858, t0: 3.30, exitT: 4.72 },
+  { x: 150,  chip: 'REGLA 03', lines: ['HABLA', 'DESPACIO'], size: 140, yTop: 615, color: YELLOW, barY: 795, barW: 320,
+    cap: 'LA PAUSA TAMBIÉN HABLA', capY: 858, t0: 5.78, exitT: 6.95 }];
+function actText(o) {
+  const F = tt => visF(tt, 0.30, o.exitT, 0.20);
+  const fc = F(o.t0);
+  if (fc > 0) {
+    ctx.save(); ctx.font = '28px ArchivoBlack';
+    const tw = ctx.measureText(o.chip).width;
+    ctx.beginPath(); ctx.rect(o.x, 428, (tw + 40) * fc, 46); ctx.clip();
+    ctx.fillStyle = INK; ctx.fillRect(o.x, 428, tw + 40, 46);
+    ctx.fillStyle = CREAM; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(o.chip, o.x + 20, 452);
+    ctx.restore();
+  }
+  ctx.font = o.size + 'px ArchivoBlack'; ctx.fillStyle = INK; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  o.lines.forEach((ln, i) => { const f = F(o.t0 + 0.12 + i * 0.10); if (f <= 0) return;
+    const w = ctx.measureText(ln).width;
+    ctx.save(); ctx.beginPath(); ctx.rect(o.x - 8, o.yTop + i * o.size * 1.06 - o.size, (w + 16) * f, o.size * 1.24); ctx.clip();
+    ctx.fillText(ln, o.x, o.yTop + i * o.size * 1.06); ctx.restore(); });
+  const fb = F(o.t0 + 0.14 + o.lines.length * 0.10);
+  if (fb > 0) { ctx.fillStyle = o.color; ctx.fillRect(o.x, o.barY, o.barW * fb, 16); }
+  const fp = F(o.t0 + 0.30 + o.lines.length * 0.10);
+  if (fp > 0) trackText(o.cap, o.x, o.capY, 30, 5, 'rgba(23,21,18,0.82)', fp);
+  const fg = F(o.t0 + 0.52 + o.lines.length * 0.10);
+  if (fg > 0) { ctx.save(); ctx.globalAlpha = fg;
+    ctx.fillStyle = RED; ctx.fillRect(o.x, o.capY + 36, 18, 18);
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(o.x + 36, o.capY + 45, 9, 0, 7); ctx.fill();
+    ctx.fillStyle = YELLOW; ctx.beginPath(); ctx.moveTo(o.x + 72, o.capY + 36); ctx.lineTo(o.x + 81, o.capY + 52); ctx.lineTo(o.x + 63, o.capY + 52); ctx.closePath(); ctx.fill();
+    ctx.restore(); }
+}
+function wordStamp(txt, x, y, size, t0) {
+  if (t < t0) return;
+  const u = (t - t0) / 0.30; let s = 1, a = 1;
+  if (u < 1) { if (u < 0.5) { const pf = u / 0.5; s = 1 + 0.4 * (1 - pf * pf); a = clamp(pf * 2.5, 0, 1); }
+    else s = 0.94 + 0.06 * outBack((u - 0.5) / 0.5); }
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.globalAlpha = a;
+  ctx.fillStyle = INK; ctx.font = size + 'px ArchivoBlack'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(txt, 0, 0); ctx.restore();
+}
+
+// ---------- barras con sello ----------
+function barDrop(u) { return { ty: u < 0.55 ? -300 * (1 - Math.pow(u / 0.55, 2)) : 0,
+  s: u < 0.55 ? 1.04 - 0.04 * Math.pow(u / 0.55, 2) : 0.97 + 0.03 * outBack((u - 0.55) / 0.45),
+  a: clamp(u * 5, 0, 1) }; }
+function titleBar() {
+  const u = (t - 0.30) / 0.42; if (u <= 0) return;
+  const d = barDrop(Math.min(u, 1));
+  ctx.save(); ctx.translate(960, 102 + d.ty); ctx.scale(d.s, d.s); ctx.translate(-960, -102); ctx.globalAlpha = d.a;
+  ctx.fillStyle = INK; ctx.fillRect(60, 54, 1800, 96);
+  ctx.fillStyle = YELLOW; ctx.fillRect(96, 89, 26, 26);
+  ctx.fillStyle = CREAM; ctx.font = '40px ArchivoBlack'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('3 REGLAS PARA HABLAR EN PÚBLICO', 148, 103);
+  ctx.globalAlpha = d.a * 0.85; ctx.font = '28px ArchivoBlack'; ctx.textAlign = 'right'; ctx.fillText('CLASE 01', 1816, 103);
+  ctx.restore();
+  const pd = seg(t, 0.52, 0.92);
+  if (pd > 0 && pd < 1) { ctx.save(); ctx.fillStyle = INK;
+    for (let i = 0; i < 14; i++) { const px = 100 + i * 124 + hash(i * 3.3) * 70, sz = 5 + 9 * hash(i * 11.1);
+      ctx.globalAlpha = (1 - pd) * 0.9; ctx.fillRect(px, 152 + 18 * hash(i * 7.7) + 30 * pd, sz, sz); }
+    ctx.restore(); }
+}
+function finalBar() {
+  const u = (t - 8.25) / 0.42; if (u <= 0) return;
+  const d = barDrop(Math.min(u, 1));
+  ctx.save(); ctx.translate(960, 970 + d.ty); ctx.scale(d.s, d.s); ctx.translate(-960, -970); ctx.globalAlpha = d.a;
+  ctx.fillStyle = INK; ctx.fillRect(60, 900, 1800, 140);
+  [RED, BLUE, YELLOW].forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(112 + i * 40, 952, 24, 24); });
+  ctx.fillStyle = CREAM; ctx.font = '70px ArchivoBlack'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('HABLAR BIEN / SE APRENDE', 980, 972);
+  ctx.globalAlpha = d.a * 0.85; ctx.font = '28px ArchivoBlack'; ctx.textAlign = 'right'; ctx.fillText('03 / 03', 1816, 972);
+  ctx.restore();
+  const pd = seg(t, 8.48, 8.88);
+  if (pd > 0 && pd < 1) { ctx.save(); ctx.fillStyle = INK;
+    for (let i = 0; i < 16; i++) { const px = 100 + i * 108 + hash(i * 5.1) * 60, sz = 5 + 9 * hash(i * 13.7);
+      ctx.globalAlpha = (1 - pd) * 0.9; ctx.fillRect(px, 1044 + 16 * hash(i * 9.3) + 26 * pd, sz, sz); }
+    ctx.restore(); }
+}
+function meta() {
+  [[RED, 1.15], [BLUE, 3.18], [YELLOW, 5.65]].forEach(([c, ti], i) => {
+    if (t > ti) { ctx.fillStyle = c; ctx.fillRect(64 + i * 34, 970, 22, 22); }
+    else { ctx.strokeStyle = INK; ctx.lineWidth = 2; ctx.strokeRect(65 + i * 34, 971, 20, 20); } });
+  const n = t < 2.50 ? 1 : t < 4.80 ? 2 : 3;
+  ctx.fillStyle = INK; ctx.font = '28px ArchivoBlack'; ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left'; ctx.fillText('REGLA 0' + n + ' / 03', 178, 992);
+  ctx.globalAlpha = 0.7; ctx.textAlign = 'right'; ctx.fillText('ORATORIA BÁSICA · CLASE 01', 1856, 992); ctx.globalAlpha = 1;
+}
+
+// ---------- impactos para la sacudida global ----------
+const IMPACTS = [[0.52, 9, 0], [1.15, 13, 1.3], [3.18, 13, 2.1], [5.65, 13, 4.2],
+                 [7.45, 5, 0.6], [7.52, 5, 1.2], [7.58, 5, 2.0], [8.48, 11, 3.1]];
+
+// ---------- cuadro (función pura de t) ----------
+window.draw = ({ t: tt }) => {
+  t = tt;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = CREAM; ctx.fillRect(0, 0, W, H);
+  if (PAPER) { ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.16;
+    ctx.drawImage(PAPER, 0, 0); ctx.restore(); }
+  let shx = 0, shy = 0, fl = 0;
+  for (const [ti, A, ph] of IMPACTS) { const u = t - ti;
+    if (u > 0 && u < 0.34) { shx += A * Math.exp(-11 * u) * Math.sin(u * 210 + ph);
+      shy += A * 0.7 * Math.exp(-11 * u) * Math.cos(u * 170 + ph); fl += A * Math.exp(-20 * u); } }
+  ctx.translate(shx, shy);
+  drawGrid(); frameDraw();
+  alignMark(1370, 600, 300, 0.45, 1.30); alignMark(545, 645, 300, 2.58, 3.32); alignMark(1370, 620, 300, 5.05, 5.78);
+  const BIG1 = { kind: 'c', x: 1370, y: 600, r: 300, fill: RED,    num: '1', numCol: CREAM };
+  const BIG2 = { kind: 's', x: 545,  y: 645, r: 300, fill: BLUE,   num: '2', numCol: CREAM };
+  const BIG3 = { kind: 't', x: 1370, y: 620, r: 300, fill: YELLOW, num: '3', numCol: INK  };
+  stamped(BIG1, 0.92, 2.50, 2.10);
+  fly(BIG1, 2.50, 0.38, 1745, 255, 85, 1, 7.10);                              // se recoge como insignia TR
+  fly(BIG1, 7.10, 0.40, 470, 545, 175, 1, 1e9);                               // y vuelve al cartel final
+  stamped(BIG2, 2.95, 4.80, 4.35);
+  fly(BIG2, 4.80, 0.38, 175, 255, 85, 1, 7.18);                               // insignia TL
+  fly(BIG2, 7.18, 0.40, 815, 615, 175, 1, 1e9);
+  stamped(BIG3, 5.42, 7.05, 6.75);
+  fly(BIG3, 7.05, 0.40, 1430, 618, 205, 1, 1e9);                              // directo a su hueco final
+  ACTS.forEach(actText);
+  wordStamp('RESPIRA', 470, 858, 34, 7.65);
+  wordStamp('MIRA AL FRENTE', 815, 858, 34, 7.77);
+  wordStamp('HABLA DESPACIO', 1430, 858, 34, 7.89);
+  titleBar(); meta(); finalBar();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (fl > 0.5) { ctx.globalAlpha = Math.min(0.28, fl * 0.022); ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>

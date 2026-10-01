@@ -134,6 +134,16 @@ La columna **Licencia** refleja lo que reporta la API de GitHub en el momento de
 
 ---
 
+## Estilos de video IMPULSO IA (`estilos/`)
+
+La carpeta `estilos/` NO proviene del catálogo: es contenido propio del estudio
+IMPULSO IA (Nikolas Prado) publicado para que cualquiera lo copie a su agente.
+Cada subcarpeta incluye la skill (`SKILL.md`), la maquinaria de render validada
+(`referencia/anim.html`) y las tipografías en `fuentes/`.
+
+- Estilos y documentación: © IMPULSO IA — uso y adaptación libres con atribución.
+- Tipografías: Google Fonts bajo SIL Open Font License (OFL) — redistribuibles.
+
 ## Repos indexados no clonados (103)
 
 El catálogo fuente lista **204 repos**; los **101** anteriores están clonados en este consolidado. Los **103 restantes** quedan fuera de la copia local — pertenecen a otras categorías del catálogo fuente (promo, story, avatar, craft, music…) o quedaron por debajo del umbral de 10 estrellas — y están **indexados solo con su URL** en [`indice.json`](indice.json) y en el landing `index.html`, sin carpeta local en este repo.

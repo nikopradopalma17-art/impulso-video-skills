@@ -1,0 +1,269 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'AlfaSlab';font-weight:400;src:url(../../fuentes/alfa-slab-one-400.ttf) format('truetype');}
+html,body{margin:0;background:#efe5d2}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// LINOCUT — "HABLA. AUNQUE TIEMBLE." Grabado en linóleo: solo tinta negra, papel crema
+// y un rojo bermellón. Tipografía Alfa Slab One gigante "tallada" con gubias y muescas,
+// rodillo de tinta que pasa antes de cada estampado, impacto con sacudida seca,
+// puño con micrófono tallado en rojo, entintado final y franja roja que sella abajo.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const INK = '#161311', PAPER = '#efe5d2', RED = '#c22f24';
+let T = 0;
+
+// ---------- utilidades ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const hash1 = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const mulberry = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let z = Math.imul(s ^ s >>> 15, 1 | s);
+  z = z + Math.imul(z ^ z >>> 7, 61 | z) ^ z; return ((z ^ z >>> 14) >>> 0) / 4294967296; };
+function rr(g, x, y, w, h, r) { g.beginPath();
+  g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.arcTo(x + w, y, x + w, y + r, r);
+  g.lineTo(x + w, y + h - r); g.arcTo(x + w, y + h, x + w - r, y + h, r);
+  g.lineTo(x + r, y + h); g.arcTo(x, y + h, x, y + h - r, r);
+  g.lineTo(x, y + r); g.arcTo(x, y, x + r, y, r); g.closePath(); }
+
+// ---------- sellos tallados (precalculados) ----------
+// gubias interiores + muescas de borde con destination-out
+function carve(g, w, h, seed, n) {
+  g.globalCompositeOperation = 'destination-out';
+  const rnd = mulberry(seed);
+  for (let i = 0; i < n; i++) {
+    const x = rnd() * (w + h) - h, a = 1.05 + rnd() * .25;
+    g.strokeStyle = 'rgba(0,0,0,' + (.14 + rnd() * .38).toFixed(2) + ')';
+    g.lineWidth = 1 + rnd() * 2.4; g.beginPath();
+    g.moveTo(x, -8); g.lineTo(x + Math.tan(a) * h * .55, h + 8); g.stroke();
+  }
+  g.globalAlpha = 1;
+}
+function makeTextStamp(txt, size, color, seed) {
+  const m = document.createElement('canvas').getContext('2d');
+  m.font = '400 ' + size + 'px AlfaSlab';
+  const w = Math.ceil(m.measureText(txt).width) + 40, h = Math.ceil(size * 1.5);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.font = '400 ' + size + 'px AlfaSlab'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.fillStyle = color; g.fillText(txt, w / 2, size * 1.12);
+  carve(g, w, h, seed, Math.round((w + h) / 9));
+  for (let k = 0; k < 3; k++) { const rnd = mulberry(seed + k * 13);
+    g.lineWidth = 1.2 + rnd() * 2; g.save();
+    g.translate((rnd() - .5) * 3, (rnd() - .5) * 3); g.strokeText(txt, w / 2, size * 1.12); g.restore(); }
+  return c;
+}
+function makeMotif(color, seed) {
+  const c = document.createElement('canvas'); c.width = 520; c.height = 420;
+  const g = c.getContext('2d');
+  g.fillStyle = color;
+  rr(g, 206, 16, 108, 196, 54); g.fill();                       // cápsula del micrófono
+  g.beginPath(); g.moveTo(238, 200); g.lineTo(282, 200); g.lineTo(296, 252); g.lineTo(224, 252);
+  g.closePath(); g.fill();                                       // cuerpo
+  g.beginPath(); g.ellipse(262, 296, 158, 92, 0, 0, 7); g.fill(); // puño
+  // parrilla y dedos como gubias
+  g.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 4; i++) { const y = 58 + i * 40;
+    g.lineWidth = 5; g.beginPath(); g.moveTo(216, y); g.lineTo(304, y); g.stroke(); }
+  for (let i = 0; i < 4; i++) { const y = 254 + i * 27;
+    g.lineWidth = 6; g.beginPath(); g.moveTo(112, y); g.quadraticCurveTo(262, y - 14, 412, y); g.stroke(); }
+  g.lineWidth = 4; for (let i = 0; i < 2; i++) { const x = 222 + i * 80;
+    g.beginPath(); g.moveTo(x, 226); g.lineTo(x, 368); g.stroke(); }
+  g.lineWidth = 5; g.beginPath(); g.ellipse(170, 306, 44, 26, -.35, 0, 7); g.stroke(); // pulgar
+  g.globalCompositeOperation = 'source-over';
+  carve(g, 520, 420, seed, 120);
+  const rnd = mulberry(seed + 5);
+  g.globalCompositeOperation = 'destination-out'; g.strokeStyle = 'rgba(0,0,0,0.5)';
+  for (let k = 0; k < 2; k++) { g.lineWidth = 2 + rnd() * 2; g.save();
+    g.translate((rnd() - .5) * 3, (rnd() - .5) * 3);
+    rr(g, 206, 16, 108, 196, 54); g.stroke();
+    g.beginPath(); g.ellipse(262, 296, 158, 92, 0, 0, 7); g.stroke(); g.restore(); }
+  return c;
+}
+function makeHatch(w, h, seed) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'), rnd = mulberry(seed);
+  g.strokeStyle = INK;
+  for (let x = -h; x < w; x += 15 + rnd() * 6) {
+    g.lineWidth = 5 + rnd() * 3; g.globalAlpha = .55 + rnd() * .4;
+    const gaps = 1 + Math.floor(rnd() * 3); let y0 = 0;
+    for (let s = 0; s < gaps; s++) { const l = rnd() * h;
+      g.beginPath(); g.moveTo(x + y0 * .55, y0); g.lineTo(x + (y0 + l) * .55, y0 + l); g.stroke(); y0 += l + 8 + rnd() * 16; }
+  }
+  g.globalAlpha = 1; carve(g, w, h, seed + 3, Math.round((w + h) / 12));
+  return c;
+}
+// grano de madera tallada (precalculado)
+const wood = document.createElement('canvas'); wood.width = 1920; wood.height = 1080;
+function precalcWood() {
+  const g = wood.getContext('2d'), rnd = mulberry(71);
+  for (let y = 6; y < 1080; y += 12) {
+    g.strokeStyle = 'rgba(22,19,17,' + (.04 + rnd() * .045).toFixed(3) + ')';
+    g.lineWidth = .8 + rnd() * 1.6; g.beginPath();
+    const ph = rnd() * 9;
+    for (let x = 0; x <= 1920; x += 24) {
+      const yy = y + Math.sin(x * .008 + ph) * 5 + (hash1(x * .7 + y) - .5) * 3;
+      x === 0 ? g.moveTo(x, yy) : g.lineTo(x, yy); }
+    g.stroke();
+  }
+  for (let k = 0; k < 3; k++) { const kx = 200 + rnd() * 1500, ky = 150 + rnd() * 780;
+    for (let i = 0; i < 4; i++) { g.strokeStyle = 'rgba(22,19,17,' + (.03 + i * .012).toFixed(3) + ')';
+      g.lineWidth = 1.4; g.beginPath(); g.ellipse(kx, ky, 16 + i * 13, 8 + i * 7, .3, 0, 7); g.stroke(); } }
+  for (let i = 0; i < 500; i++) { g.fillStyle = 'rgba(120,96,66,' + (rnd() * .06).toFixed(3) + ')';
+    g.fillRect(rnd() * 1920, rnd() * 1080, 1.6, 1.6); }
+}
+let ST = {}; // sellos
+window.ready = Promise.all([
+  document.fonts.load('400 100px AlfaSlab')
+]).then(() => document.fonts.ready).then(() => {
+  precalcWood();
+  ST.habla = makeTextStamp('HABLA.', 200, INK, 11);
+  ST.hablaR = makeTextStamp('HABLA.', 200, RED, 11);
+  ST.aunq = makeTextStamp('AUNQUE', 150, INK, 22);
+  ST.aunqR = makeTextStamp('AUNQUE', 150, RED, 22);
+  ST.tiem = makeTextStamp('TIEMBLE.', 165, INK, 33);
+  ST.tiemR = makeTextStamp('TIEMBLE.', 165, RED, 33);
+  ST.motif = makeMotif(RED, 44);
+  ST.h1 = makeHatch(240, 170, 51); ST.h2 = makeHatch(240, 170, 52);
+  ST.band = makeTextStamp('TALLADO A MANO - EJ. 1/100', 46, PAPER, 66);
+});
+
+// ---------- estampado ----------
+const IMPACTS = [[1.0, 6], [2.0, 5], [2.95, 7], [6.68, 4], [7.32, 5]];
+function shakeOffset() {
+  let sx = 0, sy = 0;
+  for (const [t0, amp] of IMPACTS) { const q = seg(T, t0, t0 + .3);
+    if (q > 0 && q < 1) { const a = amp * (1 - q);
+      sx += (hash1(Math.floor(T * 85) + t0 * 10) - .5) * 2 * a;
+      sy += (hash1(Math.floor(T * 85) + t0 * 10 + 40) - .5) * 2 * a; } }
+  return [sx, sy];
+}
+function roller(y, t0, t1) {
+  const p = seg(T, t0, t1); if (p <= 0 || p >= 1) return;
+  const x = -280 + (W + 560) * p;   // velocidad constante, mecánica
+  ctx.fillStyle = 'rgba(22,19,17,0.05)'; ctx.fillRect(0, y - 34, Math.max(0, x), 68);
+  ctx.fillStyle = '#241f1b'; rr(ctx, x - 120, y - 38, 240, 76, 16); ctx.fill();
+  ctx.fillStyle = '#3a332c'; ctx.fillRect(x - 120, y - 48, 240, 12);
+  ctx.strokeStyle = '#241f1b'; ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.moveTo(x, y - 48); ctx.lineTo(x, y - 96); ctx.stroke();
+  ctx.fillStyle = '#241f1b'; ctx.beginPath(); ctx.arc(x, y - 102, 12, 0, 7); ctx.fill();
+}
+function stampWord(ink, red, cx, cy, t0) {
+  const p = seg(T, t0, t0 + .11); if (p <= 0) return;
+  const drop = 1 - Math.pow(1 - p, 4);
+  const s = 1.3 - .3 * drop;
+  const entQ = seg(T, 6.3, 7.1);
+  ctx.save(); ctx.globalAlpha = .34 * entQ;
+  ctx.drawImage(red, cx - red.width / 2 + 4, cy - red.height / 2 + 3 + (1 - drop) * -70);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(cx, cy + (1 - drop) * -70); ctx.scale(s, s);
+  ctx.drawImage(ink, -ink.width / 2, -ink.height / 2);
+  ctx.restore();
+  const qp = seg(T, t0, t0 + .3);           // virutas de tinta al impactar
+  if (qp > 0 && qp < 1) { ctx.fillStyle = INK;
+    for (let i = 0; i < 12; i++) { const a = hash1(i * 7.1 + t0) * 6.28, d = 40 + hash1(i * 3.3) * 150 * (1 - qp);
+      ctx.globalAlpha = (1 - qp) * .8;
+      ctx.beginPath(); ctx.arc(cx + Math.cos(a) * d * 1.7, cy + Math.sin(a) * d, 2 + hash1(i) * 3, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1; }
+}
+function cross(x, y) {
+  const p = seg(T, .25 + (x + y) * .00006, .5 + (x + y) * .00006); if (p <= 0) return;
+  ctx.save(); ctx.globalAlpha = p; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x - 26 * p, y); ctx.lineTo(x + 26 * p, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y - 26 * p); ctx.lineTo(x, y + 26 * p); ctx.stroke();
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.stroke(); ctx.restore();
+}
+
+// ---------- escena ----------
+window.draw = ({ t }) => {
+  T = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  const entQ = seg(T, 6.3, 7.1);
+  // papel que se entinta: baja un poco de luminancia
+  const mix = entQ * .5;
+  ctx.fillStyle = 'rgb(' + Math.round(239 - 11 * mix) + ',' + Math.round(229 - 16 * mix) + ',' + Math.round(210 - 16 * mix) + ')';
+  ctx.fillRect(0, 0, W, H);
+
+  const [sx, sy] = shakeOffset();
+  const wob = T > 8.2 ? (1 - seg(T, 8.2, 8.6)) * 1.0 + .45 : 0;
+  ctx.translate(sx + (hash1(Math.floor(T * 60)) - .5) * 2 * wob,
+                sy + (hash1(Math.floor(T * 60) + 9) - .5) * 2 * wob);
+
+  // textura de madera
+  ctx.save(); ctx.globalAlpha = (1 + .6 * entQ) * seg(T, 0, .3);
+  ctx.drawImage(wood, 0, 0);
+  if (entQ > .5) { ctx.globalAlpha = .4; ctx.drawImage(wood, 0, 0); }
+  ctx.restore();
+
+  // cruces de registro
+  cross(70, 70); cross(1850, 70); cross(70, 1010); cross(1850, 1010);
+
+  // rodillos y estampados
+  roller(235, .55, 1.0);  stampWord(ST.habla, ST.hablaR, 960, 232, 1.0);
+  roller(412, 1.55, 2.0); stampWord(ST.aunq,  ST.aunqR,  960, 404, 2.0);
+  roller(588, 2.5, 2.95); stampWord(ST.tiem,  ST.tiemR,  960, 578, 2.95);
+
+  // motivo central tallado en rojo: revelado por hileras como talla
+  const carv = seg(T, 3.5, 5.1);
+  if (carv > 0) {
+    const mw = 374, mh = 302, mx = 960 - mw / 2, my = 800 - mh / 2;
+    const tr = T > 5.1 ? (hash1(Math.floor(T * 70)) - .5) * 1.3 : 0;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(mx - 6, my - 6, mw + 12, (mh + 12) * carv); ctx.clip();
+    ctx.translate(tr, 0); ctx.drawImage(ST.motif, mx, my, mw, mh);
+    ctx.restore();
+    if (carv < 1) { const fy = my + (mh + 12) * carv;
+      ctx.strokeStyle = RED; ctx.lineWidth = 5; ctx.globalAlpha = .85;
+      ctx.beginPath(); ctx.moveTo(mx - 6, fy); ctx.lineTo(mx + mw + 6, fy); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = RED;
+      for (let i = 0; i < 6; i++) { const cx2 = mx + hash1(i * 9.3 + Math.floor(carv * 30)) * mw;
+        ctx.globalAlpha = .7;
+        ctx.beginPath(); ctx.arc(cx2, fy - 6 - hash1(i * 3.1 + Math.floor(carv * 30)) * 16, 2.5, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1; }
+  }
+
+  // rayados de esquinas, estampados secos
+  const hatches = [[ST.h1, 190, 150, 5.35], [ST.h2, 1730, 150, 5.55], [ST.h2, 190, 838, 5.75], [ST.h1, 1730, 838, 5.95]];
+  for (const [img, hx, hy, t0] of hatches) {
+    const p = seg(T, t0, t0 + .09); if (p <= 0) continue;
+    ctx.save(); ctx.globalAlpha = .9 * p;
+    const s2 = 1.25 - .25 * p;
+    ctx.translate(hx, hy); ctx.scale(s2, s2);
+    ctx.drawImage(img, -img.width / 2, -img.height / 2); ctx.restore();
+  }
+
+  // entintado final: marco de doble filete estampado
+  const fp = seg(T, 6.6, 6.68);
+  if (fp > 0) { ctx.save(); ctx.globalAlpha = fp; ctx.strokeStyle = INK;
+    ctx.lineWidth = 12; ctx.strokeRect(30, 30, W - 60, H - 60);
+    ctx.lineWidth = 3; ctx.strokeRect(52, 52, W - 104, H - 104); ctx.restore(); }
+
+  // franja roja que sella abajo
+  const bp = seg(T, 7.32, 7.56);
+  if (bp > 0) { const bx = (W + 40) * bp;
+    ctx.fillStyle = RED; ctx.fillRect(0, 952, bx, 116);
+    ctx.fillStyle = INK; ctx.fillRect(0, 952, bx, 5); ctx.fillRect(0, 1063, bx, 5);
+    if (bp < 1) { ctx.fillStyle = RED;
+      for (let i = 0; i < 8; i++) { ctx.globalAlpha = .8;
+        ctx.beginPath(); ctx.arc(bx - 10 + hash1(i * 5.7) * 30, 960 + hash1(i * 3.3) * 100, 2.5 + hash1(i) * 3, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1; }
+    const tp = seg(T, 7.6, 7.75);
+    if (tp > 0 && ST.band) { ctx.save(); ctx.globalAlpha = tp;
+      const s2 = 1.2 - .2 * tp;
+      ctx.translate(960, 1012); ctx.scale(s2, s2);
+      ctx.drawImage(ST.band, -ST.band.width / 2, -ST.band.height / 2); ctx.restore(); }
+  }
+
+  // viñeta de imprenta
+  const g2 = ctx.createRadialGradient(960, 540, 500, 960, 540, 1250);
+  g2.addColorStop(0, 'rgba(0,0,0,0)'); g2.addColorStop(1, 'rgba(22,19,17,0.22)');
+  ctx.fillStyle = g2; ctx.fillRect(-20, -20, W + 40, H + 40);
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>

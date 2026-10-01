@@ -1,0 +1,251 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Caveat';font-weight:700;src:url(../../fuentes/caveat-700.ttf) format('truetype');}
+html,body{margin:0;background:#20362e}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// KARA TAHTA — "La regla de los 10 minutos". Pizarra verde-negra de aula con marco
+// de madera y bandeja: tiza amarilla y blanca, escritura con efecto de trazado,
+// garabatos (estrella, flecha), calendario de 30 casillas que se tachan, balanza
+// "10 min ↔ cambio real", subrayado con golpes y polvo de tiza. Duración 9 s.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const BOARD = '#20362e', CHALK = '#f3efe2', YELL = '#f6d76b', WOOD = '#6b4423';
+let T = 0;
+
+// ---------- utilidades ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const ease = p => 1 - Math.pow(1 - p, 3);
+const back = p => { const s = 2.2; p = clamp(p, 0, 1); return 1 + (s + 1) * Math.pow(p - 1, 3) + s * Math.pow(p - 1, 2); };
+const hash1 = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const vnoise = (x, seed) => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f);
+  return hash1(i + seed * 57.31) * (1 - u) + hash1(i + 1 + seed * 57.31) * u; };
+const mulberry = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let z = Math.imul(s ^ s >>> 15, 1 | s);
+  z = z + Math.imul(z ^ z >>> 7, 61 | z) ^ z; return ((z ^ z >>> 14) >>> 0) / 4294967296; };
+
+// ---------- trazo de tiza ----------
+function hand(pts, t, seed, amp) {
+  const A = amp == null ? 2.0 : amp, out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const x1 = pts[i][0], y1 = pts[i][1], x2 = pts[i + 1][0], y2 = pts[i + 1][1];
+    const L = Math.hypot(x2 - x1, y2 - y1) || 1, n = Math.max(1, Math.round(L / 34));
+    for (let k = 0; k < n; k++) {
+      const f = k / n, x = x1 + (x2 - x1) * f, y = y1 + (y2 - y1) * f, ph = (i + f) * .95 + seed;
+      out.push([x + (vnoise(ph + t * 1.8, seed) - .5) * 2 * A,
+                y + (vnoise(ph + 71.3 + t * 1.7, seed + 5.1) - .5) * 2 * A]);
+    }
+  }
+  out.push([pts[pts.length - 1][0], pts[pts.length - 1][1]]);
+  return out;
+}
+// traza parcial + pasadas de textura de tiza (brillo, trazo, motas)
+function chalkTrace(pts, p, lw, col) {
+  if (p <= 0) return;
+  const P = hand(pts, T, 4.1, 2.0), lens = []; let tot = 0;
+  for (let i = 1; i < P.length; i++) { const L = Math.hypot(P[i][0] - P[i-1][0], P[i][1] - P[i-1][1]); lens.push(L); tot += L; }
+  let rem = ease(p) * tot;
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = col;
+  ctx.globalAlpha *= .3; ctx.lineWidth = lw + 3.5;
+  ctx.shadowColor = col; ctx.shadowBlur = 7;
+  ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]);
+  for (let i = 1; i < P.length && rem > 0; i++) { const L = lens[i - 1];
+    if (rem >= L) { ctx.lineTo(P[i][0], P[i][1]); rem -= L; }
+    else { const f = rem / L; ctx.lineTo(P[i-1][0] + (P[i][0]-P[i-1][0]) * f, P[i-1][1] + (P[i][1]-P[i-1][1]) * f); rem = 0; } }
+  ctx.stroke(); ctx.restore();
+  // pasadas granuladas
+  let rem2 = ease(p) * tot;
+  ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = col;
+  for (let pass = 0; pass < 2; pass++) {
+    ctx.globalAlpha *= pass ? .8 : .35; ctx.lineWidth = lw - pass * 1.5;
+    let r = rem2; ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]);
+    for (let i = 1; i < P.length && r > 0; i++) { const L = lens[i - 1];
+      const jx = (hash1(i * 9.3 + pass * 40) - .5) * 2.4, jy = (hash1(i * 5.7 + pass * 17) - .5) * 2.4;
+      if (r >= L) { ctx.lineTo(P[i][0] + jx, P[i][1] + jy); r -= L; }
+      else { const f = r / L; ctx.lineTo(P[i-1][0] + (P[i][0]-P[i-1][0]) * f + jx, P[i-1][1] + (P[i][1]-P[i-1][1]) * f + jy); r = 0; } }
+    ctx.stroke();
+  }
+  ctx.restore();
+  // motas de polvo sobre lo revelado
+  let rem3 = ease(p) * tot;
+  ctx.save(); ctx.fillStyle = col;
+  for (let i = 1; i < P.length && rem3 > 0; i++) { const L = lens[i - 1];
+    const st = Math.max(1, Math.round(L / 7));
+    for (let k = 0; k < st && rem3 > 0; k++) {
+      const f = k / st, x = P[i-1][0] + (P[i][0]-P[i-1][0]) * f, y = P[i-1][1] + (P[i][1]-P[i-1][1]) * f;
+      const h = hash1(i * 31.7 + k * 7.9);
+      if (h < .55) { const o = (h - .28) * lw * 1.7;
+        ctx.globalAlpha = .12 + .3 * hash1(i + k * 3.3);
+        ctx.beginPath(); ctx.arc(x + o, y + (hash1(i * 3 + k) - .5) * lw * 1.7, .8 + h * 1.2, 0, 7); ctx.fill(); }
+      rem3 -= L / st; } }
+  ctx.restore();
+}
+// escritura de tiza con revelado + barrita de tiza como punta
+function chalkWrite(txt, x, y, size, p, col, align) {
+  if (p <= 0) return; align = align || 'center';
+  ctx.save(); ctx.font = '700 ' + size + 'px Caveat'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const w = ctx.measureText(txt).width;
+  const xx = align === 'center' ? x - w / 2 : (align === 'right' ? x - w : x);
+  const m = ease(p) * (w + 20);
+  ctx.beginPath(); ctx.rect(xx - 14, y - size - 12, m + 14, size + 40); ctx.clip();
+  ctx.shadowColor = col; ctx.shadowBlur = 9;
+  ctx.fillStyle = col; ctx.globalAlpha *= .55; ctx.fillText(txt, xx, y);
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.fillText(txt, xx, y);
+  ctx.restore();
+  if (p < 0.995) { const tx = xx - 6 + m, ty = y - size * .3;
+    ctx.save(); ctx.translate(tx, ty); ctx.rotate(-.7);
+    ctx.fillStyle = col; ctx.fillRect(-4, -16, 9, 26);
+    ctx.globalAlpha = .8; ctx.fillRect(-4, -16, 9, 8); ctx.restore();
+    for (let i = 0; i < 3; i++) { ctx.save(); ctx.fillStyle = col; ctx.globalAlpha = .5;
+      ctx.beginPath(); ctx.arc(tx + (hash1(i * 7.7 + size) - .5) * 26, ty + 14 + hash1(i * 3.1) * 18, 1.2, 0, 7); ctx.fill(); ctx.restore(); } }
+}
+function starPts(x, y, R, r, n) { const a = [];
+  for (let i = 0; i <= n * 2; i++) { const rad = i % 2 ? r : R, ang = -Math.PI / 2 + i * Math.PI / n;
+    a.push([x + Math.cos(ang) * rad, y + Math.sin(ang) * rad]); } return a; }
+function rrectPts(x, y, w2, h2, r) { const p = [];
+  const arc = (cx, cy, a0, a1) => { for (let k = 0; k <= 6; k++) { const g = a0 + (a1 - a0) * k / 6;
+    p.push([cx + Math.cos(g) * r, cy + Math.sin(g) * r]); } };
+  p.push([x + r, y]); p.push([x + w2 - r, y]);
+  arc(x + w2 - r, y + r, -Math.PI / 2, 0);
+  p.push([x + w2, y + h2 - r]);
+  arc(x + w2 - r, y + h2 - r, 0, Math.PI / 2);
+  p.push([x + r, y + h2]);
+  arc(x + r, y + h2 - r, Math.PI / 2, Math.PI);
+  p.push([x, y + r]);
+  arc(x + r, y + r, Math.PI, Math.PI * 1.5);
+  return p; }
+
+// ---------- texturas precalculadas ----------
+const dust = document.createElement('canvas'); dust.width = 1920; dust.height = 1080;
+window.ready = Promise.all([
+  document.fonts.load('700 120px Caveat')
+]).then(() => document.fonts.ready).then(() => {
+  const g = dust.getContext('2d'), rnd = mulberry(23);
+  for (let i = 0; i < 1500; i++) { g.fillStyle = 'rgba(243,239,226,' + (.015 + rnd() * .04).toFixed(3) + ')';
+    g.beginPath(); g.arc(rnd() * 1920, rnd() * 1080, rnd() * 1.5 + .4, 0, 7); g.fill(); }
+  for (let i = 0; i < 12; i++) { g.fillStyle = 'rgba(243,239,226,' + (.015 + rnd() * .02).toFixed(3) + ')';
+    g.beginPath(); g.ellipse(rnd() * 1920, rnd() * 1080, rnd() * 130 + 60, rnd() * 46 + 20, rnd() * 3, 0, 7); g.fill(); }
+  for (let i = 0; i < 260; i++) { g.fillStyle = 'rgba(246,215,107,' + (rnd() * .03).toFixed(3) + ')';
+    g.fillRect(rnd() * 1920, rnd() * 1080, 1.4, 1.4); }
+});
+
+// ---------- escena ----------
+window.draw = ({ t }) => {
+  T = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1; ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+  ctx.fillStyle = BOARD; ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(dust, 0, 0);
+
+  // marco de madera + bandeja
+  ctx.fillStyle = WOOD;
+  ctx.fillRect(0, 0, W, 38); ctx.fillRect(0, H - 38, W, 38);
+  ctx.fillRect(0, 0, 38, H); ctx.fillRect(W - 38, 0, 38, H);
+  ctx.strokeStyle = 'rgba(58,34,14,0.8)'; ctx.lineWidth = 3;
+  for (let i = 0; i < 5; i++) { const o = 6 + i * 6.5;
+    ctx.beginPath(); ctx.moveTo(0, o); ctx.lineTo(W, o); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(o, 38); ctx.lineTo(o, H - 38); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W - o, 38); ctx.lineTo(W - o, H - 38); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, H - o); ctx.lineTo(W, H - o); ctx.stroke(); }
+  ctx.strokeStyle = '#3a2412'; ctx.lineWidth = 4; ctx.strokeRect(40, 40, W - 80, H - 80);
+  // bandeja con tiza y borrador
+  ctx.fillStyle = '#5a3719'; ctx.fillRect(540, 998, 840, 34);
+  ctx.fillStyle = '#7a4f2a'; ctx.fillRect(540, 998, 840, 9);
+  ctx.save(); ctx.translate(760, 1006); ctx.rotate(-.04);
+  ctx.fillStyle = CHALK; ctx.fillRect(-38, 0, 76, 15);
+  ctx.fillStyle = 'rgba(32,54,46,0.25)'; ctx.fillRect(-38, 11, 76, 4); ctx.restore();
+  ctx.fillStyle = '#4a4038'; ctx.fillRect(1130, 990, 160, 26);
+  ctx.fillStyle = '#d8d2c4'; ctx.fillRect(1136, 1014, 148, 12);
+
+  // título escrito a tiza (compuesto con mediciones reales)
+  chalkWrite('la regla:', 960, 148, 52, seg(T, .15, .7), CHALK);
+  ctx.save(); ctx.font = '700 165px Caveat'; const w10 = ctx.measureText('10').width;
+  ctx.font = '700 150px Caveat'; const wr = ctx.measureText('minutos al día').width; ctx.restore();
+  const tot = w10 + wr + 18, x0 = 960 - tot / 2;
+  chalkWrite('10', x0 + w10 / 2, 330, 165, seg(T, .7, 1.4), YELL);
+  chalkWrite('minutos al día', x0 + w10 + 18 + wr / 2, 330, 150, seg(T, 1.35, 2.4), CHALK);
+
+  // marco doble garabateado alrededor del lema
+  const fx = x0 - 48, fy = 190, fw = tot + 96, fh = 214;
+  chalkTrace(rrectPts(fx, fy, fw, fh, 36), seg(T, 2.45, 3.05), 5, YELL);
+  chalkTrace(rrectPts(fx + 18, fy + 17, fw - 36, fh - 34, 26), seg(T, 2.7, 3.25), 3, CHALK);
+  for (let i = 0; i < 4; i++) { const cx = [fx, fx + fw, fx, fx + fw][i], cy = [fy, fy, fy + fh, fy + fh][i];
+    chalkTrace(starPts(cx, cy, 17, 7, 5), seg(T, 3.0 + i * .08, 3.3 + i * .08), 3, YELL); }
+
+  // garabato: estrella + flecha
+  chalkTrace(starPts(300, 470, 56, 23, 5), seg(T, 3.35, 3.8), 5, YELL);
+  chalkTrace([[1640, 500], [1560, 440], [1470, 380], [1425, 352]], seg(T, 3.75, 4.15), 5, CHALK);
+  chalkTrace([[1425, 352], [1452, 356]], seg(T, 4.1, 4.2), 5, CHALK);
+  chalkTrace([[1425, 352], [1432, 380]], seg(T, 4.15, 4.25), 5, CHALK);
+
+  // calendario de 30 casillas
+  chalkTrace(rrectPts(250, 560, 440, 340, 12), seg(T, 4.0, 4.4), 4, CHALK);
+  chalkWrite('30 días', 470, 620, 46, seg(T, 4.25, 4.6), YELL);
+  for (let c = 0; c <= 6; c++) chalkTrace([[280 + c * 63, 646], [280 + c * 63, 886]], seg(T, 4.35 + c * .04, 4.55 + c * .04), 2.5, CHALK);
+  for (let r = 0; r <= 5; r++) chalkTrace([[280, 646 + r * 48], [658, 646 + r * 48]], seg(T, 4.5 + r * .05, 4.72 + r * .05), 2.5, CHALK);
+  // tachado rápido en orden barajado
+  const order = Array.from({ length: 30 }, (_, i) => i).sort((a, b) => hash1(a * 7.77) - hash1(b * 7.77));
+  for (let k = 0; k < 30; k++) {
+    const idx = order[k], col = idx % 6, row = Math.floor(idx / 6);
+    const cx = 280 + col * 63 + 31, cy = 646 + row * 48 + 24;
+    const tc = 4.85 + k * .031;
+    chalkTrace([[cx - 11, cy - 11], [cx + 11, cy + 11]], seg(T, tc, tc + .06), 3.5, YELL);
+    chalkTrace([[cx + 11, cy - 11], [cx - 11, cy + 11]], seg(T, tc + .04, tc + .1), 3.5, YELL);
+  }
+
+  // balanza: 10 min ↔ cambio real
+  const ax = 1500, ay = 668;
+  const tiltQ = seg(T, 6.25, 6.8);
+  const ang = (T < 6.25 ? .02 * Math.sin(T * 3) : .16 * back(tiltQ) * .55 + .02 * Math.sin(T * 3) * (1 - tiltQ));
+  chalkTrace([[ax - 66, 872], [ax + 66, 872], [ax, ay], [ax - 66, 872]], seg(T, 5.75, 6.1), 5, CHALK);
+  chalkTrace([[1390, 876], [1610, 876]], seg(T, 5.8, 6.05), 4, CHALK);
+  const lx = ax - 205 * Math.cos(ang), ly = ay - 205 * Math.sin(ang);
+  const rx = ax + 205 * Math.cos(ang), ry = ay + 205 * Math.sin(ang);
+  chalkTrace([[lx, ly], [rx, ry]], seg(T, 5.95, 6.25), 6, CHALK);
+  chalkTrace([[lx, ly], [lx, ly + 48]], seg(T, 6.05, 6.25), 3, CHALK);
+  chalkTrace([[rx, ry], [rx, ry + 48]], seg(T, 6.1, 6.3), 3, CHALK);
+  chalkTrace([[lx - 42, ly + 62], [lx + 42, ly + 62], [lx, ly + 44], [lx - 42, ly + 62]], seg(T, 6.15, 6.35), 3.5, YELL);
+  chalkTrace([[rx - 42, ry + 62], [rx + 42, ry + 62], [rx, ry + 44], [rx - 42, ry + 62]], seg(T, 6.2, 6.4), 3.5, YELL);
+  chalkWrite('10 min', lx, ly + 108, 44, seg(T, 6.35, 6.7), CHALK);
+  chalkWrite('cambio real', rx, ry + 108, 44, seg(T, 6.45, 6.8), CHALK);
+
+  // subrayado doble con golpes de tiza
+  chalkTrace([[600, 425], [1330, 420]], seg(T, 6.95, 7.25), 7, YELL);
+  chalkTrace([[620, 446], [1310, 441]], seg(T, 7.15, 7.5), 5, YELL);
+  chalkWrite('cada día cuenta', 960, 528, 58, seg(T, 7.6, 8.3), YELL);
+
+  // polvo de tiza cayendo
+  if (T > 7.3) { ctx.save();
+    for (let i = 0; i < 30; i++) {
+      const x0 = 620 + hash1(i * 3.7) * 700, y0 = 430 + hash1(i * 9.1) * 24;
+      const dt = T - 7.3 - hash1(i * 5.3) * .6; if (dt <= 0) continue;
+      const spd = 90 + hash1(i * 2.1) * 130;
+      const y = y0 + dt * dt * spd * .5, x = x0 + Math.sin(dt * 2 + i) * 6;
+      ctx.globalAlpha = clamp(1 - dt / 1.5, 0, 1) * .7;
+      ctx.fillStyle = i % 3 ? CHALK : YELL;
+      ctx.beginPath(); ctx.arc(x, y, 1 + hash1(i) * 1.8, 0, 7); ctx.fill(); }
+    ctx.restore(); }
+  // brillo sobre la estrella (desplazado, fuera de sus vértices)
+  const sp = .5 + .5 * Math.sin(T * 2.6);
+  if (T > 4.0) { ctx.save(); ctx.globalAlpha = .25 + .3 * sp; ctx.strokeStyle = CHALK; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(372, 372); ctx.lineTo(372, 396); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(360, 384); ctx.lineTo(384, 384); ctx.stroke(); ctx.restore(); }
+  // motas flotando (vida sutil)
+  for (let i = 0; i < 6; i++) {
+    const x = 120 + hash1(i * 13.3) * 1680 + Math.sin(T * .5 + i * 2.1) * 24;
+    const y = 120 + hash1(i * 7.7) * 840 + Math.cos(T * .4 + i) * 18;
+    ctx.fillStyle = 'rgba(243,239,226,' + (.05 + .05 * Math.sin(T + i * 2)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(x, y, 1.4, 0, 7); ctx.fill(); }
+
+  // viñeta
+  const g2 = ctx.createRadialGradient(960, 520, 480, 960, 520, 1250);
+  g2.addColorStop(0, 'rgba(0,0,0,0)'); g2.addColorStop(1, 'rgba(0,0,0,0.34)');
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>

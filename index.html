@@ -167,6 +167,56 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
 .estilo-cuando .lbl{display:block;font-family:var(--font-mono);font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin-bottom:3px}
 .estilo-panel .chip-cat{margin-top:10px}
 
+/* acciones de copia en las tarjetas de estilo */
+.estilo-acciones{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.estilo-btn-copy{
+  display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;
+  font-family:var(--font-mono);font-size:.74rem;font-weight:600;color:#eaf4ff;
+  background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;
+  padding:8px 12px;cursor:pointer;text-align:left;
+  transition:background var(--t),border-color var(--t),color var(--t),transform var(--t);
+}
+.estilo-btn-copy:hover{background:rgba(77,163,255,.26)}
+.estilo-btn-copy:active{transform:translateY(1px)}
+.estilo-btn-copy.copiado{color:var(--green);border-color:rgba(126,226,168,.55);background:rgba(126,226,168,.1)}
+.estilo-link-gh{
+  font-family:var(--font-mono);font-size:.72rem;color:var(--muted);text-decoration:none;
+  border:1px solid var(--line);border-radius:10px;padding:8px 10px;white-space:nowrap;
+  transition:color var(--t),border-color var(--t);
+}
+.estilo-link-gh:hover{color:var(--accent);border-color:var(--accent)}
+/* microcopía dentro del panel (solo visible con el acordeón abierto) */
+.estilo-tip{margin:10px 0 0;font-family:var(--font-mono);font-size:.68rem;color:var(--muted)}
+.estilo-tip::before{content:'▸ ';color:var(--accent)}
+/* fallback de portapapeles: modal con textarea seleccionable */
+.skill-fallback{
+  position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
+  padding:16px;background:rgba(0,8,26,.8);
+}
+.skill-fallback-box{
+  display:flex;flex-direction:column;gap:10px;width:min(680px,100%);max-height:88vh;
+  padding:16px;background:var(--bg);border:1px solid var(--line-strong);border-radius:14px;
+  box-shadow:0 18px 50px rgba(0,6,20,.6);
+}
+.skill-fallback-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.skill-fallback-title{margin:0;font-size:.95rem;font-weight:600}
+.skill-fallback-close{
+  flex:0 0 auto;font-family:var(--font-mono);font-size:.72rem;font-weight:600;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 11px;cursor:pointer;
+  transition:color var(--t),border-color var(--t);
+}
+.skill-fallback-close:hover{color:var(--accent);border-color:var(--accent)}
+.skill-fallback-notice{margin:0;font-family:var(--font-mono);font-size:.7rem;color:var(--amber)}
+.skill-fallback-box textarea{
+  flex:1;min-height:240px;width:100%;resize:vertical;
+  font-family:var(--font-mono);font-size:.76rem;line-height:1.5;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;
+  white-space:pre;overflow:auto;
+}
+@media (max-width:680px){
+  .skill-fallback-box textarea{min-height:200px}
+}
+
 /* ---------- footer ---------- */
 .site-footer{margin-top:70px;border-top:1px solid var(--line);padding:28px 0 46px;color:var(--muted)}
 .f-brand{margin:0 0 10px;font-size:.95rem;color:var(--ink)}
@@ -544,10 +594,44 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
       cuando.appendChild(document.createTextNode(s.cuando));
       panel.appendChild(cuando);
     }
+    if (s.skill_md) {
+      panel.appendChild(el('p', 'estilo-tip', 'Pégala en ~/.claude/skills/ o en el prompt de tu agente.'));
+    }
     if (s.referencia) {
       panel.appendChild(el('span', 'chip-cat', '↳ ' + s.referencia));
     }
     card.appendChild(panel);
+
+    if (s.skill_md) {
+      var acciones = el('div', 'estilo-acciones');
+      var texto = String(s.skill_md);
+      var base = webRepoTree();
+      var ruta = String(s.ruta || ('estilos/' + s.id)).replace(/\/+$/, '');
+
+      var btnCopy = el('button', 'estilo-btn-copy', '📋 Copiar SKILL.md');
+      btnCopy.type = 'button';
+      btnCopy.setAttribute('aria-live', 'polite');
+      btnCopy.addEventListener('click', function () { copiarSkillMd(btnCopy, texto); });
+      acciones.appendChild(btnCopy);
+
+      var gh = el('a', 'estilo-link-gh', '↗ Ver en GitHub');
+      gh.href = base ? base + '/' + encodeURI(ruta + '/SKILL.md') : encodeURI(ruta + '/SKILL.md');
+      gh.target = '_blank';
+      gh.rel = 'noopener noreferrer';
+      gh.setAttribute('aria-label', 'Ver el SKILL.md del estilo ' + (s.nombre || s.id) + ' en GitHub');
+      gh.title = ruta + '/SKILL.md';
+      acciones.appendChild(gh);
+
+      var anim = el('a', 'estilo-link-gh', 'anim.html');
+      anim.href = base ? base + '/' + encodeURI(ruta + '/referencia/anim.html') : encodeURI(ruta + '/referencia/anim.html');
+      anim.target = '_blank';
+      anim.rel = 'noopener noreferrer';
+      anim.setAttribute('aria-label', 'Ver la animación de referencia del estilo ' + (s.nombre || s.id));
+      anim.title = ruta + '/referencia/anim.html';
+      acciones.appendChild(anim);
+
+      card.appendChild(acciones);
+    }
 
     btn.addEventListener('click', function () {
       var estabaAbierto = btn.getAttribute('aria-expanded') === 'true';
@@ -570,6 +654,80 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
         if (p) { p.hidden = true; }
       }
     );
+  }
+
+  /* ---------- copiar SKILL.md al portapapeles ---------- */
+
+  function feedbackCopiado(btn) {
+    btn.classList.add('copiado');
+    btn.textContent = '✓ Copiada — pégala en tu carpeta de skills';
+    clearTimeout(btn._copiarTimer);
+    btn._copiarTimer = setTimeout(function () {
+      btn.classList.remove('copiado');
+      btn.textContent = '📋 Copiar SKILL.md';
+    }, 2500);
+  }
+
+  function skillFallbackEsc(ev) {
+    if (ev.key === 'Escape') { cerrarSkillFallback(); }
+  }
+
+  function cerrarSkillFallback() {
+    var overlay = document.querySelector('.skill-fallback');
+    if (!overlay) { return; }
+    document.removeEventListener('keydown', skillFallbackEsc, true);
+    var abridor = overlay._abridor;
+    if (overlay.parentNode) { overlay.parentNode.removeChild(overlay); }
+    if (abridor && typeof abridor.focus === 'function') { abridor.focus(); }
+  }
+
+  function showSkillFallback(btn, texto) {
+    cerrarSkillFallback();
+    var overlay = el('div', 'skill-fallback');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'skill-fallback-title');
+
+    var box = el('div', 'skill-fallback-box');
+    var head = el('div', 'skill-fallback-head');
+    var titulo = el('p', 'skill-fallback-title', 'Copia manual del SKILL.md');
+    titulo.id = 'skill-fallback-title';
+    head.appendChild(titulo);
+    var cerrar = el('button', 'skill-fallback-close', '✕ Cerrar');
+    cerrar.type = 'button';
+    cerrar.setAttribute('aria-label', 'Cerrar panel de copia manual');
+    head.appendChild(cerrar);
+    box.appendChild(head);
+
+    box.appendChild(el('p', 'skill-fallback-notice', 'Ctrl+C para copiar (el texto ya está seleccionado).'));
+
+    var ta = document.createElement('textarea');
+    ta.readOnly = true;
+    ta.value = texto; /* texto EXACTO de skill_md, sin recortes */
+    ta.setAttribute('aria-label', 'Contenido completo del SKILL.md');
+    box.appendChild(ta);
+
+    overlay.appendChild(box);
+    overlay._abridor = btn;
+    overlay.addEventListener('click', function (ev) {
+      if (ev.target === overlay) { cerrarSkillFallback(); }
+    });
+    cerrar.addEventListener('click', cerrarSkillFallback);
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', skillFallbackEsc, true);
+    ta.focus();
+    ta.select();
+  }
+
+  function copiarSkillMd(btn, texto) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(
+        function () { feedbackCopiado(btn); },
+        function () { showSkillFallback(btn, texto); }
+      );
+      return;
+    }
+    showSkillFallback(btn, texto);
   }
 
   function buildEstilos() {

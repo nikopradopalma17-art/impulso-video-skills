@@ -1,0 +1,218 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'PatrickHand';font-weight:400;src:url(../../fuentes/patrick-hand-400.ttf) format('truetype');}
+html,body{margin:0;background:#f8f4ea}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// BEYAZ TAHTA — "Cómo vencer los nervios en 3 pasos". Pizarra blanca tipo RSAnimate:
+// rotulador negro con temblor de mano, dibujo progresivo por longitud, una sola tinta
+// roja de acento, y la mano que borra con borrador entre pasos. Duración 9 s.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const PAPER = '#f8f4ea', INK = '#262319', RED = '#cf3a2b';
+let T = 0;
+
+// ---------- utilidades ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const ease = p => 1 - Math.pow(1 - p, 3);
+const easeIO = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const hash1 = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const vnoise = (x, seed) => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f);
+  return hash1(i + seed * 57.31) * (1 - u) + hash1(i + 1 + seed * 57.31) * u; };
+const mulberry = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let z = Math.imul(s ^ s >>> 15, 1 | s);
+  z = z + Math.imul(z ^ z >>> 7, 61 | z) ^ z; return ((z ^ z >>> 14) >>> 0) / 4294967296; };
+
+// ---------- trazo de rotulador ----------
+// subdivide y aplica temblor de mano determinista (vive con el tiempo)
+function hand(pts, t, seed, amp) {
+  const A = amp == null ? 2.2 : amp, out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const x1 = pts[i][0], y1 = pts[i][1], x2 = pts[i + 1][0], y2 = pts[i + 1][1];
+    const L = Math.hypot(x2 - x1, y2 - y1) || 1, n = Math.max(1, Math.round(L / 36));
+    for (let k = 0; k < n; k++) {
+      const f = k / n, x = x1 + (x2 - x1) * f, y = y1 + (y2 - y1) * f, ph = (i + f) * .9 + seed;
+      out.push([x + (vnoise(ph + t * 2.1, seed) - .5) * 2 * A,
+                y + (vnoise(ph + 91.7 + t * 1.9, seed + 7.3) - .5) * 2 * A]);
+    }
+  }
+  out.push([pts[pts.length - 1][0], pts[pts.length - 1][1]]);
+  return out;
+}
+// revelado por longitud de arco
+function trace(pts, p, lw, col) {
+  if (p <= 0) return;
+  const P = hand(pts, T, 3.7, 2.1), lens = []; let tot = 0;
+  for (let i = 1; i < P.length; i++) { const L = Math.hypot(P[i][0] - P[i-1][0], P[i][1] - P[i-1][1]); lens.push(L); tot += L; }
+  let rem = ease(p) * tot;
+  ctx.save();
+  ctx.lineWidth = lw; ctx.strokeStyle = col || INK; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.shadowColor = 'rgba(60,52,40,0.16)'; ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 4;
+  ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]);
+  for (let i = 1; i < P.length && rem > 0; i++) {
+    const L = lens[i - 1];
+    if (rem >= L) { ctx.lineTo(P[i][0], P[i][1]); rem -= L; }
+    else { const f = rem / L; ctx.lineTo(P[i-1][0] + (P[i][0]-P[i-1][0]) * f, P[i-1][1] + (P[i][1]-P[i-1][1]) * f); rem = 0; }
+  }
+  ctx.stroke(); ctx.restore();
+}
+function circlePts(x, y, r, n) { n = n || 26; const a = [];
+  for (let i = 0; i <= n; i++) { const g = i / n * Math.PI * 2 - Math.PI / 2; a.push([x + Math.cos(g) * r, y + Math.sin(g) * r]); }
+  return a; }
+// escritura con revelado + punta del rotulador
+function write(txt, x, y, size, p, col, align) {
+  if (p <= 0) return; align = align || 'center';
+  ctx.save(); ctx.font = size + 'px PatrickHand'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const w = ctx.measureText(txt).width;
+  const xx = align === 'center' ? x - w / 2 : (align === 'right' ? x - w : x);
+  const m = ease(p) * (w + 26);
+  ctx.beginPath(); ctx.rect(xx - 16, y - size - 16, m + 16, size + 46); ctx.clip();
+  ctx.shadowColor = 'rgba(60,52,40,0.14)'; ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 4;
+  ctx.fillStyle = col; ctx.fillText(txt, xx, y);
+  ctx.restore();
+  if (p < 0.995) { ctx.save(); ctx.fillStyle = col; ctx.globalAlpha *= .92;
+    ctx.beginPath(); ctx.arc(xx - 8 + m, y - size * .34, 4.5, 0, 7); ctx.fill(); ctx.restore(); }
+}
+// el borrador barre una franja (transición entre pasos)
+function eraser(t0, t1, cy) {
+  const p = seg(T, t0, t1); if (p <= 0 || p >= 1) return;
+  const x = -300 + (W + 600) * easeIO(p);
+  for (let i = 0; i < 8; i++) {
+    const q = clamp(p * 1.25 - i * .07, 0, 1); if (q <= 0) continue;
+    const sx = x - i * 62, sy = cy + (hash1(i * 13.7) - .5) * 110;
+    ctx.fillStyle = 'rgba(150,146,136,' + (0.20 * (1 - q * .45)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.ellipse(sx, sy, 132 - i * 9, 78 - i * 5, (hash1(i * 3.1) - .5) * .5, 0, 7); ctx.fill();
+  }
+}
+const gone = t0 => 1 - seg(T, t0, t0 + .45);
+
+// ---------- grano de papel (precalculado) ----------
+const grain = document.createElement('canvas'); grain.width = 960; grain.height = 540;
+window.ready = Promise.all([
+  document.fonts.load('400 80px PatrickHand')
+]).then(() => document.fonts.ready).then(() => {
+  const g = grain.getContext('2d'), rnd = mulberry(7);
+  for (let i = 0; i < 2600; i++) { g.fillStyle = 'rgba(120,108,86,' + (rnd() * .05).toFixed(3) + ')';
+    g.fillRect(rnd() * 960, rnd() * 540, rnd() * 2.2 + .6, rnd() * 2.2 + .6); }
+  for (let i = 0; i < 46; i++) { g.fillStyle = 'rgba(255,255,255,' + (rnd() * .05).toFixed(3) + ')';
+    g.beginPath(); g.arc(rnd() * 960, rnd() * 540, rnd() * 20 + 6, 0, 7); g.fill(); }
+});
+
+// ---------- escena ----------
+window.draw = ({ t }) => {
+  T = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1; ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
+
+  // título
+  write('CÓMO VENCER LOS NERVIOS', 960, 138, 82, seg(T, .15, 1.35), INK);
+  write('en 3 pasos', 960, 212, 48, seg(T, 1.35, 1.78), RED);
+
+  // ============ PASO 1 — RESPIRA ============
+  const a1 = gone(4.05);
+  if (a1 > 0) { ctx.save(); ctx.globalAlpha *= a1;
+    // insignia numerada
+    trace(circlePts(500, 500, 54), seg(T, 1.95, 2.35), 6, RED);
+    write('1', 500, 524, 66, seg(T, 2.15, 2.45), RED);
+    write('RESPIRA', 1150, 790, 88, seg(T, 2.35, 2.85), INK);
+    // pulmones: tráquea + bronquios + lóbulos
+    trace([[1150, 368], [1150, 462]], seg(T, 2.5, 2.75), 7);
+    trace([[1150, 462], [1106, 508]], seg(T, 2.65, 2.85), 7);
+    trace([[1150, 462], [1194, 508]], seg(T, 2.75, 2.95), 7);
+    const br = seg(T, 3.35, 3.75) * (1 - seg(T, 3.75, 4.15));   // inhalación/exhalación
+    const s = 1 + .14 * br, lift = 7 * br;
+    const lobe = cx => { const p = [];
+      for (let i = 0; i <= 22; i++) { const g = i / 22 * Math.PI * 2;
+        p.push([cx + Math.cos(g) * 78 * s, 600 + Math.sin(g) * 102 * s - lift]); } return p; };
+    trace(lobe(1076), seg(T, 2.85, 3.25), 7);
+    trace(lobe(1224), seg(T, 2.95, 3.35), 7);
+    trace([[1076, 512], [1076, 688]], seg(T, 3.0, 3.2), 4);
+    trace([[1224, 512], [1224, 688]], seg(T, 3.05, 3.25), 4);
+    if (br > 0.02) { ctx.save(); ctx.globalAlpha *= .3 * br;
+      ctx.setLineDash([10, 10]); ctx.strokeStyle = RED; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(1150, 600, 150 + 60 * br, 0, 7); ctx.stroke(); ctx.restore(); }
+    ctx.restore(); }
+
+  // ============ PASO 2 — ANCLA ============
+  const a2 = gone(6.0);
+  if (a2 > 0) { ctx.save(); ctx.globalAlpha *= a2;
+    trace(circlePts(500, 500, 54), seg(T, 4.5, 4.9), 6, RED);
+    write('2', 500, 524, 66, seg(T, 4.7, 5.0), RED);
+    write('ANCLA', 1150, 790, 88, seg(T, 4.9, 5.4), INK);
+    // suelo con hatch
+    trace([[890, 664], [1430, 664]], seg(T, 5.05, 5.35), 7);
+    for (let i = 0; i < 13; i++) { const x = 910 + i * 41;
+      trace([[x, 668], [x - 18, 692]], seg(T, 5.15 + i * .015, 5.35 + i * .015), 4); }
+    // pies
+    const foot = dx => [[998 + dx, 636], [994 + dx, 600], [1012 + dx, 578], [1066 + dx, 574], [1104 + dx, 600], [1112 + dx, 636], [998 + dx, 636]];
+    trace(foot(0), seg(T, 5.3, 5.6), 7);
+    trace(foot(192), seg(T, 5.4, 5.7), 7);
+    trace([[1032, 576], [1028, 546]], seg(T, 5.55, 5.7), 7);
+    trace([[1224, 576], [1220, 546]], seg(T, 5.6, 5.75), 7);
+    trace([[1010, 546], [1048, 546]], seg(T, 5.6, 5.75), 7);
+    trace([[1202, 546], [1240, 546]], seg(T, 5.65, 5.8), 7);
+    // cuerdas tensadas a estacas
+    trace([[1000, 612], [948, 634], [914, 654]], seg(T, 5.7, 5.92), 4);
+    trace([[1304, 612], [1356, 634], [1390, 654]], seg(T, 5.78, 6.0), 4);
+    trace([[898, 664], [924, 664], [911, 638], [898, 664]], seg(T, 5.85, 6.0), 5, RED);
+    trace([[1380, 664], [1406, 664], [1393, 638], [1380, 664]], seg(T, 5.9, 6.05), 5, RED);
+    ctx.restore(); }
+
+  // ============ PASO 3 — RITMO ============
+  trace(circlePts(500, 500, 54), seg(T, 6.45, 6.85), 6, RED);
+  write('3', 500, 524, 66, seg(T, 6.65, 6.95), RED);
+  write('RITMO', 1150, 790, 88, seg(T, 6.85, 7.35), INK);
+  trace([[1080, 700], [1118, 412], [1182, 412], [1220, 700], [1080, 700]], seg(T, 7.0, 7.5), 7);
+  trace([[1130, 660], [1170, 660]], seg(T, 7.4, 7.55), 4);
+  trace(circlePts(1150, 400, 9, 14), seg(T, 7.45, 7.6), 4);
+  // péndulo: arranca con exceso y se asienta
+  if (T > 7.5) {
+    const u = T - 7.5, A = .8 * Math.exp(-.75 * u);
+    const ang = A * Math.cos(6.8 * u);
+    const px = 1150 + Math.sin(ang) * 168, py = 440 + Math.cos(ang) * 168;
+    trace([[1150, 440], [px, py]], seg(T, 7.5, 7.65), 6);
+    ctx.save(); ctx.translate(px, py); ctx.rotate(ang);
+    ctx.lineWidth = 5; ctx.strokeStyle = RED; ctx.strokeRect(-14, -20, 28, 40); ctx.restore();
+    trace([[1096, 470], [1090, 620]], seg(T, 7.55, 7.7), 3);
+    trace([[1204, 470], [1210, 620]], seg(T, 7.6, 7.75), 3);
+  }
+
+  // transiciones de borrador
+  eraser(4.05, 4.5, 560);
+  eraser(6.0, 6.45, 560);
+
+  // ============ CIERRE — recordatorio ============
+  if (T > 7.7) {
+    const items = [['RESPIRA', 470, 7.78], ['ANCLA', 960, 8.0], ['RITMO', 1450, 8.22]];
+    for (const [wd, x, t0] of items) {
+      ctx.save(); ctx.font = '56px PatrickHand';
+      const w = ctx.measureText(wd).width;
+      write(wd, x + 16, 962, 56, seg(T, t0, t0 + .4), INK);
+      write(wd === 'RESPIRA' ? '1' : wd === 'ANCLA' ? '2' : '3', x - w / 2 - 12, 962, 56, seg(T, t0, t0 + .4), RED, 'right');
+      ctx.restore();
+    }
+    trace([[330, 996], [1590, 990]], seg(T, 8.45, 8.68), 8, RED);
+    trace([[352, 1014], [1570, 1008]], seg(T, 8.55, 8.8), 5, RED);
+  }
+
+  // vida residual: puntitos de rotulador
+  for (let i = 0; i < 3; i++) {
+    const q = vnoise(T * .6 + i * 4.2, i + 2);
+    ctx.fillStyle = 'rgba(38,35,25,' + (.05 + .05 * q).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(120 + i * 830 + q * 30, 1020 + Math.sin(T + i) * 6, 3, 0, 7); ctx.fill();
+  }
+
+  // grano + viñeta cálida
+  ctx.drawImage(grain, 0, 0, W, H);
+  const g2 = ctx.createRadialGradient(960, 540, 520, 960, 540, 1250);
+  g2.addColorStop(0, 'rgba(0,0,0,0)'); g2.addColorStop(1, 'rgba(96,84,60,0.14)');
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>

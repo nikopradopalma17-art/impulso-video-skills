@@ -1,0 +1,302 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Fredoka';font-weight:700;src:url(../../fuentes/fredoka-700.ttf) format('truetype');}
+@font-face{font-family:'Fredoka';font-weight:500;src:url(../../fuentes/fredoka-500.ttf) format('truetype');}
+html,body{margin:0;background:#0b1233}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// KURZGESAGT — "¿Por qué el cielo es azul?" · demo 9 s
+// Noche estrellada → la Tierra con su ciudad → entra el sol → los rayos chocan
+// con la cúpula atmosférica → partículas azules rebotan y se dispersan →
+// amanece: el cielo se vuelve celeste y cae el remate.
+// Todo función pura de t: sin estado, sin azar (mulberry32 determinista).
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+
+// ---------- paleta ----------
+const BG1 = '#0a112e', BG2 = '#151f52', SUN = '#ff9f43', SUNL = '#ffd98a',
+      CEL = '#4fc3f7', CEL2 = '#8ed8ff', ROSA = '#ff6e9c', INK = '#0b1233',
+      WHT = '#ffffff', BLD = '#182254', EARTH = '#131c4a';
+
+// ---------- utilidades ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const ease = p => 1 - Math.pow(1 - p, 3);                                    // easeOutCubic
+const easeIO = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const back = p => { const s = 1.9; p = clamp(p, 0, 1); return 1 + (s + 1) * Math.pow(p - 1, 3) + s * Math.pow(p - 1, 2); };
+const lerp = (a, b, p) => a + (b - a) * p;
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }; }
+const rng = mulberry32(20260927);
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
+
+// ---------- datos de escena (generados una vez, deterministas) ----------
+const EC = { x: 960, y: 2280, R: 1400 };                       // círculo de la Tierra
+const surfY = x => EC.y - Math.sqrt(EC.R * EC.R - (x - EC.x) * (x - EC.x));
+const dayP = t => easeIO(seg(t, 5.7, 6.95));                   // noche → día
+const zoomP = t => easeIO(seg(t, 5.7, 7.05));                  // zoom a encuadre día
+
+const STARS = [];                                              // estrellas titilantes
+for (let i = 0; i < 120; i++) STARS.push({ x: rng() * W, y: rng() * 830, r: 1 + rng() * 2.1, ph: rng() * 6.28, sp: .6 + rng() * 1.6, d: rng() * 1.2, plus: rng() < .07 });
+
+const CITY = [];                                               // siluetas + ventanas
+{ let x = 500; while (x < 1420) { const w = 30 + rng() * 38, h = 48 + rng() * 128;
+    const wins = [], n = 2 + Math.floor(rng() * 4);
+    for (let j = 0; j < n; j++) wins.push({ ox: (rng() - .5) * (w - 14), oy: -12 - rng() * (h - 26), ph: rng() * 6.28, sp: 1 + rng() * 2.2, d0: 1.15 + rng(), warm: rng() < .7 });
+    CITY.push({ x, w, h, ant: rng() < .16 && h > 110, wins }); x += w + 8 + rng() * 30; } }
+
+const HP = [-1.47, -1.33, -1.24].map(a =>                       // impactos sobre la cúpula
+  [EC.x + Math.cos(a) * (EC.R + 62), EC.y + Math.sin(a) * (EC.R + 62)]);
+
+const PCOL = ['#4fc3f7', '#8ed8ff', '#bfe9ff', '#ffffff', '#2f9fe0'];
+const PARTS = [];                                              // partículas azules
+for (let i = 0; i < 36; i++) {
+  const a1 = -0.3 - rng() * 2.35;                              // dispersión hacia arriba/lado
+  const a2 = clamp(a1 + (rng() < .5 ? -1 : 1) * (.5 + rng() * .9), -Math.PI + .15, -0.12); // rebote
+  PARTS.push({ hp: HP[i % 3], t0: 3.62 + (i / 36) * 1.55 + rng() * .12, a1, a2, tb: .35 + rng() * .5,
+    v: 130 + rng() * 170, v2: 80 + rng() * 110, r: 3 + rng() * 3.2, life: 1.9 + rng() * .9,
+    c: PCOL[Math.floor(rng() * PCOL.length)] });
+}
+const CLOUDS = [{ x: 430, y: 300, s: 1, sp: 5 }, { x: 1180, y: 308, s: .66, sp: 7 }, { x: 1665, y: 610, s: .8, sp: 4 }];
+const BIRDS = [{ x0: 660, y: 330, sp: 16, ph: 0 }, { x0: 760, y: 296, sp: 13, ph: 2 }];
+
+// ---------- fuentes ----------
+window.ready = Promise.all([
+  document.fonts.load('700 40px Fredoka'),
+  document.fonts.load('500 40px Fredoka')
+]).then(() => document.fonts.ready);
+
+// texto de varias piezas (para pintar una palabra de acento)
+function segText(parts, x, y, font) {
+  ctx.font = font; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const ws = parts.map(p => ctx.measureText(p.t).width);
+  let cx = x - ws.reduce((a, b) => a + b, 0) / 2;
+  parts.forEach((p, i) => { ctx.fillStyle = p.c; ctx.fillText(p.t, cx, y); cx += ws[i]; });
+}
+
+// ---------- cuadro ----------
+window.draw = ({ t }) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const dP = dayP(t);
+
+  // noche de fondo
+  const g0 = ctx.createLinearGradient(0, 0, 0, H);
+  g0.addColorStop(0, BG1); g0.addColorStop(1, BG2);
+  ctx.fillStyle = g0; ctx.fillRect(0, 0, W, H);
+
+  // zoom sutil de escena espacial → encuadre día
+  const z = 1 + 0.07 * zoomP(t);
+  ctx.save(); ctx.translate(960, 660); ctx.scale(z, z); ctx.translate(-960, -660);
+
+  // estrellas (entran escalonadas, se apagan con el día)
+  for (const s of STARS) {
+    const a = (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * s.sp * 2 + s.ph))) * seg(t, 0, 1.3) * (1 - dP) * clamp((t - s.d) / 0.7, 0, 1);
+    if (a <= 0.02) continue;
+    ctx.globalAlpha = a; ctx.fillStyle = '#dcecff';
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+    if (s.plus) { ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(t * .6 + s.ph);
+      ctx.fillRect(-s.r * 3.2, -.9, s.r * 6.4, 1.8); ctx.fillRect(-.9, -s.r * 3.2, 1.8, s.r * 6.4); ctx.restore(); }
+  }
+  ctx.globalAlpha = 1;
+
+  // amanecer: el cielo se vuelve celeste
+  if (dP > 0) {
+    const gd = ctx.createLinearGradient(0, 0, 0, 980);
+    gd.addColorStop(0, '#3fa9e8'); gd.addColorStop(1, '#bfe9ff');
+    ctx.globalAlpha = dP; ctx.fillStyle = gd; ctx.fillRect(-140, -140, W + 280, H + 280); ctx.globalAlpha = 1;
+  }
+
+  // cúpula atmosférica translúcida
+  const dIn = ease(seg(t, 2.0, 2.95));
+  if (dIn > 0) {
+    ctx.save(); ctx.globalAlpha = dIn;
+    ctx.beginPath(); ctx.arc(EC.x, EC.y, EC.R + 62, -2.2, -0.95);
+    ctx.lineWidth = 26 + 38 * dIn; ctx.strokeStyle = 'rgba(79,195,247,' + (0.14 + 0.10 * dP) + ')'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(EC.x, EC.y, EC.R + 30, -2.2, -0.95);
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(142,216,255,0.45)'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(EC.x, EC.y, EC.R + 94, -2.2, -0.95);
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(142,216,255,0.22)'; ctx.stroke();
+    ctx.restore();
+  }
+
+  // sol: entra con anticipación y overshoot
+  const sIn = seg(t, 2.3, 3.25);
+  if (sIn > 0) {
+    const sx = 2150 - 650 * back(sIn), sy = 430, sr = 92 * (1 + 0.08 * dP);
+    ctx.save(); ctx.translate(sx, sy);
+    ctx.save(); ctx.rotate(t * 0.05);                       // rayos escalonados con pulso
+    ctx.lineCap = 'round'; ctx.strokeStyle = SUN;
+    for (let i = 0; i < 10; i++) {
+      const ir = seg(t, 2.9 + i * .07, 3.5 + i * .07); if (ir <= 0) continue;
+      const ra = -Math.PI / 2 + i / 10 * Math.PI * 2, L = (172 + 7 * Math.sin(t * 2.1 + i)) * (0.2 + 0.8 * back(ir));
+      ctx.lineWidth = 30 * Math.min(1, ir * 1.4);
+      ctx.beginPath(); ctx.moveTo(Math.cos(ra) * 120, Math.sin(ra) * 120); ctx.lineTo(Math.cos(ra) * L, Math.sin(ra) * L); ctx.stroke();
+    }
+    ctx.restore();
+    ctx.shadowColor = 'rgba(255,159,67,0.9)'; ctx.shadowBlur = 55 + 18 * Math.sin(t * 1.7) + 25 * dP;
+    ctx.fillStyle = SUN; ctx.beginPath(); ctx.arc(0, 0, sr, 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = .85; ctx.strokeStyle = SUNL; ctx.lineWidth = 7; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(0, 0, sr - 8, -2.5, -1.1); ctx.stroke(); ctx.globalAlpha = 1;   // rim-light
+    ctx.restore();
+  }
+
+  // haces de luz del sol hacia la atmósfera
+  const bp = ease(seg(t, 3.5, 4.2));
+  if (bp > 0) {
+    ctx.save(); ctx.lineCap = 'round';
+    for (const hp of HP) {
+      const dx = hp[0] - 1500, dy = hp[1] - 430, dd = Math.hypot(dx, dy), ux = dx / dd, uy = dy / dd;
+      const pul = 0.75 + 0.25 * Math.sin(t * 3 + hp[0]);
+      ctx.globalAlpha = bp * 0.35 * pul; ctx.strokeStyle = SUNL; ctx.lineWidth = 12;
+      ctx.beginPath(); ctx.moveTo(1500 + ux * 100, 430 + uy * 100); ctx.lineTo(hp[0], hp[1]); ctx.stroke();
+      ctx.globalAlpha = bp * 0.45 * pul; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // destellos en los puntos de impacto
+  for (let i = 0; i < 3; i++) {
+    const fp = seg(t, 3.55 + i * .14, 4.35 + i * .14); if (fp <= 0 || fp >= 1) continue;
+    const fx = HP[i][0], fy = HP[i][1];
+    ctx.globalAlpha = (1 - fp) * .9; ctx.strokeStyle = CEL2; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(fx, fy, 12 + 58 * ease(fp), 0, 7); ctx.stroke();
+    ctx.globalAlpha = 1 - fp; ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(fx, fy, 10 * (1 - fp) + 4, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // partículas azules: rebotan en la cúpula y se dispersan con estela
+  for (const p of PARTS) {
+    const e = t - p.t0; if (e <= 0 || e >= p.life) continue;
+    const u1 = Math.min(e, p.tb) * p.v, u2 = Math.max(0, e - p.tb) * p.v2, g = 60 * Math.pow(Math.max(0, e - p.tb), 2);
+    const px = p.hp[0] + Math.cos(p.a1) * u1 + Math.cos(p.a2) * u2;
+    const py = p.hp[1] + Math.sin(p.a1) * u1 + Math.sin(p.a2) * u2 + g;
+    const a = clamp(e / 0.12, 0, 1) * clamp((p.life - e) / 0.5, 0, 1);
+    for (let k = 5; k >= 1; k--) {                          // estela determinista
+      const e2 = e - k * 0.055; if (e2 <= 0) continue;
+      const b1 = Math.min(e2, p.tb) * p.v, b2 = Math.max(0, e2 - p.tb) * p.v2;
+      ctx.globalAlpha = a * 0.5 * (1 - k / 6); ctx.fillStyle = p.c;
+      ctx.beginPath(); ctx.arc(p.hp[0] + Math.cos(p.a1) * b1 + Math.cos(p.a2) * b2,
+        p.hp[1] + Math.sin(p.a1) * b1 + Math.sin(p.a2) * b2 + 60 * Math.pow(Math.max(0, e2 - p.tb), 2),
+        p.r * (1 - k / 7), 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = a; ctx.shadowColor = p.c; ctx.shadowBlur = 12; ctx.fillStyle = p.c;
+    ctx.beginPath(); ctx.arc(px, py, p.r, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+  }
+  ctx.globalAlpha = 1;
+
+  // leyenda pequeña junto a la cúpula
+  const cap = ease(seg(t, 4.75, 5.5)) * (1 - seg(t, 6.1, 6.6));
+  if (cap > 0) {
+    ctx.globalAlpha = cap * 0.9; ctx.fillStyle = '#eaf6ff';
+    ctx.font = '500 30px Fredoka'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('La luz choca con el aire', 1560, 690);
+    ctx.setLineDash([6, 7]); ctx.strokeStyle = 'rgba(234,246,255,0.6)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(1500, 706); ctx.lineTo(HP[2][0] + 14, HP[2][1] - 16); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+
+  // Tierra con banda interna y rim-light
+  ctx.fillStyle = EARTH; ctx.beginPath(); ctx.arc(EC.x, EC.y, EC.R, 0, 7); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(EC.x, EC.y, EC.R, 0, 7); ctx.clip();
+  ctx.strokeStyle = 'rgba(58,84,160,0.35)'; ctx.lineWidth = 110;
+  ctx.beginPath(); ctx.arc(EC.x, EC.y, EC.R - 55, -2.2, -0.95); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.shadowColor = 'rgba(79,195,247,0.9)'; ctx.shadowBlur = 24;
+  ctx.strokeStyle = 'rgba(130,205,255,0.75)'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.arc(EC.x, EC.y, EC.R + 3, -2.15, -0.99); ctx.stroke(); ctx.restore();
+
+  // ciudad: siluetas sobre la curva + ventanas que se encienden
+  for (const b of CITY) {
+    const bx = b.x + b.w / 2, by = surfY(bx), tilt = Math.atan((bx - EC.x) / EC.R);
+    ctx.save(); ctx.translate(bx, by); ctx.rotate(tilt);
+    ctx.fillStyle = BLD; rr(-b.w / 2, -b.h, b.w, b.h + 30, 6); ctx.fill();
+    if (b.ant) {
+      ctx.strokeStyle = BLD; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, -b.h); ctx.lineTo(0, -b.h - 26); ctx.stroke();
+      ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 4 + bx); ctx.fillStyle = ROSA;
+      ctx.beginPath(); ctx.arc(0, -b.h - 30, 4, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = 'rgba(130,205,255,0.30)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-b.w / 2 + 4, -b.h + 1); ctx.lineTo(b.w / 2 - 4, -b.h + 1); ctx.stroke();
+    for (const wn of b.wins) {
+      const wa = (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * wn.sp + wn.ph))) * (1 - dP * 0.92) * ease(seg(t, wn.d0, wn.d0 + 0.6));
+      if (wa <= 0.02) continue;
+      ctx.globalAlpha = wa; ctx.fillStyle = wn.warm ? '#ffd166' : CEL2;
+      rr(wn.ox - 3, wn.oy - 4, 6, 8, 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1; ctx.restore();
+  }
+
+  // nubes y pajaritos del día
+  if (dP > 0.02) {
+    for (const cl of CLOUDS) {
+      ctx.save(); ctx.translate(cl.x + t * cl.sp, cl.y + (1 - dP) * 46); ctx.scale(cl.s, cl.s);
+      ctx.globalAlpha = 0.95 * dP * ease(seg(t, 6.0, 7.2)); ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(-46, 0, 30, 0, 7); ctx.arc(0, -16, 38, 0, 7); ctx.arc(48, 2, 28, 0, 7); ctx.fill();
+      rr(-70, -2, 140, 26, 13); ctx.fill();
+      ctx.globalAlpha = 0.12 * dP * ease(seg(t, 6.0, 7.2)); ctx.fillStyle = INK;
+      rr(-66, 16, 132, 10, 5); ctx.fill(); ctx.restore();
+    }
+    const ba = seg(t, 7.1, 7.9) * 0.9;
+    if (ba > 0) for (const bd of BIRDS) {
+      const bx = bd.x0 - (t - 7.1) * bd.sp, by = bd.y + Math.sin(t * 2.6 + bd.ph) * 7, fl = Math.sin(t * 9 + bd.ph);
+      ctx.save(); ctx.translate(bx, by); ctx.globalAlpha = ba; ctx.scale(1.4, 1.4);
+      ctx.strokeStyle = '#123f66'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-15, -4 - 6 * fl); ctx.quadraticCurveTo(-7, 2, 0, 0);
+      ctx.quadraticCurveTo(7, 2, 15, -4 - 6 * fl); ctx.stroke(); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore(); // fin zoom
+
+  // viñeta suave
+  const vg = ctx.createRadialGradient(960, 540, 520, 960, 540, 1250);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(4,8,26,0.38)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+  // título-pregunta (se va con la transición)
+  const tp = seg(t, 0.45, 1.35), tout = 1 - seg(t, 5.95, 6.55);
+  if (tp > 0 && tout > 0) {
+    ctx.save(); ctx.globalAlpha = Math.min(tp * 1.5, 1) * tout;
+    ctx.translate(960, 150 - 26 * (1 - ease(tp)) - 24 * (1 - tout));
+    const s = (0.72 + 0.28 * back(tp)) * (1 - 0.1 * (1 - tout)); ctx.scale(s, s);
+    segText([{ t: '¿Por qué el cielo es ', c: WHT }, { t: 'azul', c: CEL }, { t: '?', c: WHT }], 0, 0, '700 72px Fredoka');
+    ctx.restore();
+  }
+
+  // remate: píldora + frase que cae con squash
+  const pp = seg(t, 6.95, 7.35);
+  if (pp > 0) {
+    ctx.save(); ctx.translate(960, 170);
+    const ps = 0.6 + 0.4 * back(pp); ctx.scale(ps, ps); ctx.globalAlpha = Math.min(1, pp * 1.6);
+    ctx.font = '700 62px Fredoka';
+    const parts = [{ t: 'Por eso el cielo es ', c: WHT }, { t: 'azul', c: CEL }, { t: '.', c: WHT }];
+    const ws = parts.map(p => ctx.measureText(p.t).width), tot = ws.reduce((a, b) => a + b, 0);
+    const pw = tot + 96, ph2 = 116;
+    ctx.shadowColor = 'rgba(0,0,0,0.28)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 8;
+    ctx.fillStyle = 'rgba(11,18,51,0.92)'; rr(-pw / 2, -ph2 / 2, pw, ph2, 58); ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    const fp = seg(t, 7.18, 7.62);
+    if (fp > 0) {
+      const sq = seg(t, 7.62, 8.0), sy2 = 0.85 + 0.15 * back(sq);
+      ctx.save(); ctx.translate(0, -150 * (1 - fp * fp)); ctx.scale(1, fp < 1 ? 1 : sy2);
+      ctx.globalAlpha = Math.min(1, fp * 3) * Math.min(1, pp * 1.6);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      let cx = -tot / 2;
+      parts.forEach((p, i) => { ctx.fillStyle = p.c; ctx.fillText(p.t, cx, 6); cx += ws[i]; });
+      ctx.restore();
+      if (fp >= 1 && sq < 1) {                              // polvito al aterrizar
+        ctx.globalAlpha = (1 - sq) * 0.7; ctx.fillStyle = '#bfe9ff';
+        for (const s2 of [-1, 1]) { ctx.beginPath(); ctx.arc(s2 * (pw / 2 - 26), ph2 / 2 - 8 + 10 * sq, 7 * (1 - sq) + 2, 0, 7); ctx.fill(); }
+      }
+    }
+    ctx.restore();
+  }
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>

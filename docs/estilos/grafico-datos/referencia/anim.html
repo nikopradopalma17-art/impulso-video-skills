@@ -1,0 +1,225 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Inter';font-weight:300;src:url(../../fuentes/inter-300.ttf) format('truetype');}
+@font-face{font-family:'Inter';font-weight:400;src:url(../../fuentes/inter-400.ttf) format('truetype');}
+@font-face{font-family:'Inter';font-weight:700;src:url(../../fuentes/inter-700.ttf) format('truetype');}
+html,body{margin:0;background:#fafafa}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// VERI — "10 minutos al día, medidos"
+// Visualización de datos editorial: papel #fafafa, tinta #1a1a1a, un solo acento naranja.
+// Masthead → ejes trazados → barras ANTES grises → REESCALADO del eje (transformación de
+// escena) → barras DESPUÉS naranjas con overshoot → tendencia punteada → callout con
+// línea guía + óvalo a mano → cierre editorial abajo-izquierda. Duración 9 s.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+
+const BG = '#fafafa', INK = '#1a1a1a', GRAY = '#6f6f6f', SOFT = '#9a9a9a',
+      GRID = 'rgba(26,26,26,0.08)', ACC = '#e8590c', BARG = '#c4c4c4', BARGTXT = '#7a7a7a';
+
+// ---------- utilidades ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const outC = p => 1 - Math.pow(1 - p, 3);                                     // easeOutCubic
+const inOut = p => p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;         // easeInOutCubic
+const back = p => { const s = 1.8; p = clamp(p, 0, 1); return 1 + (s+1)*Math.pow(p-1, 3) + s*Math.pow(p-1, 2); };
+const ls = px => { if ('letterSpacing' in ctx) ctx.letterSpacing = px + 'px'; };
+
+function txt(s, x, y, o = {}) {
+  const { font = '400 28px Inter', col = INK, align = 'left', alpha = 1, track = 0 } = o;
+  if (alpha <= 0) return;
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.font = font; ctx.fillStyle = col;
+  ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ls(track);
+  ctx.fillText(s, x, y); ls(0); ctx.restore();
+}
+// línea recta revelada de (x1,y1) hacia (x2,y2)
+function line(x1, y1, x2, y2, p, col = INK, lw = 2) {
+  if (p <= 0) return; const e = outC(p);
+  ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + (x2-x1)*e, y1 + (y2-y1)*e); ctx.stroke(); ctx.restore();
+}
+// polilínea revelada por fracción de longitud; devuelve la fracción avanzada (eased)
+function tracePts(pts, p, col, lw, dash = null) {
+  if (p <= 0) return 0;
+  const L = []; let tot = 0;
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]); L.push(d); tot += d; }
+  const e = outC(p); let rem = e * tot;
+  ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length && rem > 0; i++) {
+    if (rem >= L[i-1]) { ctx.lineTo(pts[i][0], pts[i][1]); rem -= L[i-1]; }
+    else { const f = rem / L[i-1]; ctx.lineTo(pts[i-1][0] + (pts[i][0]-pts[i-1][0])*f, pts[i-1][1] + (pts[i][1]-pts[i-1][1])*f); rem = 0; }
+  }
+  ctx.stroke(); ctx.restore();
+  return tot ? e : 0;
+}
+// óvalo "dibujado a mano": dos pasadas con temblor determinista (sin Math.random)
+function handOval(cx, cy, rx, ry, p) {
+  const passes = [[0, 0.95, 0, 0, 0], [0.45, 0.4, 6, -5, 0.07]];
+  for (const [ph, al, ox, oy, rot] of passes) {
+    const pp = seg(p, ph, 1); if (pp <= 0) continue;
+    const N = 72, steps = Math.max(2, Math.round(N * outC(pp))), a0 = -1.2;
+    ctx.save(); ctx.translate(cx + ox, cy + oy); ctx.rotate(rot);
+    ctx.strokeStyle = ACC; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.globalAlpha = al;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const a = a0 + (i / N) * Math.PI * 2;
+      const w = 1 + 0.03*Math.sin(3*a + 1.4) + 0.018*Math.sin(5*a + 0.6);
+      const x = rx * Math.cos(a) * w, y = ry * Math.sin(a) * w;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke(); ctx.restore();
+  }
+}
+
+// ---------- retícula y datos ----------
+const PL = 170, PR = 1560, PT = 280, PB = 840, PH = PB - PT;   // caja del gráfico (márgenes asimétricos)
+const DATA_A = [2, 3, 2, 3], DATA_D = [5, 7, 8, 10];           // min/día: ANTES vs DESPUÉS por semana
+const T0_A = [2.2, 2.38, 2.56, 2.74], T0_D = [4.1, 4.32, 4.54, 4.76];
+const BW = 72, GAPI = 16;
+const gCx = i => PL + (PR - PL) * (i + 0.5) / 4;               // centro del grupo semanal
+const aX = i => gCx(i) - GAPI/2 - BW, dX = i => gCx(i) + GAPI/2;
+const ymaxAt = t => 6 + (12 - 6) * inOut(seg(t, 3.35, 4.15));  // reescalado del eje: 6 → 12
+const yOf = (v, ym) => PB - (v / ym) * PH;
+
+// barra con valor que "rulleta" (cuenta hacia arriba con easing)
+function bar(x, val, t0, dur, t, ym, col, colTxt, fontTxt, overshoot) {
+  const p = seg(t, t0, t0 + dur); if (p <= 0) return PB;
+  const h = (overshoot ? back(p) : outC(p)) * (val / ym) * PH;
+  ctx.fillStyle = col; ctx.fillRect(x, PB - h, BW, h);
+  const ap = seg(t, t0 + 0.12, t0 + 0.34);
+  if (ap > 0) txt(String(Math.round(outC(p) * val)), x + BW/2, PB - h - 14,
+                  { font: fontTxt, col: colTxt, align: 'center', alpha: ap });
+  return PB - h;
+}
+
+// ---------- escena ----------
+window.ready = Promise.all([
+  document.fonts.load('300 30px Inter'),
+  document.fonts.load('italic 300 30px Inter'),
+  document.fonts.load('400 30px Inter'),
+  document.fonts.load('700 30px Inter')
+]).then(() => document.fonts.ready);
+
+window.draw = ({ t }) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+  const ym = ymaxAt(t);
+
+  // ---- masthead editorial (arriba-izquierda) ----
+  const tp = seg(t, 0.25, 1.0);
+  if (tp > 0) {
+    ctx.save(); ctx.globalAlpha = tp; ctx.translate(0, (1 - outC(tp)) * 26);
+    ctx.font = '700 58px Inter'; ctx.fillStyle = INK; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    const w1 = ctx.measureText('Práctica diaria ').width;
+    ctx.fillText('Práctica diaria ', 170, 118);
+    ctx.font = 'italic 300 58px Inter'; ctx.fillStyle = ACC;
+    ctx.fillText('vs.', 170 + w1, 118);
+    const w2 = ctx.measureText('vs. ').width;
+    ctx.font = '700 58px Inter'; ctx.fillStyle = INK;
+    ctx.fillText('resultado', 170 + w1 + w2, 118);
+    ctx.restore();
+  }
+  const sp = seg(t, 0.6, 1.3);
+  txt('Minutos de práctica al día, registrados cada semana.', 170, 166 + (1 - outC(sp)) * 14,
+      { font: '300 30px Inter', col: GRAY, alpha: sp });
+  line(170, 204, 1750, 204, seg(t, 0.9, 1.5), 'rgba(26,26,26,0.18)', 1.5);   // filete de masthead
+
+  // marca de esquina
+  const kp = seg(t, 0.35, 0.95);
+  if (kp > 0) {
+    ctx.save(); ctx.globalAlpha = kp; ctx.font = '400 28px Inter'; ls(2);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+    const cw = ctx.measureText('DATOS / 30 DÍAS · N=1').width;
+    ctx.fillStyle = SOFT; ctx.fillText('DATOS / 30 DÍAS · N=1', 1750, 118); ls(0);
+    ctx.fillStyle = ACC; ctx.fillRect(1750 - cw - 30, 96, 14, 14);
+    ctx.restore();
+  }
+
+  // ---- ejes trazados progresivamente ----
+  line(PL, PB, PL, PT - 16, seg(t, 1.0, 1.6), INK, 2.5);     // eje Y, de abajo hacia arriba
+  line(PL, PB, PR, PB, seg(t, 1.3, 1.95), INK, 2.5);         // eje X, de izquierda a derecha
+  txt('MIN / DÍA', PL, 252, { font: '400 28px Inter', col: SOFT, alpha: seg(t, 1.7, 2.2), track: 2 });
+
+  // gridlines finas + ticks del eje Y (siguen el reescalado; los nuevos ticks entran al pasar)
+  for (let v = 0; v <= 12; v += 2) {
+    if (v > ym + 0.01) break;
+    const y = yOf(v, ym);
+    const ga = clamp((ym - v) * 1.5, 0, 1) * seg(t, 1.5, 2.1);
+    if (v > 0 && ga > 0) {
+      ctx.save(); ctx.globalAlpha = ga; ctx.strokeStyle = GRID; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(PR, y); ctx.stroke(); ctx.restore();
+    }
+    txt(String(v), PL - 16, y + 10, { font: '400 28px Inter', col: SOFT, align: 'right',
+        alpha: clamp((ym - v) * 1.5, 0, 1) * seg(t, 1.55, 2.15) });
+  }
+
+  // etiquetas de semana con stagger
+  for (let i = 0; i < 4; i++) {
+    const p = seg(t, 1.9 + i * 0.12, 2.35 + i * 0.12);
+    txt('S' + (i + 1), gCx(i), 890 - (1 - outC(p)) * 10,
+        { font: '400 28px Inter', col: '#454545', align: 'center', alpha: p });
+  }
+  txt('SEMANAS', PR, 932, { font: '400 28px Inter', col: SOFT, align: 'right', alpha: seg(t, 2.3, 2.8), track: 2 });
+
+  // leyenda
+  const lp = seg(t, 2.2, 2.7);
+  if (lp > 0) {
+    ctx.save(); ctx.globalAlpha = lp;
+    ctx.fillStyle = BARG; ctx.fillRect(PL, 294, 18, 18);
+    ctx.font = '400 28px Inter'; ls(1);
+    const wA = ctx.measureText('ANTES').width; ls(0);
+    txt('ANTES', PL + 32, 312, { font: '400 28px Inter', col: '#555555', track: 1 });
+    ctx.fillStyle = ACC; ctx.fillRect(PL + 32 + wA + 36, 294, 18, 18);
+    txt('DESPUÉS', PL + 32 + wA + 68, 312, { font: '400 28px Inter', col: '#555555', track: 1 });
+    ctx.restore();
+  }
+
+  // ---- barras ANTES (grises, stagger plano) ----
+  for (let i = 0; i < 4; i++) bar(aX(i), DATA_A[i], T0_A[i], 0.55, t, ym, BARG, BARGTXT, '400 28px Inter', false);
+  // ---- barras DESPUÉS (naranjas, overshoot) ----
+  for (let i = 0; i < 4; i++) bar(dX(i), DATA_D[i], T0_D[i], 0.62, t, ym, ACC, INK, '700 30px Inter', true);
+
+  // ---- línea de tendencia punteada sobre los picos DESPUÉS ----
+  const trendPts = [0, 1, 2, 3].map(i => [gCx(i), yOf(DATA_D[i], 12) - 64]);
+  const e = tracePts(trendPts, seg(t, 5.9, 7.0), 'rgba(26,26,26,0.75)', 3, [1.5, 9]);
+  const cum = [0, 0.336, 0.664, 0.94];
+  for (let i = 0; i < 4; i++) {
+    const dp = clamp((e - cum[i]) / 0.06, 0, 1); if (dp <= 0) continue;
+    ctx.save(); ctx.globalAlpha = dp;
+    ctx.fillStyle = ACC; ctx.strokeStyle = BG; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(trendPts[i][0], trendPts[i][1], 7 * back(dp), 0, 7); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---- callout: línea guía + texto + óvalo a mano sobre la barra clave (S4 · DESPUÉS) ----
+  const q0 = [1516, 382], qc = [1560, 368], q1 = [1604, 360], qp = [];
+  for (let i = 0; i <= 20; i++) {
+    const f = i / 20, u = 1 - f;
+    qp.push([u*u*q0[0] + 2*u*f*qc[0] + f*f*q1[0], u*u*q0[1] + 2*u*f*qc[1] + f*f*q1[1]]);
+  }
+  tracePts(qp, seg(t, 6.6, 7.2), 'rgba(26,26,26,0.8)', 1.8);
+  const dd = seg(t, 6.6, 6.75);
+  if (dd > 0) { ctx.save(); ctx.globalAlpha = dd; ctx.fillStyle = ACC;
+    ctx.beginPath(); ctx.arc(q0[0], q0[1], 5, 0, 7); ctx.fill(); ctx.restore(); }
+  const ctp = seg(t, 6.75, 7.3);
+  if (ctp > 0) {
+    txt('+180%', 1615, 376 - (1 - outC(ctp)) * 14, { font: '700 48px Inter', col: ACC, alpha: ctp });
+    txt('de confianza', 1615, 418, { font: '400 28px Inter', col: INK, alpha: seg(t, 6.9, 7.4) });
+  }
+  handOval(1430, 500, 105, 185, seg(t, 6.95, 7.85));
+
+  // ---- cierre editorial (abajo-izquierda) ----
+  line(170, 946, 344, 946, seg(t, 7.9, 8.35), ACC, 5);
+  const cp2 = seg(t, 8.05, 8.75);
+  if (cp2 > 0) txt('Pequeño, diario, medible.', 170, 1008 - (1 - outC(cp2)) * 16,
+                   { font: '700 46px Inter', col: INK, alpha: cp2 });
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>

@@ -23,7 +23,7 @@ Son **101 repos (~2.4 GB)** de frameworks, explainers, edición, shorts y motion
 
 Sin humo: no vendemos diapositivas, construimos resultados. Este catálogo existe para que cualquier equipo monte su pipeline de video con agentes en una tarde, no en un trimestre.
 
-**¿No sabes qué estilo usar?** Abre el landing: la **Galería de estilos** (sección 00) muestra cada lenguaje visual de IMPULSO IA animado en un GIF — *pizarra blanca, pizarra negra, ciencia animada, gráfico de datos, isométrico, Bauhaus y linograbado* — con la explicación de qué hace a cada uno y cuándo usarlo. Pídelos por su nombre en tu brief y el motor de estilos los reproduce. Además, las descripciones del catálogo están traducidas al español.
+**¿No sabes qué estilo usar?** Abre el landing: la **Galería de estilos** (sección 00) muestra cada lenguaje visual de IMPULSO IA animado en un GIF — *pizarra blanca, pizarra negra, ciencia animada, gráfico de datos, isométrico, Bauhaus y linograbado* — con la explicación de qué hace a cada uno y cuándo usarlo. Y no es solo para mirar: cada tarjeta tiene el botón **"📋 Copiar SKILL.md"** — la skill completa lista para pegar en `~/.claude/skills/` o en el prompt de tu agente, con sus fuentes incluidas (Google Fonts, SIL OFL). La carpeta [`estilos/`](estilos/LEEME.md) contiene las 7 skills completas con su maquinaria de render validada. Las descripciones del catálogo están traducidas al español.
 
 ---
 
@@ -37,9 +37,10 @@ impulso-video-skills/
 ├── 04-shorts/       📱  11 repos ·  285 MB   Shorts y social
 ├── 05-motion/       🎞  10 repos ·  185 MB   Motion graphics
 ├── brand/                        Logos IMPULSO IA + GIFs de la galería de estilos
+├── estilos/                      Las 7 skills de estilo completas (SKILL.md + anim.html + fuentes) para copiar y pegar
 ├── datos/                        traducciones.json (ES) + estilos.json (metadatos de la galería)
 ├── docs/                         Sitio para GitHub Pages (/docs) + fuente/ con el catálogo original
-├── scripts/                      clonar_repos.py · generar_indice.py · preparar_pages.py
+├── scripts/                      clonar_repos.py · generar_indice.py · preparar_pages.py · importar_estilos.py
 ├── index.html                    Landing navegable del catálogo
 ├── indice.js                     Datos del índice para el landing
 └── indice.json                   Índice maestro: 204 repos (101 clonados + 103 externos)
