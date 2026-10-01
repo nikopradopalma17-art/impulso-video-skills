@@ -17,7 +17,7 @@
 
 ---
 
-Los mejores repos open-source de skills de video para agentes de código, consolidados en un solo lugar. Este repo parte del catálogo [awesome-claude-video-skills](https://github.com/zhuyansen/awesome-claude-video-skills) de **zhuyansen** (204 repos indexados), lo filtra a las **5 categorías clave** con **stars ≥ 10**, y clona cada repositorio en carpetas numeradas y listas para usar.
+Los mejores repos open-source de skills de video para agentes de código, consolidados en un solo lugar. **Es todo lo que necesitas para la creación y edición de contenido de video: en 1 solo lugar.** Frameworks de producción completa, edición automática, explicadores animados, shorts virales, motion graphics y 7 estilos de diseño exclusivos con su GIF animado — todo en español y listo para que tu agente produzca hoy mismo: miras el estilo, copias la skill y a crear.
 
 Son **101 repos (~2.4 GB)** de frameworks, explainers, edición, shorts y motion graphics. Cada skill viene con sus ejemplos, docs y scripts propios: cópiala al directorio de skills de tu agente (Claude Code, Codex, ZCode, Cursor…) y a producir. Clones superficiales (`--depth 1`), sin historial git: solo el contenido útil.
 
