@@ -1,0 +1,378 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Caveat';font-weight:700;src:url(../../fuentes/caveat-700.ttf) format('truetype');}
+@font-face{font-family:'Poppins';font-weight:700;src:url(../../fuentes/poppins-700.ttf) format('truetype');}
+@font-face{font-family:'Inter';font-weight:400;src:url(../../fuentes/inter-400.ttf) format('truetype');}
+html,body{margin:0;background:#262150}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ESTILO: CUADERNO COSMOS — origen: prompt-motion.com/ajith-io-ea7f2d (@ajith_io, Opus 5.5)
+// Dos mundos: papel con grano (asterisco salmón con boil, documento esbozado, script
+// manuscrito, flechas) y cosmos indigo (estrellas, nebulosas, órbitas con libros pastel,
+// prisma que refracta arcoíris). El zoom a un orbe del documento hace el switch. 9 s.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const PAPEL = '#ecebe6', TINTA = '#55534c', DOC = '#fbfaf7', LINEA = '#c9c6bd',
+      SALMON = '#d97a5a', INDIGO = '#262150', PULSO = '#2e2860';
+const PASTEL = ['#7fe3a8', '#8fc3ff', '#f7a8cd', '#ffcf8f'];
+const ARCOIRIS = ['#e5534b', '#ef8c37', '#f2cf4a', '#7fc46f', '#5aa2e8', '#4a5fc9', '#8a5fc0'];
+let T = 0;
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const seg = (t,a,b) => clamp((t-a)/(b-a), 0, 1);
+const easeOut = p => 1 - Math.pow(1-p, 3);
+const easeIn = p => p*p*p;
+const easeInOut = p => p<.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2,3)/2;
+const easeOutBack = p => { const c = 1.70158; const q = p-1; return 1 + (c+1)*q*q*q + c*q*q; };
+const hash1 = n => { const s = Math.sin(n*127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// ---------- precalculados: grano del papel + campo de estrellas ----------
+const grano = document.createElement('canvas'); grano.width = W; grano.height = H;
+window.ready = Promise.all([
+  document.fonts.load('700 64px Caveat'), document.fonts.load('700 96px Poppins'),
+  document.fonts.load('400 30px Inter')
+]).then(() => document.fonts.ready).then(() => {
+  let s = 11;
+  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const g = grano.getContext('2d');
+  // nubes suaves de papel
+  for (let i = 0; i < 90; i++) {
+    const x = rnd() * W, y = rnd() * H, r = 90 + rnd() * 220;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    const dark = rnd() > 0.5;
+    gr.addColorStop(0, dark ? 'rgba(150,146,134,0.05)' : 'rgba(255,255,255,0.10)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  for (let i = 0; i < 7000; i++) {
+    g.fillStyle = `rgba(130,126,112,${0.02 + rnd() * 0.03})`;
+    g.fillRect(rnd() * W, rnd() * H, 1.5, 1.5);
+  }
+});
+
+// ---------- dibujos del mundo papel ----------
+function asterisco(x, y, size, col) { // salpicón de tinta con boil (jitter por frame)
+  const f = Math.floor(T * 8);
+  ctx.save(); ctx.translate(x, y); ctx.rotate(hash1(f) * 0.16 - 0.08);
+  ctx.fillStyle = col;
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2 + hash1(f * 3 + i) * 0.25;
+    const len = size * (0.55 + hash1(f * 7 + i * 3) * 0.45);
+    ctx.save(); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(0, -size * 0.16);
+    ctx.quadraticCurveTo(len * 0.6, -size * 0.2, len, 0);
+    ctx.quadraticCurveTo(len * 0.6, size * 0.2, 0, size * 0.16);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(0, 0, size * 0.3, 0, 7); ctx.fill();
+  ctx.restore();
+}
+function docEsbozado(x, y, w, h, pIn) { // documento esbozado con esquina doblada + orbe
+  const p = seg(T, pIn, pIn + 0.45); if (p <= 0) return;
+  ctx.save(); ctx.translate(x, y - (1 - easeOutBack(p)) * 160); ctx.rotate(-0.012);
+  ctx.globalAlpha = clamp(p * 1.5, 0, 1);
+  ctx.fillStyle = DOC;
+  ctx.strokeStyle = '#9b988e'; ctx.lineWidth = 3;
+  // doble trazo "a mano"
+  for (let k = 0; k < 2; k++) {
+    const j = k * 2.5;
+    ctx.beginPath(); ctx.roundRect(-w/2 + j, -h/2 + j, w - j*2, h - j*2, 8);
+    k === 0 ? ctx.fill() : ctx.stroke();
+  }
+  // esquina doblada
+  ctx.fillStyle = '#efede6'; ctx.strokeStyle = '#9b988e'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(w/2 - 52, -h/2); ctx.lineTo(w/2, -h/2 + 52);
+  ctx.lineTo(w/2 - 52, -h/2 + 52); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // barras de texto
+  ctx.fillStyle = LINEA;
+  for (let i = 0; i < 7; i++) {
+    const bw = (w - 70) * (0.45 + hash1(i * 9.1) * 0.5);
+    ctx.beginPath(); ctx.roundRect(-w/2 + 35, -h/2 + 60 + i * 40, bw, 12, 6); ctx.fill();
+  }
+  // el ORBE: semilla del cosmos
+  const op = seg(T, pIn + 0.5, pIn + 0.8);
+  if (op > 0) {
+    const g = ctx.createRadialGradient(10, -10, 2, 0, 0, 34);
+    g.addColorStop(0, '#6a5fb8'); g.addColorStop(0.7, '#241f4a'); g.addColorStop(1, '#191538');
+    ctx.fillStyle = g; ctx.globalAlpha = op;
+    ctx.beginPath(); ctx.arc(0, h/2 - 70, 30, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+function mano(txt, x, y, size, t0, t1, col) {
+  const p = seg(T, t0, t1); if (p <= 0) return;
+  ctx.save(); ctx.font = '700 ' + size + 'px Caveat'; ctx.textAlign = 'center'; ctx.fillStyle = col;
+  const w = ctx.measureText(txt).width;
+  ctx.save(); ctx.beginPath(); ctx.rect(x - w/2 - 10, y - size, (w + 20) * p, size * 1.6); ctx.clip();
+  ctx.fillText(txt, x, y); ctx.restore();
+  // subrayado garabato
+  if (p >= 1) { ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x - w/2 + 6, y + 16);
+    ctx.quadraticCurveTo(x, y + 22, x + w/2 - 6, y + 14); ctx.stroke(); }
+  ctx.restore();
+}
+function flecha(pts, t0, t1, col, wpt) {
+  const p = seg(T, t0, t1); if (p <= 0) return;
+  let L = 0; const lens = [];
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]); lens.push(d); L += d; }
+  let target = L * p;
+  ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wpt || 3.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  let ex = pts[0][0], ey = pts[0][1], ea = 0;
+  for (let i = 1; i < pts.length; i++) {
+    if (target >= lens[i-1]) { ctx.lineTo(pts[i][0], pts[i][1]); target -= lens[i-1];
+      ex = pts[i][0]; ey = pts[i][1]; ea = Math.atan2(pts[i][1]-pts[i-1][1], pts[i][0]-pts[i-1][0]); }
+    else { const q = target / lens[i-1];
+      ex = pts[i-1][0] + (pts[i][0]-pts[i-1][0]) * q; ey = pts[i-1][1] + (pts[i][1]-pts[i-1][1]) * q;
+      ea = Math.atan2(pts[i][1]-pts[i-1][1], pts[i][0]-pts[i-1][0]);
+      ctx.lineTo(ex, ey); break; }
+  }
+  ctx.stroke();
+  if (p > 0.6) { ctx.save(); ctx.translate(ex, ey); ctx.rotate(ea);
+    ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(-17, -8); ctx.lineTo(-13, 0); ctx.lineTo(-17, 8);
+    ctx.closePath(); ctx.fill(); ctx.restore(); }
+  ctx.restore();
+}
+function tarjetaVideo(x, y, w, h, pIn) { // el documento convertido en reproductor
+  const p = seg(T, pIn, pIn + 0.45); if (p <= 0) return;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(0.008);
+  ctx.fillStyle = DOC; ctx.strokeStyle = '#9b988e'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 16); ctx.fill(); ctx.stroke();
+  // brote que se dibuja
+  const dp = seg(T, pIn + 0.3, pIn + 1.0);
+  if (dp > 0) {
+    const cx2 = 0, by = h/2 - 60;
+    ctx.strokeStyle = '#5a7a4f'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+    const stemH = 130 * easeOut(dp);
+    ctx.beginPath(); ctx.moveTo(cx2, by);
+    ctx.quadraticCurveTo(cx2 - 8, by - stemH * 0.6, cx2, by - stemH); ctx.stroke();
+    if (dp > 0.45) { const lp = easeOutBack(seg(dp, 0.45, 0.75));
+      ctx.fillStyle = '#7fae6a';
+      ctx.save(); ctx.translate(cx2 - 34 * lp, by - stemH + 10); ctx.rotate(-0.5 * lp);
+      ctx.beginPath(); ctx.ellipse(0, 0, 44 * lp, 20 * lp, 0, 0, 7); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.translate(cx2 + 34 * lp, by - stemH + 22); ctx.rotate(0.5 * lp);
+      ctx.beginPath(); ctx.ellipse(0, 0, 40 * lp, 18 * lp, 0, 0, 7); ctx.fill(); ctx.restore(); }
+    if (dp > 0.15) { ctx.strokeStyle = '#8a6b52'; ctx.lineWidth = 4;
+      const rp = seg(dp, 0.15, 0.5);
+      for (let i = -2; i <= 2; i++) { if (Math.abs(i) / 3 > rp) continue;
+        ctx.beginPath(); ctx.moveTo(cx2, by);
+        ctx.quadraticCurveTo(cx2 + i * 22, by + 16, cx2 + i * 34, by + 30); ctx.stroke(); } }
+  }
+  // barra de progreso
+  const pp = seg(T, pIn + 0.9, pIn + 1.1);
+  ctx.strokeStyle = '#e3e1d8'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-w/2 + 40, h/2 - 40); ctx.lineTo(w/2 - 40, h/2 - 40); ctx.stroke();
+  ctx.strokeStyle = SALMON;
+  ctx.beginPath(); ctx.moveTo(-w/2 + 40, h/2 - 40);
+  ctx.lineTo(-w/2 + 40 + (w - 80) * 0.72 * pp, h/2 - 40); ctx.stroke();
+  if (pp > 0) { ctx.fillStyle = DOC; ctx.strokeStyle = '#9b988e'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(-w/2 + 40 + (w - 80) * 0.72 * pp, h/2 - 40, 11, 0, 7); ctx.fill(); ctx.stroke(); }
+  ctx.restore();
+}
+function logo(x, y, pIn) {
+  const bp = seg(T, pIn, pIn + 0.5); if (bp <= 0) return;
+  const bars = [['#5fd08a', -58], ['#6fa8f5', 0], ['#f08bbd', 58]];
+  bars.forEach(([col, dx], i) => {
+    const b = seg(T, pIn + i * 0.09, pIn + 0.35 + i * 0.09);
+    if (b > 0) { ctx.save(); ctx.translate(x + dx, y);
+      const e = easeOutBack(b); ctx.translate(0, (1 - e) * -140); ctx.scale(e, e);
+      ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(-24, -66, 48, 132, 13); ctx.fill();
+      ctx.restore(); }
+  });
+  const wp = seg(T, pIn + 0.25, pIn + 0.55);
+  if (wp > 0) { ctx.font = '700 96px Poppins'; ctx.fillStyle = '#2b2a33'; ctx.textAlign = 'left';
+    ctx.save(); ctx.beginPath(); ctx.rect(x + 110, y - 100, 620 * easeOut(wp), 160); ctx.clip();
+    ctx.fillText('TintaLab', x + 120, y + 34); ctx.restore(); }
+  const sp = seg(T, pIn + 0.55, pIn + 0.8);
+  if (sp > 0) { ctx.globalAlpha = sp; ctx.font = '400 30px Inter'; ctx.fillStyle = '#8a877c';
+    ctx.textAlign = 'left'; ctx.fillText('tintalab.studio', x + 124, y + 84); ctx.globalAlpha = 1; }
+}
+
+// ---------- mundo cosmos ----------
+function cosmos(tLocal) {
+  ctx.fillStyle = INDIGO; ctx.fillRect(0, 0, W, H);
+  // nebulosas pastel
+  const neb = [[420, 300, 520, 'rgba(143,127,208,0.16)'], [1500, 760, 600, 'rgba(217,143,174,0.13)'],
+               [1050, 180, 460, 'rgba(111,134,201,0.12)']];
+  neb.forEach(([x, y, r, col]) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  });
+  // estrellas titilantes
+  for (let i = 0; i < 150; i++) {
+    const x = hash1(i * 3.1) * W, y = hash1(i * 7.7) * H;
+    const tw = 0.35 + 0.5 * Math.sin(tLocal * 2.2 + i * 1.7);
+    ctx.fillStyle = `rgba(255,255,255,${0.14 + tw * 0.3 * hash1(i * 5.3)})`;
+    const r = 1 + hash1(i * 9.9) * 1.9;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  }
+  // estrella central cálida
+  const fade = 1 - seg(tLocal, 1.75, 2.15); // se apaga al llegar el prisma
+  if (fade > 0) {
+    const g = ctx.createRadialGradient(960, 540, 4, 960, 540, 190);
+    g.addColorStop(0, 'rgba(255,238,200,0.95)'); g.addColorStop(0.25, 'rgba(255,214,140,0.5)');
+    g.addColorStop(1, 'rgba(255,200,120,0)');
+    ctx.fillStyle = g; ctx.globalAlpha = fade;
+    ctx.beginPath(); ctx.arc(960, 540, 190, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff6dd'; ctx.globalAlpha = fade;
+    ctx.save(); ctx.translate(960, 540);
+    const destello = (r1, r2) => { ctx.beginPath();
+      ctx.moveTo(0, -r1); ctx.quadraticCurveTo(r2 * 0.16, -r2 * 0.16, r1, 0);
+      ctx.quadraticCurveTo(r2 * 0.16, r2 * 0.16, 0, r1);
+      ctx.quadraticCurveTo(-r2 * 0.16, r2 * 0.16, -r1, 0);
+      ctx.quadraticCurveTo(-r2 * 0.16, -r2 * 0.16, 0, -r1);
+      ctx.closePath(); ctx.fill(); };
+    destello(46, 46); ctx.rotate(Math.PI / 4); destello(24, 24);
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  // órbitas con libros pastel
+  const ofade = 1 - seg(tLocal, 1.7, 2.05);
+  if (ofade > 0) {
+    ctx.save(); ctx.globalAlpha = ofade;
+    const orb = [[-0.21, 620, 250, 1.9], [0.14, 760, 320, -1.4], [-0.07, 880, 380, 1.1]];
+    orb.forEach(([rot, rx, ry, spd], oi) => {
+      ctx.save(); ctx.translate(960, 540); ctx.rotate(rot);
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 7); ctx.stroke();
+      // 3 libros por órbita
+      for (let k = 0; k < 3; k++) {
+        const a = tLocal * spd + k * (Math.PI * 2 / 3) + oi * 1.3;
+        const bx = Math.cos(a) * rx, by = Math.sin(a) * ry;
+        const tang = Math.atan2(Math.sin(a) * rx, Math.cos(a) * -ry * -1);
+        ctx.save(); ctx.translate(bx, by); ctx.rotate(rot + Math.sin(a) * 0.3);
+        ctx.fillStyle = PASTEL[(oi * 3 + k) % 4];
+        ctx.shadowColor = PASTEL[(oi * 3 + k) % 4]; ctx.shadowBlur = 16;
+        ctx.beginPath(); ctx.roundRect(-26, -9, 52, 18, 9); ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+  // prisma + haz + arcoíris
+  const pp = seg(tLocal, 2.15, 2.5);
+  if (pp > 0) {
+    const px = 960, py = 560, s = 230 * easeOutBack(pp);
+    // haz entrante
+    const bp = seg(tLocal, 2.3, 2.6);
+    if (bp > 0) {
+      const g = ctx.createLinearGradient(0, py, px - s, py);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,0.95)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(0, py - 8 * bp); ctx.lineTo(px - s * 0.72, py - 3);
+      ctx.lineTo(px - s * 0.72, py + 3); ctx.lineTo(0, py + 8 * bp); ctx.closePath(); ctx.fill();
+    }
+    // prisma de cristal (contorno doble)
+    ctx.save(); ctx.translate(px, py);
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(s * 0.87, s * 0.5); ctx.lineTo(-s * 0.87, s * 0.5);
+    ctx.closePath(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(s * 0.87, s * 0.5); ctx.lineTo(-s * 0.87, s * 0.5);
+    ctx.closePath(); ctx.stroke();
+    // brillo del punto de entrada
+    const sp = seg(tLocal, 2.35, 2.6);
+    if (sp > 0) { ctx.fillStyle = '#ffffff';
+      ctx.save(); ctx.translate(-s * 0.72, 0); ctx.rotate(Math.PI / 4);
+      const sz = 12 * sp; ctx.fillRect(-sz, -sz / 3, sz * 2, sz / 1.5); ctx.fillRect(-sz / 3, -sz, sz / 1.5, sz * 2);
+      ctx.restore(); }
+    // abanico arcoíris
+    const rp = seg(tLocal, 2.55, 2.85);
+    if (rp > 0) {
+      const a0 = 0.12, a1 = 0.62, spread = a0 + (a1 - a0) * easeOut(rp);
+      for (let i = 0; i < 7; i++) {
+        const aa = a0 + (spread - a0) * (i / 6);
+        ctx.save(); ctx.rotate(aa);
+        const g = ctx.createLinearGradient(0, 0, 1300, 0);
+        g.addColorStop(0, ARCOIRIS[i] + '00'); g.addColorStop(0.18, ARCOIRIS[i]);
+        g.addColorStop(1, ARCOIRIS[i] + 'cc');
+        ctx.fillStyle = g; ctx.globalAlpha = 0.8;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(1400, -34); ctx.lineTo(1400, 34); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+  // anillos que colapsan hacia el switch
+  const cp = seg(tLocal, 3.45, 3.85);
+  if (cp > 0 && cp < 1) {
+    for (let i = 0; i < 5; i++) {
+      const q = clamp(cp * 1.35 - i * 0.08, 0, 1);
+      const r = 640 * (1 - easeInOut(q)) + 34;
+      ctx.strokeStyle = ARCOIRIS[i]; ctx.lineWidth = 16; ctx.globalAlpha = 0.5 * (1 - q * 0.3);
+      ctx.beginPath(); ctx.arc(960, 540, r, 0, 7); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+window.draw = ({ t }) => {
+  T = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = 'none';
+
+  const COSMOS_DESDE = 2.55, PAPEL_DESDE = 6.4;
+  const flash1 = Math.max(seg(t, 2.48, 2.55), 1 - seg(t, 2.55, 2.68)) * (t > 2.44 && t < 2.72 ? 1 : 0);
+  const flash2 = Math.max(seg(t, 6.33, 6.4), 1 - seg(t, 6.4, 6.55)) * (t > 6.29 && t < 6.6 ? 1 : 0);
+
+  // ===== mundo papel =====
+  if (t < COSMOS_DESDE || t >= PAPEL_DESDE) {
+    ctx.fillStyle = PAPEL; ctx.fillRect(0, 0, W, H);
+    if (t < COSMOS_DESDE) {
+      // beat 1: papel con zoom final hacia el orbe del documento
+      const zp = seg(t, 2.05, 2.5);
+      const z = 1 + easeInOut(zp) * 2.1;
+      const fx = 1215, fy = 500; // centro del documento/orbe
+      ctx.setTransform(z, 0, 0, z, W/2 - fx * z, H/2 - fy * z);
+      // línea base
+      const bp = seg(t, 0.1, 0.5);
+      ctx.strokeStyle = '#b6b3a8'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(140, 830); ctx.lineTo(140 + 1640 * easeOut(bp), 830); ctx.stroke();
+      asterisco(300, 800, 62, SALMON);
+      docEsbozado(1215, 490, 300, 420, 0.45);
+      mano('convierte esto en un video', 860, 240, 68, 1.0, 1.7, '#6b6961');
+      flecha([[1010, 275], [1090, 320], [1105, 375]], 1.6, 2.0, '#6b6961');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(grano, 0, 0);
+    } else {
+      // beat 3: regreso + logo
+      const zp = seg(t, PAPEL_DESDE, PAPEL_DESDE + 0.5);
+      const z = 3.0 - easeOut(zp) * 2.0; // zoom out desde la tarjeta
+      const fx = 1215, fy = 520;
+      ctx.setTransform(z, 0, 0, z, W/2 - fx * z, H/2 - fy * z);
+      ctx.strokeStyle = '#b6b3a8'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(140, 830); ctx.lineTo(1780, 830); ctx.stroke();
+      asterisco(300, 800, 62, SALMON);
+      tarjetaVideo(1215, 520, 420, 480, PAPEL_DESDE + 0.15);
+      mano('y el apunte se vuelve escena', 830, 235, 62, PAPEL_DESDE + 0.5, PAPEL_DESDE + 1.15, '#6b6961');
+      flecha([[1010, 270], [1080, 310], [1090, 355]], PAPEL_DESDE + 1.0, PAPEL_DESDE + 1.35, '#6b6961');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(grano, 0, 0);
+      logo(700, 850, PAPEL_DESDE + 1.55);
+    }
+    const fl = Math.max(flash1, flash2);
+    if (fl > 0) { ctx.fillStyle = `rgba(248,246,240,${fl})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  // ===== mundo cosmos =====
+  if (t >= COSMOS_DESDE && t < PAPEL_DESDE) {
+    cosmos(t - COSMOS_DESDE);
+    const fl = Math.max(flash1, flash2);
+    if (fl > 0) { ctx.fillStyle = `rgba(248,246,240,${fl})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  // etiqueta de origen
+  ctx.fillStyle = 'rgba(120,117,106,0.9)'; ctx.font = '400 24px Inter'; ctx.textAlign = 'left';
+  ctx.fillText('ESTILO: CUADERNO COSMOS · ORIGEN: PROMPT-MOTION/@AJITH_IO', 36, 1046);
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>

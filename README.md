@@ -17,13 +17,13 @@
 
 ---
 
-Los mejores repos open-source de skills de video para agentes de código, consolidados en un solo lugar. **Es todo lo que necesitas para la creación y edición de contenido de video: en 1 solo lugar.** Frameworks de producción completa, edición automática, explicadores animados, shorts virales, motion graphics y 7 estilos de diseño exclusivos con su GIF animado — todo en español y listo para que tu agente produzca hoy mismo: miras el estilo, copias la skill y a crear.
+Los mejores repos open-source de skills de video para agentes de código, consolidados en un solo lugar. **Es todo lo que necesitas para la creación y edición de contenido de video: en 1 solo lugar.** Frameworks de producción completa, edición automática, explicadores animados, shorts virales, motion graphics y 11 estilos de diseño exclusivos con su GIF animado — todo en español y listo para que tu agente produzca hoy mismo: miras el estilo, copias la skill y a crear.
 
 Son **101 repos (~2.4 GB)** de frameworks, explainers, edición, shorts y motion graphics. Cada skill viene con sus ejemplos, docs y scripts propios: cópiala al directorio de skills de tu agente (Claude Code, Codex, ZCode, Cursor…) y a producir. Clones superficiales (`--depth 1`), sin historial git: solo el contenido útil.
 
 Sin humo: no vendemos diapositivas, construimos resultados. Este catálogo existe para que cualquier equipo monte su pipeline de video con agentes en una tarde, no en un trimestre.
 
-**¿No sabes qué estilo usar?** Abre el landing: la **Galería de estilos** (sección 00) muestra cada lenguaje visual de IMPULSO IA animado en un GIF — *pizarra blanca, pizarra negra, ciencia animada, gráfico de datos, isométrico, Bauhaus y linograbado* — con la explicación de qué hace a cada uno y cuándo usarlo. Y no es solo para mirar: cada tarjeta tiene el botón **"📋 Copiar SKILL.md"** — la skill completa lista para pegar en `~/.claude/skills/` o en el prompt de tu agente, con sus fuentes incluidas (Google Fonts, SIL OFL). La carpeta [`estilos/`](estilos/LEEME.md) contiene las 7 skills completas con su maquinaria de render validada. Las descripciones del catálogo están traducidas al español.
+**¿No sabes qué estilo usar?** Abre el landing: la **Galería de estilos** (sección 00) muestra cada lenguaje visual de IMPULSO IA animado en un GIF — *pizarra blanca, pizarra negra, ciencia animada, gráfico de datos, isométrico, Bauhaus, linograbado, cuaderno cosmos, explicador de producto, métricas de producto y pelota animada* — con la explicación de qué hace a cada uno y cuándo usarlo. Y no es solo para mirar: cada tarjeta tiene el botón **"📋 Copiar SKILL.md"** — la skill completa lista para pegar en `~/.claude/skills/` o en el prompt de tu agente, con sus fuentes incluidas (Google Fonts, SIL OFL). La carpeta [`estilos/`](estilos/LEEME.md) contiene las 11 skills completas con su maquinaria de render validada (los 4 estilos de producto incluyen su demo en mp4). Las descripciones del catálogo están traducidas al español.
 
 ---
 
@@ -37,7 +37,7 @@ impulso-video-skills/
 ├── 04-shorts/       📱  11 repos ·  285 MB   Shorts y social
 ├── 05-motion/       🎞  10 repos ·  185 MB   Motion graphics
 ├── brand/                        Logos IMPULSO IA + GIFs de la galería de estilos
-├── estilos/                      Las 7 skills de estilo completas (SKILL.md + anim.html + fuentes) para copiar y pegar
+├── estilos/                      Las 11 skills de estilo completas (SKILL.md + anim.html + demos mp4 + fuentes) para copiar y pegar
 ├── datos/                        traducciones.json (ES) + estilos.json (metadatos de la galería)
 ├── docs/                         Sitio para GitHub Pages (/docs) + fuente/ con el catálogo original
 ├── scripts/                      clonar_repos.py · generar_indice.py · preparar_pages.py · importar_estilos.py

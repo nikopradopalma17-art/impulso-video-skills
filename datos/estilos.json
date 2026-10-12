@@ -62,6 +62,42 @@
    "cuando": "Para un mensaje único y rotundo: abrir el video con una frase-manifiesto o cerrarlo sin réplica. No sirve para explicaciones de varios pasos.",
    "referencia": "Afiche de protesta grabado en linóleo, cartel manifiesto de xilografía",
    "gif": "brand/estilos/linograbado.gif"
+  },
+  {
+   "id": "cuaderno-cosmos",
+   "nombre": "Cuaderno Cosmos",
+   "resumen": "Un boceto a tinta hace zoom y se convierte en un cosmos de libros en órbita: la idea que se vuelve universo.",
+   "detalle": "Dos mundos en una escena: papel con grano y doodles de tinta salmón que se transforma, por un zoom continuo, en un cosmos índigo con estrellas titilantes, órbitas de libros pastel y un prisma que refracta un arcoíris. Al regresar, el documento ya es una escena viva y llega el logo. El movimiento alterna la intimidad del cuaderno con la escala onírica del universo.",
+   "cuando": "Para openers de marca, transformaciones 'antes → después' y momentos mágicos: narrar cómo una idea en papel se convierte en un mundo entero.",
+   "referencia": "Showreel de marca tipo DistilBook / boceto que cobra vida",
+   "gif": "brand/estilos/cuaderno-cosmos.gif"
+  },
+  {
+   "id": "explicador-producto",
+   "nombre": "Explicador de Producto",
+   "resumen": "El producto explicado como historia: dolor con chip de color, flujo de UI que se completa y CTA que cierra.",
+   "detalle": "Crema con dot grid, mockups de documentos flotantes y un flujo que se completa solo: chips numerados, guion que se teclea, botón que se aprueba con sello. Una escena azul full-bleed con calendario tachado y cronómetro promete velocidad, y el CTA aterriza con tachado rojo y chip degradado. Calidez comercial sin caer en plantilla genérica.",
+   "cuando": "Para demos de producto, lanzamientos y explicadores de flujo de trabajo: problema → flujo → pago en una sola escena.",
+   "referencia": "Explainers de producto SaaS tipo DistilBook",
+   "gif": "brand/estilos/explicador-producto.gif"
+  },
+  {
+   "id": "metricas-producto",
+   "nombre": "Métricas de Producto",
+   "resumen": "Los números con autoridad: contadores que ruedan como odómetros, gauge radial y una palabra gigante que aterriza en beat.",
+   "detalle": "Escenarios navy y crema alternos con retícula de puntos y chrome de cámara (brackets, timecode). Contadores odómetro que ruedan, gauge radial con ticks que aterriza en beat, una palabra-concepto gigante sobre amarillo pleno y un gráfico que se dibuja con tooltip. Regla de oro: UNA cifra protagonista por escena, y siempre aterriza exacta.",
+   "cuando": "Para showreels de SaaS, kickers de métricas, informes de crecimiento y cierres de producto: comunicar facturación, uso de plataforma o crecimiento con credibilidad técnica.",
+   "referencia": "Showreel de métricas tipo Flexprice / HUD de datos fintech",
+   "gif": "brand/estilos/metricas-producto.gif"
+  },
+  {
+   "id": "pelota-animada",
+   "nombre": "Pelota Animada",
+   "resumen": "Una pelota con física real conecta los mundos: rebota entre documentos y estampa la promesa.",
+   "detalle": "Papel cálido con grano y una pelota teal protagonista con física real: caída, rebotes decrecientes, squash & stretch y onion-skin. Recorre documentos flat-lay con anotaciones manuscritas terracota y flechas, corta a oscuro y deja que la tipografía cinética condensada con sombras riso estampe la promesa. La pelota ES el mensaje: el usuario que choca contra el trabajo manual y lo supera.",
+   "cuando": "Para lanzamientos de producto, demos antes/después y storytelling con testimonio visual (la curva que rompe el techo).",
+   "referencia": "Animación de pelota clásica (squash & stretch) / papel kinético",
+   "gif": "brand/estilos/pelota-animada.gif"
   }
  ]
 }

@@ -1,12 +1,14 @@
 # Estilos de video IMPULSO IA
 
-7 estilos de diseño de video listos para copiar y pegar en tu agente de código
+11 estilos de diseño de video listos para copiar y pegar en tu agente de código
 (Claude Code, Codex, ZCode...). Cada carpeta ES la skill:
 
 ```
 estilos/<estilo>/
 ├── SKILL.md              <- la skill completa: biblia del estilo + contrato técnico
-└── referencia/anim.html  <- implementación validada del motor del estilo
+└── referencia/
+    ├── anim.html         <- implementación validada del motor del estilo
+    └── demo-<estilo>.mp4 <- render de validación (en los estilos que lo tienen)
 estilos/fuentes/          <- tipografías (Google Fonts, SIL OFL)
 ```
 
@@ -26,7 +28,9 @@ estilos/fuentes/          <- tipografías (Google Fonts, SIL OFL)
 Cada `SKILL.md` define la biblia visual (paleta estricta, tipografía, lenguaje
 de movimiento, prohibiciones), la estructura narrativa y el contrato técnico
 del `anim.html` (canvas 1920x1080, `window.draw({t})` pura y determinista,
-renderizable con Chrome headless + ffmpeg a mp4/GIF).
+renderizable con Chrome headless + ffmpeg a mp4/GIF). En los estilos de
+producto, `referencia/demo-<estilo>.mp4` es el render de validación: míralo
+para saber exactamente qué esperar del estilo antes de renderizar.
 
 ## Licencias
 

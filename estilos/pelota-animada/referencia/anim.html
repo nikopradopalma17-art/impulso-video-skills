@@ -1,0 +1,478 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Anton';font-weight:400;src:url(../../fuentes/anton-400.ttf) format('truetype');}
+@font-face{font-family:'Caveat';font-weight:700;src:url(../../fuentes/caveat-700.ttf) format('truetype');}
+@font-face{font-family:'JBMono';font-weight:400;src:url(../../fuentes/jetbrains-mono-400.ttf) format('truetype');}
+@font-face{font-family:'JBMono';font-weight:700;src:url(../../fuentes/jetbrains-mono-700.ttf) format('truetype');}
+@font-face{font-family:'Poppins';font-weight:700;src:url(../../fuentes/poppins-700.ttf) format('truetype');}
+@font-face{font-family:'Playfair';font-weight:700;src:url(../../fuentes/playfair-700.ttf) format('truetype');}
+html,body{margin:0;background:#f0efe9}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ESTILO: PELOTA ANIMADA — origen: prompt-motion.com/ik-builds-b8bdcf (@ik_builds, Opus 5.5)
+// Lienzo papel cálido + pelota teal con física real (gravedad, rebote, squash/stretch),
+// anotaciones manuscritas terracota con flechas, corte seco claro↔oscuro, tipo cinética
+// condensada con sombras riso (rojo/verde) y grano. Demo: "Cota", 9 s.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const PAPEL = '#f0efe9', INK = '#2f2e2b', TEAL = '#3fd6b2', TEALD = '#1f9a7c',
+      TERRA = '#c4674f', OSCURO = '#1c211e', VERDE = '#2f7f6a', BLANCO = '#f2f0ea',
+      GRIS = '#9aa39d', LAPIZ = 'rgba(90,88,80,0.16)';
+let T = 0;
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const seg = (t,a,b) => clamp((t-a)/(b-a), 0, 1);
+const easeOut = p => 1 - Math.pow(1-p, 3);
+const easeIn = p => p*p*p;
+const easeInOut = p => p<.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2,3)/2;
+const easeOutBack = p => { const c = 1.70158; const q = p-1; return 1 + (c+1)*q*q*q + c*q*q; };
+const hash1 = n => { const s = Math.sin(n*127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// ---------- precalculados: grano de papel, ruido oscuro, retícula de puntos ----------
+const grano = document.createElement('canvas'); grano.width = W; grano.height = H;
+const ruido = document.createElement('canvas'); ruido.width = W; ruido.height = H;
+const puntos = document.createElement('canvas'); puntos.width = W; puntos.height = H;
+window.ready = Promise.all([
+  document.fonts.load('400 90px Anton'), document.fonts.load('700 60px Caveat'),
+  document.fonts.load('400 30px JBMono'), document.fonts.load('700 30px JBMono'),
+  document.fonts.load('700 90px Poppins'), document.fonts.load('700 36px Playfair')
+]).then(() => document.fonts.ready).then(() => {
+  let s = 7;
+  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const g = grano.getContext('2d');
+  for (let i = 0; i < 9000; i++) {
+    g.fillStyle = `rgba(120,115,100,${0.018 + rnd()*0.03})`;
+    g.fillRect(rnd()*W, rnd()*H, 1.6, 1.6);
+  }
+  const gv = g.createRadialGradient(960, 540, 500, 960, 540, 1250);
+  gv.addColorStop(0, 'rgba(80,76,64,0)'); gv.addColorStop(1, 'rgba(80,76,64,0.14)');
+  g.fillStyle = gv; g.fillRect(0, 0, W, H);
+  const r = ruido.getContext('2d');
+  for (let i = 0; i < 14000; i++) {
+    r.fillStyle = `rgba(255,255,255,${rnd()*0.05})`;
+    r.fillRect(rnd()*W, rnd()*H, 1.3, 1.3);
+  }
+  const p = puntos.getContext('2d');
+  p.fillStyle = 'rgba(255,255,255,0.07)';
+  for (let x = 40; x < W; x += 46) for (let y = 40; y < H; y += 46) p.fillRect(x, y, 2, 2);
+});
+
+// ---------- física de la pelota: caída + 3 rebotes (parábolas por tramo) ----------
+const FLOOR = 780, X0 = 700;
+const IMPACTOS = (() => { // t de cada impacto y altura del salto siguiente
+  const t0 = 0.62, arr = [{ t: t0, h: 190 }, { t: t0 + 0.78, h: 78 }, { t: t0 + 0.78 + 0.6, h: 26 }];
+  arr.push({ t: arr[2].t + 0.46, h: 0 }); return arr;
+})();
+function pelota(t, x) { // devuelve {y, squash}: caída → contacto (squash) → subida
+  if (t <= 0) return { y: -80, squash: 0 };
+  let tt = t;
+  for (const im of IMPACTOS) {
+    const dur = 2 * Math.sqrt(2 * im.h / 2600);
+    if (tt < dur || im.h === 0) {
+      if (im.h === 0) return { y: FLOOR, squash: 0 };
+      const landT = Math.sqrt(im.h / 1300);
+      if (tt <= landT) { // caída
+        const y = FLOOR - (im.h - 1300 * tt * tt);
+        return { y, squash: tt > landT - 0.05 ? clamp(1 - (FLOOR - y) / 120, 0, 1) : 0 };
+      }
+      // contacto + rebote hacia arriba (media parábola reflejada)
+      const dt = tt - landT;
+      const squash = dt < 0.07 ? 0.9 : 0;
+      const y = FLOOR - Math.max(0, im.h - 1300 * (dur - tt) * (dur - tt));
+      return { y, squash };
+    }
+    tt -= dur;
+  }
+  return { y: FLOOR, squash: 0 };
+}
+function drawPelota(x, y, squash, glow) {
+  ctx.save(); ctx.translate(x, y);
+  const sx = 1 + squash * 0.22, sy = 1 - squash * 0.3;
+  ctx.scale(sx, sy);
+  if (glow) { const g = ctx.createRadialGradient(0, 0, 8, 0, 0, 110);
+    g.addColorStop(0, 'rgba(63,214,178,0.5)'); g.addColorStop(1, 'rgba(63,214,178,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 110, 0, 7); ctx.fill(); }
+  const g2 = ctx.createRadialGradient(-10, -12, 4, 0, 0, 34);
+  g2.addColorStop(0, '#7fe8cf'); g2.addColorStop(0.55, TEAL); g2.addColorStop(1, TEALD);
+  ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(0, 0, 32, 0, 7); ctx.fill();
+  ctx.restore();
+}
+function trailPelota(t, x, n) { // onion-skin: círculos fantasma + línea punteada
+  ctx.save(); ctx.strokeStyle = 'rgba(110,108,98,0.35)'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([1, 7]); ctx.beginPath();
+  for (let k = n; k >= 1; k--) {
+    const tt = t - k * 0.045; if (tt <= 0) continue;
+    const p = pelota(tt, x);
+    const al = 0.30 * (1 - k / (n + 1));
+    ctx.strokeStyle = `rgba(110,108,98,${al})`; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(x, p.y, 32, 0, 7); ctx.stroke();
+    ctx.setLineDash([1, 7]); ctx.strokeStyle = 'rgba(110,108,98,0.3)';
+    if (k < n) { const q = pelota(tt + 0.045, x);
+      ctx.beginPath(); ctx.moveTo(x, q.y); ctx.lineTo(x, p.y); ctx.stroke(); }
+  }
+  ctx.restore();
+}
+
+// ---------- manuscrito + flechas (draw-on progresivo) ----------
+function mano(txt, x, y, size, t0, t1, col, ang) {
+  const p = seg(T, t0, t1); if (p <= 0) return;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang || 0);
+  ctx.font = '700 ' + size + 'px Caveat'; ctx.textAlign = 'left'; ctx.fillStyle = col;
+  const w = ctx.measureText(txt).width;
+  ctx.save(); ctx.beginPath(); ctx.rect(-8, -size, 14 + (w + 16) * p, size * 1.5); ctx.clip();
+  ctx.fillText(txt, 0, 0); ctx.restore(); ctx.restore();
+}
+function flecha(pts, t0, t1, col, wpt) {
+  const p = seg(T, t0, t1); if (p <= 0) return;
+  let L = 0; const lens = [];
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]); lens.push(d); L += d; }
+  let target = L * p;
+  ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wpt || 3.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  let ex = pts[0][0], ey = pts[0][1], ea = 0;
+  for (let i = 1; i < pts.length; i++) {
+    if (target >= lens[i-1]) { ctx.lineTo(pts[i][0], pts[i][1]); target -= lens[i-1];
+      ex = pts[i][0]; ey = pts[i][1]; ea = Math.atan2(pts[i][1]-pts[i-1][1], pts[i][0]-pts[i-1][0]); }
+    else { const q = target / lens[i-1];
+      ex = pts[i-1][0] + (pts[i][0]-pts[i-1][0]) * q; ey = pts[i-1][1] + (pts[i][1]-pts[i-1][1]) * q;
+      ea = Math.atan2(pts[i][1]-pts[i-1][1], pts[i][0]-pts[i-1][0]);
+      ctx.lineTo(ex, ey); break; }
+  }
+  ctx.stroke();
+  if (p > 0.55) { // cabeza de flecha, separada del trazo
+    ctx.save(); ctx.translate(ex, ey); ctx.rotate(ea);
+    ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(-18, -9); ctx.lineTo(-14, 0); ctx.lineTo(-18, 9); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ---------- tarjetas de papel ----------
+function tarjeta(x, y, w, h, rot, pIn) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  const dy = (1 - easeOut(pIn)) * 60; ctx.translate(0, dy); ctx.globalAlpha = clamp(pIn * 1.4, 0, 1);
+  ctx.shadowColor = 'rgba(60,58,50,0.22)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 12;
+  ctx.fillStyle = '#fdfdfb'; ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 10); ctx.fill();
+  ctx.shadowColor = 'transparent'; ctx.strokeStyle = 'rgba(120,116,105,0.35)'; ctx.lineWidth = 1;
+  ctx.stroke();
+  return () => { ctx.restore(); };
+}
+function barra(x, y, w, h, col, p) {
+  ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x, y, Math.max(2, w * p), h, h/2); ctx.fill();
+}
+
+// ---------- tipo cinética con sombras riso ----------
+function cinetica(txt, x, y, size, t0, i) {
+  const p = seg(T, t0 + i * 0.05, t0 + i * 0.05 + 0.2); if (p <= 0) return 0;
+  const fall = easeIn(p);
+  const land = seg(p, 0.82, 1);
+  const sy = 1 + (1 - easeOutBack(land)) * 0.18 * (land > 0 ? 1 : 0);
+  const pout = seg(T, 6.35 + (i % 5) * 0.018, 6.62 + (i % 5) * 0.018); // salida volando
+  if (pout >= 1) return 0;
+  ctx.save();
+  ctx.globalAlpha = 1 - easeIn(pout);
+  ctx.translate(x + (i - 4) * 46 * easeIn(pout), y - (1 - fall) * 230 - easeIn(pout) * 420);
+  ctx.rotate(easeIn(pout) * (i % 2 ? 0.5 : -0.5));
+  ctx.scale(1, sy);
+  ctx.font = '400 ' + size + 'px Anton'; ctx.textAlign = 'center';
+  ctx.fillStyle = TERRA; ctx.fillText(txt, -7, 6);
+  ctx.fillStyle = VERDE; ctx.fillText(txt, 7, 6);
+  ctx.fillStyle = BLANCO; ctx.fillText(txt, 0, 0);
+  ctx.restore();
+  return p;
+}
+
+// ---------- fondo oscuro con tarjetas fantasma ----------
+function fondoOscuro() {
+  ctx.fillStyle = OSCURO; ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(puntos, 0, 0);
+}
+function tarjetasFantasma(al) {
+  ctx.save(); ctx.globalAlpha = al;
+  const specs = [[350, 330, 400, 300, -0.04], [1310, 350, 420, 310, 0.03], [400, 800, 300, 210, 0.05], [1330, 800, 420, 230, -0.03]];
+  for (const [x, y, w, h, r] of specs) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(r);
+    ctx.strokeStyle = 'rgba(180,200,190,0.13)'; ctx.fillStyle = 'rgba(46,56,52,0.5)';
+    ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 8); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+window.draw = ({ t }) => {
+  T = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = 'none';
+
+  const OSCURO_DESDE = 4.35, CLARO_DESDE = 7.95;
+  const flash1 = Math.max(seg(t, 4.28, 4.35), 1 - seg(t, 4.35, 4.44)) * (t > 4.24 && t < 4.48 ? 1 : 0);
+  const flash2 = Math.max(seg(t, 7.88, 7.95), 1 - seg(t, 7.95, 8.04)) * (t > 7.84 && t < 8.08 ? 1 : 0);
+  const dark = t >= OSCURO_DESDE && t < CLARO_DESDE;
+
+  // ===== mundo papel =====
+  if (!dark) {
+    ctx.fillStyle = PAPEL; ctx.fillRect(0, 0, W, H);
+
+    if (t < OSCURO_DESDE) {
+      // --- A+B: física, tarjetas, anotaciones ---
+      const lineaP = seg(t, 0.18, 0.6);
+      ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(560, FLOOR + 34); ctx.lineTo(560 + 800 * easeOut(lineaP), FLOOR + 34); ctx.stroke();
+
+      const bx = 700 + (t > 2.2 ? (960 - 700) * easeInOut(seg(t, 2.2, 2.9)) : 0);
+      trailPelota(t, bx, 9);
+      const bp = pelota(t, bx); drawPelota(bx, bp.y, bp.squash, false);
+      mano('tu empresa', bx + 96, FLOOR - 170, 52, 1.0, 1.5, TERRA, -0.06);
+      flecha([[bx + 86, FLOOR - 152], [bx + 46, FLOOR - 110], [bx + 18, FLOOR - 52]], 1.35, 1.75, TERRA);
+
+      // tarjetas flat-lay (stagger)
+      const ins = i => easeOut(seg(t, 2.15 + i * 0.14, 2.55 + i * 0.14));
+      // tarjeta 1: resumen de ofertas
+      let end;
+      end = tarjeta(390, 350, 420, 310, -0.045, ins(0));
+      if (ins(0) > 0.5) {
+        ctx.fillStyle = INK; ctx.font = '700 24px JBMono'; ctx.textAlign = 'left';
+        ctx.fillText('RESUMEN DE OFERTAS', -190, -106);
+        ctx.fillStyle = 'rgba(120,116,105,0.9)'; ctx.font = '400 18px JBMono'; ctx.textAlign = 'right';
+        ctx.fillText('hoja 1 de 1', 190, -104); ctx.textAlign = 'left';
+        ctx.strokeStyle = 'rgba(120,116,105,0.5)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(-190, -88); ctx.lineTo(190, -88); ctx.stroke();
+        const filas = ['Condiciones', 'Hormigón', 'Estructura', 'Carpintería', 'Total'];
+        filas.forEach((f, i) => {
+          ctx.fillStyle = '#4a483f'; ctx.font = '400 22px Poppins'; ctx.textAlign = 'left';
+          ctx.fillText(f, -190, -48 + i * 42);
+          barra(30, -62 + i * 42, i === 4 ? 120 : 90, 10, i === 4 ? '#2e6e5b' : 'rgba(150,146,134,0.55)', ins(0));
+        });
+        const sp = seg(t, 3.4, 3.62);
+        if (sp > 0) { ctx.save(); ctx.translate(96, 108); ctx.rotate(-0.12);
+          ctx.globalAlpha = sp; ctx.scale(1.7 - 0.7 * easeOutBack(sp), 1.7 - 0.7 * easeOutBack(sp));
+          ctx.strokeStyle = TERRA; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(-92, -26, 184, 52, 6); ctx.stroke();
+          ctx.fillStyle = TERRA; ctx.font = '700 30px JBMono'; ctx.textAlign = 'center'; ctx.fillText('ENVIADO', 0, 10); ctx.restore(); }
+      }
+      end();
+      // tarjeta 2: plano
+      end = tarjeta(1370, 350, 430, 320, 0.03, ins(1));
+      if (ins(1) > 0.5) {
+        ctx.strokeStyle = '#4a483f'; ctx.lineWidth = 4;
+        ctx.strokeRect(-170, -120, 230, 150); ctx.strokeRect(-170, 30, 230, 70);
+        ctx.strokeRect(60, -120, 110, 90);
+        ctx.strokeStyle = 'rgba(90,88,80,0.6)'; ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(70 + i * 15, 30); ctx.lineTo(70 + i * 15, 100); ctx.stroke(); }
+        ctx.strokeStyle = TERRA; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(-170, 118); ctx.lineTo(170, 118); ctx.stroke();
+        ctx.strokeRect(96, 42, 78, 62);
+        ctx.fillStyle = '#4a483f'; ctx.font = '400 18px JBMono'; ctx.textAlign = 'center';
+        ctx.fillText('PLANO', 135, 68); ctx.fillText('A-101', 135, 92);
+      }
+      end();
+      // tarjeta 3: nota adhesiva
+      ctx.save(); ctx.translate(400, 812); ctx.rotate(0.05);
+      const p3 = ins(2); const dy3 = (1 - easeOut(p3)) * 60; ctx.translate(0, dy3); ctx.globalAlpha = clamp(p3 * 1.4, 0, 1);
+      ctx.shadowColor = 'rgba(60,58,50,0.25)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 10;
+      ctx.fillStyle = '#f6e6a8'; ctx.fillRect(-140, -100, 280, 200);
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#4a4438'; ctx.font = '700 44px Caveat'; ctx.textAlign = 'left';
+      ctx.fillText('medir dos veces.', -116, -22); ctx.fillText('siempre.', -116, 30);
+      ctx.restore();
+      // tarjeta 4: precios unitarios
+      end = tarjeta(1390, 820, 450, 230, -0.025, ins(3));
+      if (ins(3) > 0.5) {
+        ctx.fillStyle = INK; ctx.font = '700 24px JBMono'; ctx.textAlign = 'left';
+        ctx.fillText('PRECIOS UNITARIOS', -200, -66);
+        ctx.fillStyle = 'rgba(120,116,105,0.9)'; ctx.font = '400 18px JBMono'; ctx.textAlign = 'right';
+        ctx.fillText('$ / ud', 200, -64);
+        ctx.strokeStyle = 'rgba(120,116,105,0.5)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(-200, -48); ctx.lineTo(200, -48); ctx.stroke();
+        ['Hormigón m3', 'Estructura ml', 'Vidrio m2', 'Tabique m2'].forEach((f, i) => {
+          ctx.fillStyle = '#4a483f'; ctx.font = '400 21px Poppins'; ctx.textAlign = 'left';
+          ctx.fillText(f, -200, -12 + i * 38);
+          barra(60, -24 + i * 38, 110, 9, 'rgba(150,146,134,0.55)', ins(3));
+        });
+      }
+      end();
+      // anotaciones del flat-lay
+      mano('ofertas pasadas', 620, 250, 46, 2.9, 3.35, '#3e6e5e', -0.05);
+      flecha([[700, 268], [600, 300], [545, 320]], 3.1, 3.5, '#3e6e5e');
+      mano('planos', 1050, 210, 46, 3.0, 3.4, '#3e6e5e', 0.04);
+      flecha([[1135, 222], [1190, 250], [1215, 280]], 3.2, 3.6, '#3e6e5e');
+      mano('precios', 1030, 950, 46, 3.1, 3.5, '#3e6e5e', -0.04);
+      flecha([[1125, 932], [1180, 900], [1205, 878]], 3.3, 3.7, '#3e6e5e');
+      mano('las reglas en tu cabeza', 560, 680, 44, 3.25, 3.75, TERRA, -0.03);
+      flecha([[640, 700], [560, 724], [520, 742]], 3.5, 3.9, TERRA);
+    } else {
+      // --- E: regreso + logo ---
+      const bt = Math.min(t - CLARO_DESDE + 0.55, 1.6);
+      const bx = 460 + 80 * easeOut(seg(bt, 0, 0.8));
+      const lp0 = seg(t, CLARO_DESDE + 0.05, CLARO_DESDE + 0.45);
+      ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(360, FLOOR + 134); ctx.lineTo(360 + 400 * easeOut(lp0), FLOOR + 134); ctx.stroke();
+      if (bt < 1.3) trailPelota(bt, bx, 7);
+      const bp = pelota(bt, bx); drawPelota(bx, bp.y + 134, bp.squash, false);
+      // marca: 3 esferas conectadas
+      const lp = seg(t, 8.15, 8.5);
+      if (lp > 0) {
+        const s = easeOutBack(lp);
+        ctx.save(); ctx.translate(790, 585); ctx.scale(s, s);
+        ctx.fillStyle = TEAL;
+        ctx.beginPath(); ctx.moveTo(-58, 52); ctx.lineTo(0, -46); ctx.lineTo(58, 52); ctx.closePath();
+        ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+        const bola = (bx2, by2, r) => { const g = ctx.createRadialGradient(bx2 - r*0.3, by2 - r*0.35, 2, bx2, by2, r);
+          g.addColorStop(0, '#8fefdb'); g.addColorStop(0.6, TEAL); g.addColorStop(1, TEALD);
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx2, by2, r, 0, 7); ctx.fill(); };
+        bola(0, -46, 36); bola(-58, 52, 30); bola(58, 52, 30);
+        ctx.restore();
+        ctx.fillStyle = INK; ctx.font = '700 120px Poppins'; ctx.textAlign = 'left';
+        ctx.fillText('Cota', 880, 625);
+      }
+      const sp = seg(t, 8.45, 8.75);
+      if (sp > 0) { ctx.globalAlpha = sp;
+        ctx.fillStyle = '#6a6a64'; ctx.font = '700 38px Playfair'; ctx.textAlign = 'center';
+        ctx.fillText('IA para equipos que presupuestan.', 960, 748); ctx.globalAlpha = 1; }
+      const dp = seg(t, 8.6, 8.85);
+      if (dp > 0) { ctx.globalAlpha = dp;
+        ctx.fillStyle = '#7a7a72'; ctx.font = '400 30px JBMono'; ctx.textAlign = 'center';
+        ctx.fillText('cota.build', 960, 822); ctx.globalAlpha = 1; }
+      const op = seg(t, 8.75, 9.0);
+      if (op > 0) { // óvalo manuscrito alrededor del dominio
+        ctx.save(); ctx.strokeStyle = TERRA; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        const n = 40, w = 300, h = 64;
+        ctx.beginPath();
+        for (let i = 0; i <= n * op; i++) {
+          const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+          const wob = 1 + 0.05 * Math.sin(a * 3 + 1);
+          const xx = 960 + Math.cos(a) * w * 0.5 * wob, yy = 816 + Math.sin(a) * h * 0.5 * wob;
+          i === 0 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
+        }
+        ctx.stroke(); ctx.restore();
+      }
+    }
+    // grano de papel + flash de corte
+    ctx.drawImage(grano, 0, 0);
+    const fl = Math.max(flash1, flash2);
+    if (fl > 0) { ctx.fillStyle = `rgba(245,243,236,${fl})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  // ===== mundo oscuro =====
+  if (dark) {
+    fondoOscuro();
+    tarjetasFantasma(0.8 * (1 - seg(t, 6.3, 6.7)));
+    // pelota con glow (protagonista del switch)
+    const gp = seg(t, OSCURO_DESDE, OSCURO_DESDE + 0.4);
+    const pulso = 1 + 0.06 * Math.sin((t - OSCURO_DESDE) * 9);
+    drawPelota(960, 470, 0, true);
+    ctx.save(); ctx.globalAlpha = gp; ctx.scale(pulso, pulso); ctx.restore();
+    // impacto: partículas teal + rojo al entrar
+    const pp = seg(t, OSCURO_DESDE + 0.25, OSCURO_DESDE + 0.85);
+    if (pp > 0 && pp < 1) {
+      for (let i = 0; i < 26; i++) {
+        const a = hash1(i * 3.3) * Math.PI * 2, sp2 = (0.4 + hash1(i * 7.7) * 0.6) * easeOut(pp);
+        const rr = 40 + sp2 * 300;
+        ctx.fillStyle = i % 4 === 0 ? TERRA : 'rgba(63,214,178,0.8)';
+        ctx.save(); ctx.translate(960 + Math.cos(a) * rr, 470 + Math.sin(a) * rr * 0.6);
+        ctx.rotate(a); ctx.fillRect(-7, -2, 14, 4); ctx.restore();
+      }
+    }
+    // tipo cinética: LO APRENDE / TODO. (letras medidas, líneas centradas)
+    const lineaCinetica = (str, cx, y, size, t0, dotIndex) => {
+      ctx.font = '400 ' + size + 'px Anton';
+      const gaps = 10;
+      let total = 0;
+      const ws = str.split('').map(ch => { const w = ctx.measureText(ch).width + gaps; total += w; return w; });
+      let x = cx - total / 2;
+      str.split('').forEach((ch, i) => {
+        const cxx = x + ws[i] / 2;
+        if (i === dotIndex) {
+          const pp2 = seg(t, t0 + str.length * 0.05, t0 + str.length * 0.05 + 0.2);
+          if (pp2 > 0) { const s = easeOutBack(pp2);
+            ctx.save(); ctx.translate(cxx, y); ctx.scale(s, s);
+            const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 90);
+            g.addColorStop(0, 'rgba(63,214,178,0.55)'); g.addColorStop(1, 'rgba(63,214,178,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 90, 0, 7); ctx.fill();
+            ctx.fillStyle = TEAL; ctx.beginPath(); ctx.arc(0, 0, size * 0.22, 0, 7); ctx.fill(); ctx.restore(); }
+        } else if (ch !== ' ') cinetica(ch, cxx, y, size, t0, i);
+        x += ws[i];
+      });
+    };
+    lineaCinetica('LO APRENDE', 960, 400, 118, 4.65, -1);
+    lineaCinetica('TODO', 885, 560, 132, 5.05, -1);
+    { const pp2 = seg(t, 5.42, 5.62), dotOut = seg(t, 6.35, 6.58);
+      if (pp2 > 0 && dotOut < 1) { ctx.font = '400 132px Anton';
+        const dotX = 885 + (ctx.measureText('TODO').width + 10 * 4) / 2 + 26;
+        const s = easeOutBack(pp2);
+        ctx.save(); ctx.globalAlpha = 1 - easeIn(dotOut);
+        ctx.translate(dotX, 560 - easeIn(dotOut) * 420); ctx.scale(s, s);
+        const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 90);
+        g.addColorStop(0, 'rgba(63,214,178,0.55)'); g.addColorStop(1, 'rgba(63,214,178,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 90, 0, 7); ctx.fill();
+        ctx.fillStyle = TEAL; ctx.beginPath(); ctx.arc(0, 0, 28, 0, 7); ctx.fill(); ctx.restore(); } }
+    // subrayado terracota bajo TODO
+    const up = seg(t, 5.7, 6.05), upOut = seg(t, 6.35, 6.58);
+    if (up > 0 && upOut < 1) { ctx.save(); ctx.globalAlpha = 1 - easeIn(upOut);
+      ctx.strokeStyle = TERRA; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(700, 618);
+      ctx.quadraticCurveTo(890, 634, 700 + 390 * up, 612); ctx.stroke(); ctx.restore(); }
+    // --- gráfico ---
+    const gp2 = seg(t, 6.35, 6.6);
+    if (gp2 > 0) {
+      const OX = 430, OY = 820, XE = 1520, YE = 330, ax = easeOut(gp2);
+      ctx.strokeStyle = 'rgba(240,238,230,0.85)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(OX, OY); ctx.lineTo(OX + (XE - OX) * ax, OY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(OX, OY); ctx.lineTo(OX, OY + (YE - OY) * ax); ctx.stroke();
+      if (ax > 0.95) { ctx.beginPath(); ctx.moveTo(XE, OY); ctx.lineTo(XE - 14, OY - 8); ctx.moveTo(XE, OY); ctx.lineTo(XE - 14, OY + 8);
+        ctx.moveTo(OX, YE); ctx.lineTo(OX - 8, YE + 14); ctx.moveTo(OX, YE); ctx.lineTo(OX + 8, YE + 14); ctx.stroke(); }
+      ctx.fillStyle = GRIS; ctx.font = '400 26px JBMono'; ctx.textAlign = 'left';
+      if (gp2 > 0.5) ctx.fillText('presupuestos / mes', OX + 26, YE + 40);
+      if (ax > 0.9) ctx.fillText('meses', XE - 90, OY + 44);
+      // techo terracota ondulado
+      const tp = seg(t, 6.7, 6.95);
+      if (tp > 0) { ctx.strokeStyle = 'rgba(196,103,79,0.8)'; ctx.lineWidth = 3;
+        ctx.beginPath(); const n = 60;
+        for (let i = 0; i <= n * tp; i++) { const q = i / n;
+          const xx = OX + 40 + q * 880, yy = 700 + Math.sin(q * 14) * 14;
+          i === 0 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy); }
+        ctx.stroke(); }
+      mano('el techo', 1030, 660, 44, 6.95, 7.2, TERRA, -0.04);
+      const stp = seg(t, 7.25, 7.45);
+      if (stp > 0) { ctx.strokeStyle = TERRA; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(1020, 652); ctx.lineTo(1020 + 190 * stp, 640); ctx.stroke(); }
+      // curva sigmoide teal + pelota subiendo
+      const cp = seg(t, 7.15, 7.85);
+      if (cp > 0) { ctx.save(); ctx.shadowColor = 'rgba(63,214,178,0.6)'; ctx.shadowBlur = 14;
+        ctx.strokeStyle = TEAL; ctx.lineWidth = 5; ctx.lineCap = 'round';
+        ctx.beginPath(); const n = 60;
+        let px = 0, py = 0;
+        for (let i = 0; i <= n * cp; i++) { const q = i / n;
+          const s = 1 / (1 + Math.exp(-(q - 0.45) * 9));
+          px = OX + 50 + q * 1000; py = OY - 60 - s * (OY - YE - 160);
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+        ctx.stroke(); ctx.restore();
+        drawPelota(px, py, 0, true);
+        mano('más obras', px + 56, py - 14, 46, 7.75, 7.95, BLANCO, -0.05);
+        if (seg(t, 7.9, 8.0) > 0) { ctx.strokeStyle = BLANCO; ctx.lineWidth = 5; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(px + 218, py - 48); ctx.lineTo(px + 232, py - 32); ctx.lineTo(px + 258, py - 66); ctx.stroke(); }
+      }
+      // corchete "mismo equipo"
+      const bp2 = seg(t, 7.5, 7.75);
+      if (bp2 > 0) { ctx.strokeStyle = 'rgba(240,238,230,0.7)'; ctx.lineWidth = 2.5;
+        const w2 = 900 * bp2;
+        ctx.beginPath(); ctx.moveTo(OX + 50, OY + 40); ctx.lineTo(OX + 50, OY + 52); ctx.lineTo(OX + 50 + w2, OY + 52);
+        ctx.lineTo(OX + 50 + w2, OY + 40); ctx.stroke();
+        if (bp2 > 0.9) { ctx.fillStyle = BLANCO; ctx.font = '700 40px Caveat'; ctx.textAlign = 'center';
+          ctx.fillText('mismo equipo', OX + 500, OY + 96); } }
+    }
+    // ruido + flash
+    ctx.drawImage(ruido, 0, 0);
+    const fl = Math.max(flash1, flash2);
+    if (fl > 0) { ctx.fillStyle = `rgba(245,243,236,${fl})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  // etiqueta de origen
+  ctx.fillStyle = 'rgba(130,127,116,0.9)'; ctx.font = '400 24px JBMono'; ctx.textAlign = 'left';
+  ctx.fillText('ESTILO: PELOTA ANIMADA · ORIGEN: PROMPT-MOTION/@IK_BUILDS', 36, 1046);
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>

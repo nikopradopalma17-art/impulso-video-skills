@@ -1,26 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Importa las 7 skills de estilo de IMPULSO IA (instaladas en ~/.zcode/skills)
+Importa las 11 skills de estilo de IMPULSO IA (instaladas en ~/.codex/skills)
 al repo, en forma portable para que cualquiera las copie a su propio agente.
 
 Por estilo genera:
   estilos/<id>/SKILL.md          <- la skill (texto pegable en cualquier carpeta de skills)
   estilos/<id>/referencia/anim.html  <- maquinaria validada del estilo
+  estilos/<id>/referencia/demo-<id>.mp4  <- render de validación (si existe en la skill)
 Y una sola vez:
   estilos/fuentes/               <- TTFs del motor (Google Fonts, SIL OFL)
   estilos/LEEME.md               <- como usarlos + licencias
 
 Las rutas absolutas de fuentes (file:///C:/Users/.../motor-estilos-video/fonts/)
 se reescriben a rutas relativas ../../fuentes/ para que funcionen en cualquier maquina.
+No se publican los videos de terceros usados como referencia en local
+(original.mp4, hoja-contacto.jpg): solo el demo renderizado por nuestro motor.
 Reejecutable: recrea cada estilos/<id> y sobreescribe fuentes.
 
 Uso:
-    python scripts/importar_estilos.py [--skills-dir C:/Users/USER/.zcode/skills]
+    python scripts/importar_estilos.py [--skills-dir C:/Users/USER/.codex/skills]
 """
 import argparse
+import os
 import shutil
+import stat
 import sys
+import time
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -30,21 +36,29 @@ BASE = Path(__file__).resolve().parent.parent
 DESTINO = BASE / "estilos"
 
 ESTILOS = [
+    # clásicos (galería original)
     "bauhaus", "ciencia-animada", "grafico-datos", "izometrico",
     "linograbado", "pizarra-blanca", "pizarra-negra",
+    # producto (con demo mp4 de validación)
+    "cuaderno-cosmos", "explicador-producto", "metricas-producto", "pelota-animada",
 ]
 PREFIJO = "video-estilo-"
-URL_FUENTES_ABS = "file:///C:/Users/USER/.zcode/skills/motor-estilos-video/fonts/"
+URL_FUENTES_ABS = [
+    "file:///C:/Users/USER/.codex/skills/motor-estilos-video/fonts/",
+    "file:///C:/Users/USER/.zcode/skills/motor-estilos-video/fonts/",
+]
 
 LEEME = """# Estilos de video IMPULSO IA
 
-7 estilos de diseño de video listos para copiar y pegar en tu agente de código
+11 estilos de diseño de video listos para copiar y pegar en tu agente de código
 (Claude Code, Codex, ZCode...). Cada carpeta ES la skill:
 
 ```
 estilos/<estilo>/
 ├── SKILL.md              <- la skill completa: biblia del estilo + contrato técnico
-└── referencia/anim.html  <- implementación validada del motor del estilo
+└── referencia/
+    ├── anim.html         <- implementación validada del motor del estilo
+    └── demo-<estilo>.mp4 <- render de validación (en los estilos que lo tienen)
 estilos/fuentes/          <- tipografías (Google Fonts, SIL OFL)
 ```
 
@@ -64,7 +78,9 @@ estilos/fuentes/          <- tipografías (Google Fonts, SIL OFL)
 Cada `SKILL.md` define la biblia visual (paleta estricta, tipografía, lenguaje
 de movimiento, prohibiciones), la estructura narrativa y el contrato técnico
 del `anim.html` (canvas 1920x1080, `window.draw({t})` pura y determinista,
-renderizable con Chrome headless + ffmpeg a mp4/GIF).
+renderizable con Chrome headless + ffmpeg a mp4/GIF). En los estilos de
+producto, `referencia/demo-<estilo>.mp4` es el render de validación: míralo
+para saber exactamente qué esperar del estilo antes de renderizar.
 
 ## Licencias
 
@@ -77,8 +93,27 @@ renderizable con Chrome headless + ffmpeg a mp4/GIF).
 """
 
 
+def _desbloquear(func, path, exc_info):
+    """OneDrive a veces lockea archivos/directorios: chmod + reintento."""
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def borrar_dir(p: Path) -> None:
+    for intento in range(4):
+        try:
+            shutil.rmtree(p, onexc=_desbloquear)
+            return
+        except PermissionError:
+            if intento == 3:
+                raise
+            time.sleep(1.5 * (intento + 1))
+
+
 def portabilizar(texto: str) -> str:
-    return texto.replace(URL_FUENTES_ABS, "../../fuentes/")
+    for url in URL_FUENTES_ABS:
+        texto = texto.replace(url, "../../fuentes/")
+    return texto
 
 
 def main() -> int:
@@ -102,6 +137,7 @@ def main() -> int:
         n_fonts += 1
 
     reporte = []
+    n_demos = 0
     for estilo in ESTILOS:
         src = origen_skills / (PREFIJO + estilo)
         dst = DESTINO / estilo
@@ -110,13 +146,18 @@ def main() -> int:
         if not skill.exists() or not anim.exists():
             raise SystemExit(f"faltan archivos en {src} (SKILL.md o referencia/anim.html)")
         if dst.exists():
-            shutil.rmtree(dst)  # carpeta generada por este script: seguro recrear
+            borrar_dir(dst)  # carpeta generada por este script: seguro recrear
         (dst / "referencia").mkdir(parents=True)
         (dst / "SKILL.md").write_text(portabilizar(skill.read_text(encoding="utf-8")), encoding="utf-8")
         (dst / "referencia" / "anim.html").write_text(portabilizar(anim.read_text(encoding="utf-8")), encoding="utf-8")
+        demo = src / "referencia" / f"demo-{estilo}.mp4"
+        if demo.exists():
+            shutil.copy2(demo, dst / "referencia" / demo.name)
+            n_demos += 1
         reporte.append(estilo)
 
-    print(f"estilos/ importado: {len(reporte)} estilos ({', '.join(reporte)}) + {n_fonts} fuentes")
+    print(f"estilos/ importado: {len(reporte)} estilos ({', '.join(reporte)}) "
+          f"+ {n_demos} demos mp4 + {n_fonts} fuentes")
     return 0
 
 

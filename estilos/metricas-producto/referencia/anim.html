@@ -1,0 +1,306 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Inter';font-weight:400;src:url(../../fuentes/inter-400.ttf) format('truetype');}
+@font-face{font-family:'Inter';font-weight:700;src:url(../../fuentes/inter-700.ttf) format('truetype');}
+@font-face{font-family:'JBMono';font-weight:400;src:url(../../fuentes/jetbrains-mono-400.ttf) format('truetype');}
+@font-face{font-family:'JBMono';font-weight:700;src:url(../../fuentes/jetbrains-mono-700.ttf) format('truetype');}
+@font-face{font-family:'Poppins';font-weight:700;src:url(../../fuentes/poppins-700.ttf) format('truetype');}
+html,body{margin:0;background:#16344a}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ESTILO: MÉTRICAS DE PRODUCTO — origen: prompt-motion.com/sudeepsd-1a3485 (@sudeepsd_, Opus 5.5)
+// Navy/crema alternos con HUD persistente (brackets, timecode, secciones), contadores
+// odómetro con roll, gauge radial con ticks, palabra gigante sobre full-bleed amarillo,
+// gráfico con tooltip y wordmark final. Demo: "medipay", 9 s.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const NAVY = '#16344a', CREAM = '#f1ecdf', INK = '#1d3a52', YELLOW = '#f5c445',
+      RED = '#e2574c', WHITE = '#ffffff', GREY = '#9fb3c1', GREYINK = '#8b8574';
+let T = 0;
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const seg = (t,a,b) => clamp((t-a)/(b-a), 0, 1);
+const easeOut = p => 1 - Math.pow(1-p, 3);
+const easeIn = p => p*p*p;
+const easeOutBack = p => { const c = 1.70158; const q = p-1; return 1 + (c+1)*q*q*q + c*q*q; };
+const hash1 = n => { const s = Math.sin(n*127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// ---------- precalculados: retículas de puntos de ambos fondos ----------
+const dotsNavy = document.createElement('canvas'); dotsNavy.width = W; dotsNavy.height = H;
+const dotsCream = document.createElement('canvas'); dotsCream.width = W; dotsCream.height = H;
+window.ready = Promise.all([
+  document.fonts.load('700 120px Inter'), document.fonts.load('400 30px Inter'),
+  document.fonts.load('400 26px JBMono'), document.fonts.load('700 26px JBMono'),
+  document.fonts.load('700 90px Poppins')
+]).then(() => document.fonts.ready).then(() => {
+  const a = dotsNavy.getContext('2d'); a.fillStyle = 'rgba(255,255,255,0.055)';
+  for (let x = 44; x < W; x += 44) for (let y = 44; y < H; y += 44) a.fillRect(x, y, 2.4, 2.4);
+  const b = dotsCream.getContext('2d'); b.fillStyle = 'rgba(29,58,82,0.09)';
+  for (let x = 44; x < W; x += 44) for (let y = 44; y < H; y += 44) b.fillRect(x, y, 2.4, 2.4);
+});
+
+// ---------- escenas ----------
+const SCENES = [
+  { a: 0.0, b: 2.2, bg: NAVY,  tag: '01 / EVENTO' },
+  { a: 2.2, b: 4.2, bg: CREAM, tag: '02 / MEDIDOR' },
+  { a: 4.2, b: 6.0, bg: YELLOW,tag: '03 / TIPO' },
+  { a: 6.0, b: 7.8, bg: CREAM, tag: '04 / USO' },
+  { a: 7.8, b: 9.0, bg: NAVY,  tag: '05 / MEDIPAY' }
+];
+const escenaDe = t => SCENES.findIndex(s => t >= s.a && t < s.b);
+
+// ---------- confeti de guiones (dashes blancos/amarillo/rojo) ----------
+function confeti(cx, cy, t0, R) {
+  const p = seg(T, t0, t0 + 0.75); if (p <= 0 || p >= 1) return;
+  for (let i = 0; i < 42; i++) {
+    const a = (i / 42) * Math.PI * 2 + hash1(i * 3.1) * 0.5;
+    const sp = (0.45 + hash1(i * 7.7) * 0.55) * easeOut(p);
+    const rr = R * sp;
+    const col = i % 5 === 0 ? RED : (i % 3 === 0 ? YELLOW : 'rgba(255,255,255,0.92)');
+    ctx.save(); ctx.translate(cx + Math.cos(a) * rr * 1.35, cy + Math.sin(a) * rr * 0.72);
+    ctx.rotate(a); ctx.globalAlpha = 1 - easeIn(seg(p, 0.7, 1));
+    ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(-9, -3, 18, 6, 3); ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- odómetro: dígitos que ruedan en celdas ----------
+const fmtEs = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+function odo(txt, x, y, size, col, roll) { // roll: 0..1 rodada final (dígito entra desde abajo)
+  ctx.save(); ctx.font = '700 ' + size + 'px Inter'; ctx.textAlign = 'center';
+  ctx.fillStyle = col;
+  const cw = size * 0.62; let total = 0;
+  const ws = txt.split('').map(ch => { const w = ch === '.' || ch === ',' ? size * 0.3 : cw; total += w; return w; });
+  let xx = x - total / 2;
+  txt.split('').forEach((ch, i) => {
+    if (/\d/.test(ch) && roll > 0 && roll < 1) {
+      // tambor: UN solo glifo por celda, gira en descenso y aterriza exacto en d
+      const d = +ch;
+      const spin = Math.max(0, Math.floor((0.95 - roll) * 12));
+      const off = Math.sin(Math.min(roll / 0.95, 1) * Math.PI) * size * 0.06;
+      ctx.fillText(String((d + spin) % 10), xx + ws[i] / 2, y - off);
+    } else ctx.fillText(ch, xx + ws[i] / 2, y);
+    xx += ws[i];
+  });
+  ctx.restore();
+}
+
+// ---------- gráfico (misma silueta siempre, se dibuja progresivo) ----------
+const PTS = (() => { const arr = []; let s = 13;
+  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  for (let i = 0; i <= 34; i++) arr.push(0.16 + i * 0.011 + rnd() * 0.06 - 0.02);
+  arr[26] = 0.97; arr[25] = 0.8; arr[27] = 0.78; return arr; })();
+function grafico(pIn, t) {
+  const X0 = 300, X1 = 1640, Y0 = 800, Y1 = 330;
+  const lp = easeOut(seg(pIn, 0, 0.75));
+  // área + línea
+  if (lp > 0) {
+    const n = Math.max(2, Math.floor(PTS.length * lp));
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const xx = X0 + (X1 - X0) * (i / (PTS.length - 1));
+      const yy = Y0 - (Y0 - Y1) * PTS[i];
+      i === 0 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
+    }
+    ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = INK;
+    const lx = X0 + (X1 - X0) * ((n - 1) / (PTS.length - 1));
+    ctx.lineTo(lx, Y0); ctx.lineTo(X0, Y0); ctx.closePath(); ctx.fill(); ctx.restore();
+    // punto + tooltip en el pico
+    const pp = seg(pIn, 0.55, 0.7);
+    if (pp > 0) {
+      const pkX = X0 + (X1 - X0) * (26 / (PTS.length - 1)), pkY = Y0 - (Y0 - Y1) * PTS[26];
+      const sc = easeOutBack(pp);
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(pkX, pkY, 9 * sc + 4, 0, 7); ctx.fill();
+      ctx.save(); ctx.translate(pkX - 40, pkY - 96 * sc); ctx.scale(sc, sc);
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.roundRect(0, 0, 330, 74, 14); ctx.fill();
+      ctx.fillStyle = GREY; ctx.font = '400 22px JBMono'; ctx.textAlign = 'left';
+      ctx.fillText('PICO 14:00', 24, 30);
+      ctx.fillStyle = WHITE; ctx.font = '700 26px JBMono'; ctx.fillText('1,1 M', 24, 60);
+      ctx.restore();
+    }
+  }
+  // barras de ticks abajo
+  const bp = seg(pIn, 0.15, 0.9);
+  if (bp > 0) {
+    const n = Math.floor(40 * bp);
+    for (let i = 0; i < n; i++) {
+      const xx = X0 + (X1 - X0) * (i / 39);
+      const h = 14 + hash1(i * 5.3) * 26;
+      const col = (i >= 24 && i <= 26) ? RED : (i >= 22 && i <= 27 ? YELLOW : 'rgba(29,58,82,0.22)');
+      ctx.fillStyle = col; ctx.fillRect(xx - 7, Y0 + 60 - h, 14, h);
+    }
+  }
+}
+
+window.draw = ({ t }) => {
+  T = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = 'none';
+  const si = escenaDe(t), SC = SCENES[si];
+  ctx.fillStyle = SC.bg; ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(SC.bg === NAVY || SC.bg === '#16344a' ? dotsNavy : dotsCream, 0, 0);
+
+  const dark = SC.bg === NAVY;
+  const TXT = dark ? WHITE : INK, SUB = dark ? GREY : GREYINK;
+
+  // ================= 01 EVENTO: burst + odómetro =================
+  if (si === 0) {
+    confeti(960, 620, 0.55, 430);
+    // punto semilla que cae
+    const dp = seg(t, 0.1, 0.5);
+    if (dp > 0 && dp < 1) { ctx.fillStyle = WHITE;
+      ctx.beginPath(); ctx.arc(960, 620 - (1 - easeIn(dp)) * 260, 13, 0, 7); ctx.fill(); }
+    const np = seg(t, 0.35, 1.55);
+    if (np > 0) {
+      odo(fmtEs(412067 * easeOut(np)), 960, 380, 148, WHITE, seg(t, 1.58, 1.9));
+      ctx.globalAlpha = seg(t, 1.15, 1.45);
+      ctx.fillStyle = GREY; ctx.font = '400 30px JBMono'; ctx.textAlign = 'center';
+      ctx.fillText('E V E N T O S   P R O C E S A D O S', 960, 452);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ================= 02 MEDIDOR: gauge radial =================
+  if (si === 1) {
+    const gp = seg(t, 2.45, 3.5);
+    if (gp > 0) {
+      const val = 0.84 * easeOutBack(gp), cx = 960, cy = 570, r = 200;
+      // ticks alrededor
+      for (let i = 0; i < 48; i++) {
+        const a = (i / 48) * Math.PI * 2 - Math.PI / 2;
+        const near = i / 48 <= val;
+        ctx.strokeStyle = near ? YELLOW : 'rgba(29,58,82,0.22)';
+        ctx.lineWidth = near ? 5 : 3;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * (r + 38), cy + Math.sin(a) * (r + 38));
+        ctx.lineTo(cx + Math.cos(a) * (r + 38 + (near ? 18 : 12)), cy + Math.sin(a) * (r + 38 + (near ? 18 : 12)));
+        ctx.stroke();
+      }
+      // aro base + progreso
+      ctx.strokeStyle = 'rgba(29,58,82,0.14)'; ctx.lineWidth = 26;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = YELLOW; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * val); ctx.stroke();
+      // tramo de sobrecosto en rojo
+      const rp = seg(t, 3.6, 3.95);
+      if (rp > 0) { ctx.strokeStyle = RED;
+        ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2 + Math.PI * 2 * val, -Math.PI / 2 + Math.PI * 2 * val + Math.PI * 2 * 0.06 * rp); ctx.stroke(); }
+      // cifra central
+      odo(Math.round(84 * easeOut(gp)) + '%', cx, cy + 40, 132, INK, seg(t, 3.54, 3.82));
+      ctx.fillStyle = RED; ctx.font = '400 30px JBMono'; ctx.textAlign = 'center';
+      ctx.globalAlpha = seg(t, 3.5, 3.8);
+      ctx.fillText('S O B R E C O S T O', cx, cy + 108); ctx.globalAlpha = 1;
+    }
+  }
+
+  // ================= 03 TIPO: palabra gigante full-bleed =================
+  if (si === 2) {
+    const p = seg(t, 4.35, 4.85);
+    if (p > 0) {
+      const sc = 1 + 0.07 * (1 - easeOutBack(p));
+      const blurY = (1 - easeOut(p)) * 90;
+      ctx.save(); ctx.translate(960, 560); ctx.scale(sc, sc);
+      ctx.font = '700 300px Inter'; ctx.textAlign = 'center';
+      try { ctx.letterSpacing = '-14px'; } catch (e) {}
+      // estelas de motion blur vertical
+      [[70, 0.10], [42, 0.2], [20, 0.32]].forEach(([off, al]) => {
+        if (p < 0.92) { ctx.globalAlpha = al * (1 - p); ctx.fillStyle = INK;
+          ctx.fillText('FACTURA', 0, -blurY * off / 70); }
+      });
+      ctx.globalAlpha = 1; ctx.fillStyle = INK; ctx.fillText('FACTURA', 0, 0);
+      try { ctx.letterSpacing = '0px'; } catch (e) {}
+      const wFAC = ctx.measureText('FACTURA').width;
+      const dp = seg(t, 4.7, 4.95);
+      if (dp > 0) { const s2 = easeOutBack(dp);
+        ctx.save(); ctx.translate(wFAC / 2 + 44, -6); ctx.scale(s2, s2);
+        ctx.fillStyle = WHITE; ctx.beginPath(); ctx.arc(0, 0, 34, 0, 7); ctx.fill(); ctx.restore(); }
+      ctx.restore();
+      ctx.fillStyle = 'rgba(29,58,82,0.55)'; ctx.font = '400 28px JBMono'; ctx.textAlign = 'center';
+      ctx.globalAlpha = seg(t, 5.0, 5.3);
+      ctx.fillText('C A D A   E V E N T O ,   U N A   L Í N E A', 960, 780); ctx.globalAlpha = 1;
+    }
+  }
+
+  // ================= 04 USO: contador + gráfico =================
+  if (si === 3) {
+    const np = seg(t, 6.15, 6.95);
+    if (np > 0) {
+      odo(fmtEs(1284302 * easeOut(np)), 320, 300, 96, INK, seg(t, 6.98, 7.28));
+      ctx.fillStyle = GREYINK; ctx.font = '400 24px JBMono'; ctx.textAlign = 'left';
+      ctx.globalAlpha = seg(t, 6.6, 6.9); ctx.fillText('EVENTOS ESTE CICLO', 322, 348); ctx.globalAlpha = 1;
+      // leyenda
+      ctx.globalAlpha = seg(t, 6.7, 7.0);
+      ctx.font = '400 22px JBMono'; ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(29,58,82,0.5)'; ctx.fillRect(1380, 176, 16, 16); ctx.fillStyle = GREYINK; ctx.fillText('USO', 1408, 191);
+      ctx.fillStyle = YELLOW; ctx.fillRect(1490, 176, 16, 16); ctx.fillText('LÍMITE', 1518, 191);
+      ctx.fillStyle = RED; ctx.fillRect(1620, 176, 16, 16); ctx.fillText('EXCESO', 1648, 191);
+      ctx.globalAlpha = 1;
+    }
+    grafico(seg(t, 6.3, 7.6), t);
+  }
+
+  // ================= 05 LOGO =================
+  if (si === 4) {
+    confeti(960, 520, 7.88, 260);
+    const lp = seg(t, 8.0, 8.45);
+    if (lp > 0) {
+      const s = easeOutBack(lp);
+      ctx.save(); ctx.translate(700, 520); ctx.scale(s, s); ctx.rotate(-0.5);
+      ctx.fillStyle = YELLOW; ctx.beginPath(); ctx.roundRect(-30, -95, 60, 190, 14); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = WHITE; ctx.font = '700 120px Poppins'; ctx.textAlign = 'left';
+      const xp = seg(t, 8.02, 8.35);
+      ctx.save(); ctx.beginPath(); ctx.rect(760, 400, 640 * xp, 220); ctx.clip();
+      ctx.fillText('medipay', 790, 565); ctx.restore();
+    }
+    const rp = seg(t, 8.5, 8.7);
+    if (rp > 0) { ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2;
+      const w = 620 * rp;
+      ctx.beginPath(); ctx.moveTo(660, 640); ctx.lineTo(660 + w, 640); ctx.stroke(); }
+    const tp = seg(t, 8.6, 9.0);
+    if (tp > 0) { const full = 'FACTURA CADA EVENTO.';
+      const n = Math.ceil(full.length * tp);
+      ctx.fillStyle = GREY; ctx.font = '400 32px JBMono'; ctx.textAlign = 'center';
+      ctx.fillText(full.slice(0, n).split('').join(' '), 960, 726); }
+  }
+
+  // ================= HUD persistente =================
+  ctx.strokeStyle = dark ? 'rgba(255,255,255,0.35)' : 'rgba(29,58,82,0.4)'; ctx.lineWidth = 3;
+  const B = 42, L = 30;
+  [[B, B, 1, 1], [W - B, B, -1, 1], [B, H - B, 1, -1], [W - B, H - B, -1, -1]].forEach(([x, y, dx, dy]) => {
+    ctx.beginPath(); ctx.moveTo(x + dx * L, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * L); ctx.stroke();
+  });
+  ctx.fillStyle = dark ? GREY : GREYINK; ctx.font = '400 24px JBMono'; ctx.textAlign = 'left';
+  ctx.fillText('MEDIPAY / REEL DE DATOS', B + 18, B + 42);
+  const sec = Math.floor(t), ff = Math.floor((t % 1) * 30);
+  ctx.textAlign = 'right';
+  ctx.fillText('00:00:' + String(sec).padStart(2, '0') + ':' + String(ff).padStart(2, '0'), W - B - 18, B + 42);
+  ctx.textAlign = 'left'; ctx.fillStyle = dark ? 'rgba(159,179,193,0.8)' : 'rgba(139,133,116,0.9)';
+  ctx.fillText(SC.tag, B + 18, H - B - 16);
+  // progreso abajo derecha
+  ctx.strokeStyle = dark ? 'rgba(255,255,255,0.25)' : 'rgba(29,58,82,0.25)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W - 420, H - B - 24); ctx.lineTo(W - B - 18, H - B - 24); ctx.stroke();
+  ctx.strokeStyle = dark ? YELLOW : INK;
+  ctx.beginPath(); ctx.moveTo(W - 420, H - B - 24);
+  ctx.lineTo(W - 420 + (402 - 24) * (t / DUR), H - B - 24); ctx.stroke();
+
+  // viñeta + flash de corte de escena
+  const gv = ctx.createRadialGradient(960, 540, 520, 960, 540, 1350);
+  gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(1, dark ? 'rgba(0,0,0,0.4)' : 'rgba(60,50,20,0.12)');
+  ctx.fillStyle = gv; ctx.fillRect(0, 0, W, H);
+  const corte = Math.min(seg(t, SC.a - 0.06, SC.a), 1 - seg(t, SC.a, SC.a + 0.07)) * (si > 0 ? 1 : 0);
+  if (corte > 0) { ctx.fillStyle = `rgba(255,255,255,${corte})`; ctx.fillRect(0, 0, W, H); }
+
+  // etiqueta de origen
+  ctx.fillStyle = 'rgba(159,179,193,0.9)'; ctx.font = '400 24px JBMono'; ctx.textAlign = 'left';
+  ctx.fillText('ESTILO: MÉTRICAS DE PRODUCTO · ORIGEN: PROMPT-MOTION/@SUDEEPSD_', 36, 1046);
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>
