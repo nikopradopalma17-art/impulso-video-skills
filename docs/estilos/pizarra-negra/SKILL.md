@@ -8,38 +8,86 @@ description: Genera un segmento de video animado en ESTILO PIZARRA NEGRA (pizarr
 ## Qué es y cuándo meterlo en un video
 Escena de 5-15 s con la calidez de un **aula**: una pizarra verde-negra con marco de madera donde la tiza escribe la lección, dibuja garabatos y subraya lo importante. Es el estilo de los **momentos didácticos** de un video: reglas que no hay que olvidar, definiciones, "la clave está en...". Funciona muy bien después de una intro con energía (contraste: aquí todo es lento y cálido). Produce un `mp4` 1920×1080 @ 30 fps autónomo.
 
+## Ejemplos de uso
+- *"Cierra el video con estilo pizarra: la regla de oro del EPP"* → lema grande a tiza
+  (número en amarillo) + marco garabateado con estrellas + subrayado doble con polvo.
+- *"Un momento tipo aula para explicar qué es un permiso de trabajo"* → lección apoyada
+  en un garabato funcional (calendario de casillas tachadas, balanza) dibujado a tiza.
+- *"Quiero estilo tiza para un recordatorio: no olvides revisar el extintor"* → este
+  estilo (tiza = este motor); adapta el garabato al objeto de la lección.
+
 ## Referencia funcional (ADAPTAR, no reinventar)
-`referencia/anim.html` en esta carpeta es una implementación completa y validada ("La regla de los 10 minutos", 9 s). **Léela completa primero**: tiene la escritura a tiza con triple pasada y polvo, el marco garabateado con estrellas, el calendario con casillas tachadas, la balanza y la bandeja con tiza y borrador. Reusa la maquinaria y cambia la lección.
+`referencia/anim.html` en esta carpeta es una implementación completa y validada
+(demo "la regla: 10 minutos al día" con calendario "30 días" tachado, balanza
+"10 min ↔ cambio real" y remate "cada día cuenta", DUR 9 s). **Léela completa
+primero**: tiene el trazo de tiza con triple pasada (glow + 2 pasadas granuladas +
+motas de polvo, `chalkTrace`), la escritura con revelado y barrita de tiza como punta
+(`chalkWrite`), el polvo precalculado de la pizarra, el marco de madera con bandeja
+(tiza y borrador apoyados), el marco doble garabateado con estrellas, el tachado de 30
+casillas en orden barajado y la balanza que se inclina con overshoot. Reusa la maquinaria
+y cambia la lección.
 
 ## Contrato técnico (inmutable)
 Archivo único `<carpeta>/anim.html`:
 - Canvas `id="c"` 1920×1080, `body{margin:0}`, fondo del color base en CSS.
 - `window.DUR` = duración en segundos.
-- `window.ready` = promesa que resuelve tras `document.fonts.load('700 40px Caveat')` explícito y tras precalcular texturas — canvas `fillText` NO dispara la carga de fuentes.
+- `window.ready` = promesa que resuelve tras `document.fonts.load('700 120px Caveat')` explícito y tras precalcular texturas — canvas `fillText` NO dispara la carga de fuentes.
 - `window.draw({t})` = **función pura de `t`** (0..DUR). Devuelve `cv.toDataURL('image/jpeg', 0.92)`. Sin `requestAnimationFrame` ni estado mutado. `Math.random` PROHIBIDO: PRNG con semilla (mulberry32) o hash.
 - Fuentes por URL absoluta: `@font-face{font-family:'Caveat';font-weight:700;src:url(../../fuentes/caveat-700.ttf) format('truetype');}`
 
 ## Motor de render (ya instalado)
 ```
 # Smoke test (obligatorio antes del render completo):
-node C:/Users/USER/.zcode/skills/motor-estilos-video/render.mjs <carpeta-del-proyecto> --times 0.5,3,6,8.5
+node C:/Users/USER/.codex/skills/motor-estilos-video/render.mjs <carpeta-del-proyecto> --times 0.5,3,6,8.5
 # Render completo → <carpeta>/out/<nombre>.mp4 (H.264 yuv420p crf 18 + AAC silencioso):
-node C:/Users/USER/.zcode/skills/motor-estilos-video/render.mjs <carpeta-del-proyecto>
+node C:/Users/USER/.codex/skills/motor-estilos-video/render.mjs <carpeta-del-proyecto>
 ```
 Chrome headless del sistema (`C:/Program Files/Google/Chrome/Application/chrome.exe`; si falta, `CHROME_PATH`). Smoke test sin `[pageerror]`/`[console]` y JPG > 25 KB; mira un JPG con Read para confirmar la caligrafía (no serif de respaldo).
 
 ## Biblia del estilo (inmutable)
-- **Pizarra**: verde-negra `#20362e` con borrosidades fantasma de tiza borrada (manchas muy sutiles `rgba(243,239,226,0.02-0.05)`); marco de madera en marrones `#5a3719`/`#6b4423`/`#3a2412` con bandeja inferior (tiza y borrador apoyados).
-- **Tizas**: blanco hueso `#f3efe2` (dominante) y amarilla `#f6d76b` (énfasis, números clave). Los trazos de tiza NO son líneas limpias: triple pasada desplazada con alpha variable + motas de polvo en las puntas.
-- **Tipografía**: Caveat 700 como escritura a tiza (títulos 80-120 px, notas ≥ 30 px). Texto en ESPAÑOL.
-- **Elementos firma**: marco garabateado a tiza alrededor del título con estrellas; subrayados con golpes repetidos; calendarios/casillas que se tachan en orden barajado; garabatos (flechas, sol, estrella); regla dibujada; polvillo de tiza que cae al escribir fuerte.
-- **Lenguaje de movimiento**: escritura progresiva (revelado por longitud con jitter de mano), la barrita de tiza visible como punta que escribe; pausas de profesor entre frases; los garabatos completos se animan sutilmente (la estrella titila, la balanza oscila y se asienta con overshoot).
+- **Pizarra**: verde-negra `#20362e` con polvo precalculado (1500 motas
+  rgba(243,239,226,0.015-0.055) + 12 manchas fantasma de tiza borrada + motas amarillas
+  rgba(246,215,107,≤0.03)); marco de madera `#6b4423` de 38 px con betas
+  rgba(58,34,14,0.8) y filete interior `#3a2412`; bandeja `#5a3719`/`#7a4f2a` de
+  840×34 px con tiza blanca y borrador `#4a4038` + espuma `#d8d2c4`; viñeta
+  rgba(0,0,0,0.34).
+- **Tizas**: blanco hueso `#f3efe2` (dominante) y amarilla `#f6d76b` (énfasis, números
+  clave, tachados). Los trazos de tiza NO son líneas limpias: triple pasada en
+  `chalkTrace` (glow blur 7 con alpha 0.3 y lw+3.5 → 2 pasadas granuladas alpha
+  0.35/0.8 con jitter ±2.4 px → motas de polvo sobre lo revelado).
+- **Tipografía**: Caveat 700 como escritura a tiza — kicker 52 px, número clave 165 px,
+  lema 150 px, notas 44-58 px. La escritura (`chalkWrite`) es doble pasada (halo alpha
+  0.55 blur 9 + sólida) con clip de revelado y barrita de tiza (9×26 px rotada −0.7 rad)
+  como punta que deja 3 motas. Texto en ESPAÑOL.
+- **Elementos firma**: marco doble garabateado alrededor del lema (rr 36 px y 26 px +
+  4 estrellas de 5 puntas r17/7 en las esquinas); garabatos sueltos (estrella, flecha con
+  cabeza); calendario con casillas que se tachan en ORDEN BARAJADO (hash1, cada X en
+  ~0.06 s); balanza con brazo de 410 px que oscila 0.02·sin(3t) y se inclina 0.16 rad
+  con back (s=2.2); subrayado doble con golpes (lw 7 + 5) y polvo de tiza cayendo con
+  caída cuadrática (30 partículas); brillo que titila sobre la estrella; motas flotantes
+  de vida sutil.
+- **Lenguaje de movimiento**: escritura progresiva (revelado por longitud con jitter de
+  mano vivo); pausas de profesor entre frases; los garabatos completos se animan
+  sutilmente y se asientan con overshoot; todo lento y cálido.
 - **Prohibido**: trazos vectoriales perfectos, colores saturados de pantalla (todo debe verse mineral/polvo), sombras duras, movimiento rápido.
 
 ## Estructura narrativa (adapta a la duración pedida; si no hay, 9 s)
-1. **La regla (0-25%)**: título a tiza con marco garabateado; la tiza "entra" a escribir.
-2. **Desarrollo (25-75%)**: la lección se apoya en un garabato funcional (calendario tachado, gráfico a tiza, balanza, tabla) que se dibuja y se anima; anotaciones al margen.
-3. **Recapitulación (75-100%)**: subrayado doble con golpes + polvo cayendo; la lección queda centrada y quieta (con vida mínima).
+Beats del demo (DUR 9 s):
+1. **La regla (2-27%)**: kicker "la regla:" 52 px (0.15-0.7 s); número clave "10"
+   amarillo 165 px (0.7-1.4 s); lema "minutos al día" 150 px (1.35-2.4 s).
+2. **Desarrollo (27-76%)**: marco doble garabateado + 4 estrellas (2.45-3.62 s);
+   garabatos estrella y flecha (3.35-4.25 s); calendario "30 días" dibujado y tachado
+   en orden barajado (4.0-5.85 s); balanza "10 min ↔ cambio real" que se dibuja y se
+   inclina (5.75-6.8 s).
+3. **Recapitulación (77-100%)**: subrayado doble amarillo (6.95-7.5 s); remate "cada
+   día cuenta" 58 px (7.6-8.3 s); polvo cayendo desde 7.3 s; la lección queda quieta
+   con vida mínima (motas, brillo de estrella).
+
+## Dependencias y portabilidad
+- Depende del motor compartido `motor-estilos-video` (render.mjs + `fonts/` + package.json con playwright-core) y de ffmpeg + Chrome headless en el sistema.
+- Fuentes que usa este estilo: `caveat-700.ttf` (en `motor-estilos-video/fonts/`; si te falta el motor, bájala de Google Fonts: Caveat 700).
+- Si recibes solo esta carpeta: 1) copia la carpeta a la carpeta de skills de tu agente; 2) consigue `motor-estilos-video` y colócalo junto a las skills; 3) `npm install` dentro del motor; 4) reemplaza la ruta `C:/Users/USER/.codex/skills/motor-estilos-video` por tu ubicación local en los comandos de este documento y en los `@font-face` de `referencia/anim.html`.
+- El ground truth visual viaja con la skill: `referencia/anim.html` es una implementación completa y ejecutable del estilo.
 
 ## Integración en un video mayor
 - **Escena completa**: concat el mp4 (`-f concat -c copy` con specs iguales, o re-encode).

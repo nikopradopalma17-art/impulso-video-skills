@@ -1,0 +1,376 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Poppins';font-weight:700;src:url(../../fuentes/poppins-700.ttf) format('truetype');}
+@font-face{font-family:'Poppins';font-weight:800;src:url(../../fuentes/poppins-800.ttf) format('truetype');}
+@font-face{font-family:'Inter';font-weight:400;src:url(../../fuentes/inter-400.ttf) format('truetype');}
+@font-face{font-family:'Inter';font-weight:700;src:url(../../fuentes/inter-700.ttf) format('truetype');}
+@font-face{font-family:'JBMono';font-weight:400;src:url(../../fuentes/jetbrains-mono-400.ttf) format('truetype');}
+html,body{margin:0;background:#f4f1ea}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ESTILO: EXPLICADOR DE PRODUCTO — origen: prompt-motion.com/sudo-kiran-6609ed (@sudo_kiran, Opus 5.5)
+// Crema con dot grid, titular bold con chip de color en la palabra remate, mockups de
+// documentos flotantes, flujo de UI con chips numerados y botones pill, escena azul de
+// calendario con cronómetro, CTA con tachado y chip degradado. Demo: "NotaViva", 9 s.
+const W = 1920, H = 1080, DUR = 9;
+window.DUR = DUR;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const CREMA = '#f4f1ea', TINTA = '#23252b', ROJO = '#ee5d54', AZUL = '#4f7df9',
+      VERDE = '#35b96f', MAGENTA = '#d9439b', AMARILLO = '#f5d564', AZULF = '#4b7af2',
+      ROSA = '#e56a9a', GRIS = '#8b8e96', CARD = '#fdfdfc', PHBAR = '#d9d5cb';
+let T = 0;
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const seg = (t,a,b) => clamp((t-a)/(b-a), 0, 1);
+const easeOut = p => 1 - Math.pow(1-p, 3);
+const easeIn = p => p*p*p;
+const easeInOut = p => p<.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2,3)/2;
+const easeOutBack = p => { const c = 1.70158; const q = p-1; return 1 + (c+1)*q*q*q + c*q*q; };
+const hash1 = n => { const s = Math.sin(n*127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// ---------- precalculados: dot grid ----------
+const dots = document.createElement('canvas'); dots.width = W; dots.height = H;
+window.ready = Promise.all([
+  document.fonts.load('800 96px Poppins'), document.fonts.load('700 44px Poppins'),
+  document.fonts.load('400 30px Inter'), document.fonts.load('400 24px JBMono')
+]).then(() => document.fonts.ready).then(() => {
+  const d = dots.getContext('2d'); d.fillStyle = 'rgba(35,37,43,0.06)';
+  for (let x = 40; x < W; x += 40) for (let y = 40; y < H; y += 40) d.fillRect(x, y, 2.2, 2.2);
+});
+
+// ---------- primitivas del estilo ----------
+function chip(txt, x, y, size, bg, fg, t0, dur) { // píldora de color; devuelve ancho
+  const p = seg(T, t0, t0 + (dur || 0.28)); if (p <= 0) return 0;
+  const s = easeOutBack(p);
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.globalAlpha = clamp(p * 2, 0, 1);
+  ctx.font = '700 ' + size + 'px Poppins';
+  const tw = ctx.measureText(txt).width, pw = tw + size * 0.9, ph = size * 1.62, r = ph / 2;
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(0, -ph, pw, ph, r * 0.42); ctx.fill();
+  ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.fillText(txt, size * 0.45, -ph / 2 + size * 0.34);
+  ctx.restore();
+  return pw * s;
+}
+function numChip(n, x, y, bg, t0) {
+  const p = seg(T, t0, t0 + 0.25); if (p <= 0) return 0;
+  const s = easeOutBack(p);
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(0, -34, 46, 34, 8); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.font = '700 22px Poppins'; ctx.textAlign = 'center';
+  ctx.fillText(n, 23, -11); ctx.restore();
+  return 46 * s;
+}
+function docMock(x, y, w, h, rot, pIn, chipBg, chipTxt) {
+  const p = seg(T, pIn, pIn + 0.4); if (p <= 0) return;
+  ctx.save(); ctx.translate(x + (1 - easeOut(p)) * 70, y); ctx.rotate(rot + (1 - easeOut(p)) * 0.08);
+  ctx.globalAlpha = clamp(p * 1.5, 0, 1);
+  ctx.shadowColor = 'rgba(40,38,32,0.16)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 14;
+  ctx.fillStyle = CARD; ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 14); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  // esquina doblada
+  ctx.fillStyle = '#efede6'; ctx.beginPath();
+  ctx.moveTo(w/2 - 46, -h/2); ctx.lineTo(w/2, -h/2 + 46); ctx.lineTo(w/2 - 46, -h/2 + 46);
+  ctx.closePath(); ctx.fill();
+  // chip de formato
+  ctx.fillStyle = chipBg; ctx.beginPath(); ctx.roundRect(-w/2 + 24, -h/2 + 24, 66, 34, 7); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.font = '700 17px Poppins'; ctx.textAlign = 'center';
+  ctx.fillText(chipTxt, -w/2 + 57, -h/2 + 47);
+  // barras de texto
+  ctx.fillStyle = PHBAR;
+  ctx.beginPath(); ctx.roundRect(-w/2 + 24, -h/2 + 84, w - 48, 16, 8); ctx.fill();
+  for (let i = 0; i < 6; i++) {
+    const bw = (w - 48) * (0.55 + hash1(x + i * 13) * 0.4);
+    ctx.beginPath(); ctx.roundRect(-w/2 + 24, -h/2 + 122 + i * 38, bw, 12, 6); ctx.fill();
+  }
+  ctx.restore();
+}
+function pill(txt, x, y, size, bg, fg, t0) {
+  const p = seg(T, t0, t0 + 0.25); if (p <= 0) return 0;
+  const s = easeOutBack(p);
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.font = '700 ' + size + 'px Poppins';
+  const tw = ctx.measureText(txt).width, pw = tw + size * 1.5, ph = size * 2.1;
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(0, -ph, pw, ph, ph / 2); ctx.fill();
+  ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.fillText(txt, size * 0.75, -ph / 2 + size * 0.36);
+  ctx.restore();
+  return pw * s;
+}
+function sello(txt, x, y, col, t0) {
+  const p = seg(T, t0, t0 + 0.22); if (p <= 0) return;
+  const s = 1.8 - 0.8 * easeOutBack(p);
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-0.09); ctx.scale(s, s); ctx.globalAlpha = clamp(p * 1.6, 0, 1) * 0.9;
+  ctx.strokeStyle = col; ctx.lineWidth = 4;
+  ctx.font = '700 40px Poppins'; const tw = ctx.measureText(txt).width;
+  ctx.beginPath(); ctx.roundRect(-tw/2 - 26, -38, tw + 52, 76, 10); ctx.stroke();
+  ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.fillText(txt, 0, 14);
+  ctx.restore();
+}
+function cursor(x, y, clickT0) {
+  const cp = seg(T, clickT0, clickT0 + 0.3);
+  if (cp > 0 && cp < 1) { ctx.strokeStyle = 'rgba(35,37,43,0.4)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(x - 6, y - 6, 14 + cp * 34, 0, 7); ctx.stroke(); }
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = TINTA; ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, 34); ctx.lineTo(9, 26); ctx.lineTo(15, 40); ctx.lineTo(21, 37);
+  ctx.lineTo(15, 24); ctx.lineTo(26, 23); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.restore();
+}
+function typed(txt, x, y, size, t0, t1, col, font) {
+  const p = seg(T, t0, t1); if (p <= 0) return;
+  ctx.save(); ctx.font = font; ctx.textAlign = 'left'; ctx.fillStyle = col;
+  const shown = txt.slice(0, Math.ceil(txt.length * p));
+  ctx.fillText(shown, x, y);
+  if (p < 0.98 && p > 0) { const w = ctx.measureText(shown).width;
+    ctx.fillRect(x + w + 3, y - size * 0.8, 3, size); }
+  ctx.restore();
+}
+
+window.draw = ({ t }) => {
+  T = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = 'none';
+  const enAzul = t >= 5.3 && t < 7.0;
+  const flash = Math.max(seg(t, 5.24, 5.3), 1 - seg(t, 5.3, 5.4)) * (t > 5.2 && t < 5.45 ? 1 : 0)
+              + Math.max(seg(t, 6.94, 7.0), 1 - seg(t, 7.0, 7.1)) * (t > 6.9 && t < 7.15 ? 1 : 0);
+
+  if (!enAzul) {
+    ctx.fillStyle = CREMA; ctx.fillRect(0, 0, W, H); ctx.drawImage(dots, 0, 0);
+  } else {
+    ctx.fillStyle = AZULF; ctx.fillRect(0, 0, W, H);
+  }
+
+  // ================= A: titular + documentos (0-2.6) =================
+  if (t < 2.6) {
+    ctx.textAlign = 'left';
+    const x = 150, y1 = 285, y2 = 425;
+    ctx.font = '800 96px Poppins'; ctx.fillStyle = TINTA;
+    const wEl = ctx.measureText('el ').width;
+    const p1 = seg(t, 0.15, 0.5);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, y1 - 120, 150 + 660 * easeOut(p1), 200); ctx.clip();
+    ctx.fillText('Nadie abre', x, y1); ctx.restore();
+    const p2 = seg(t, 0.55, 0.85);
+    if (p2 > 0) { ctx.save(); ctx.beginPath(); ctx.rect(0, y2 - 120, 150 + (wEl + 20) * easeOut(p2), 200); ctx.clip();
+      ctx.fillText('el', x, y2); ctx.restore(); }
+    chip('PDF.', x + wEl + 16, y2, 92, ROJO, '#ffffff', 0.7);
+    // sub-línea con ojo
+    const sp = seg(t, 1.0, 1.3);
+    if (sp > 0) { ctx.globalAlpha = sp;
+      ctx.strokeStyle = GRIS; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.ellipse(172, 502, 22, 14, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = GRIS; ctx.beginPath(); ctx.arc(172, 502, 7, 0, 7); ctx.fill();
+      ctx.font = '400 30px Inter'; ctx.textAlign = 'left';
+      ctx.fillStyle = GRIS; ctx.fillText('informe_final_v7.pdf · abierto 0 veces', 212, 513);
+      ctx.globalAlpha = 1; }
+    // mockups flotantes
+    docMock(1450, 300, 400, 460, 0.06, 0.55, ROJO, 'PDF');
+    docMock(1750, 700, 330, 380, -0.05, 0.75, AZUL, 'DOC');
+    docMock(1120, 810, 300, 340, 0.09, 0.9, ROJO, 'PDF');
+    const stp = seg(t, 1.5, 1.75);
+    if (stp > 0) { ctx.save(); ctx.translate(1452, 320); ctx.rotate(0.14);
+      ctx.globalAlpha = stp * 0.85; const s = 1.7 - 0.7 * easeOutBack(stp); ctx.scale(s, s);
+      ctx.strokeStyle = GRIS; ctx.lineWidth = 5;
+      ctx.font = '700 54px Poppins'; const tw = ctx.measureText('SIN LEER').width;
+      ctx.beginPath(); ctx.roundRect(-tw/2 - 30, -52, tw + 60, 96, 12); ctx.stroke();
+      ctx.fillStyle = GRIS; ctx.textAlign = 'center'; ctx.fillText('SIN LEER', 0, 18);
+      ctx.restore(); ctx.globalAlpha = 1; }
+  }
+
+  // ================= B: flujo de UI (2.6-5.3) =================
+  if (t >= 2.6 && t < 5.3) {
+    // chips numerados de pasos
+    ctx.textAlign = 'left'; ctx.font = '700 40px Poppins'; ctx.fillStyle = TINTA;
+    let cx2 = 170;
+    cx2 += numChip('01', cx2, 170, AZUL, 2.7) + 18; ctx.fillText('Lo lee', cx2, 158); cx2 += 260;
+    cx2 += numChip('02', cx2, 170, MAGENTA, 2.9) + 18; ctx.fillText('Escribe el guion', cx2, 158); cx2 += 520;
+    cx2 += numChip('03', cx2, 170, VERDE, 3.4) + 18; ctx.fillText('Tú apruebas', cx2, 158);
+
+    // tarjeta PDF con resaltados
+    const pc = seg(t, 2.8, 3.15);
+    if (pc > 0) {
+      ctx.save(); ctx.translate(440, 620); ctx.rotate(-0.015);
+      const dy = (1 - easeOut(pc)) * 60; ctx.translate(0, dy); ctx.globalAlpha = clamp(pc * 1.4, 0, 1);
+      ctx.shadowColor = 'rgba(40,38,32,0.16)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 14;
+      ctx.fillStyle = CARD; ctx.beginPath(); ctx.roundRect(-260, -340, 520, 680, 16); ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = ROJO; ctx.beginPath(); ctx.roundRect(-236, -316, 88, 46, 9); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.font = '700 24px Poppins'; ctx.fillText('PDF', -214, -283);
+      ctx.fillStyle = '#a8b0c8'; ctx.beginPath(); ctx.roundRect(-236, -240, 340, 20, 10); ctx.fill();
+      ctx.fillStyle = PHBAR;
+      for (let i = 0; i < 8; i++) {
+        ctx.beginPath(); ctx.roundRect(-236, -180 + i * 56, 472 * (0.5 + hash1(i * 7) * 0.45), 14, 7); ctx.fill();
+      }
+      // resaltados amarillos que se dibujan
+      [[-180 + 1 * 56, 0.62], [-180 + 4 * 56, 0.72], [-180 + 6 * 56, 0.82]].forEach(([yy, tt0]) => {
+        const hp = seg(t, 3.2 + (tt0 - 0.62) * 2, 3.45 + (tt0 - 0.62) * 2);
+        if (hp > 0) { ctx.fillStyle = AMARILLO; ctx.globalAlpha = 0.85;
+          ctx.beginPath(); ctx.roundRect(-240, yy - 8, 480 * easeOut(hp), 30, 8); ctx.fill();
+          ctx.globalAlpha = 1; }
+      });
+      ctx.restore();
+    }
+    // tarjeta guion
+    const sc = seg(t, 3.15, 3.5);
+    if (sc > 0) {
+      const apr = seg(t, 4.45, 4.7);
+      ctx.save(); ctx.translate(1330, 620);
+      const dy = (1 - easeOut(sc)) * 60; ctx.translate(0, dy); ctx.globalAlpha = clamp(sc * 1.4, 0, 1);
+      ctx.shadowColor = 'rgba(40,38,32,0.16)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 14;
+      ctx.fillStyle = CARD; ctx.beginPath(); ctx.roundRect(-400, -300, 800, 600, 18); ctx.fill();
+      ctx.shadowColor = 'transparent';
+      if (apr > 0) { ctx.strokeStyle = VERDE; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.roundRect(-400, -300, 800, 600, 18); ctx.stroke(); }
+      ctx.fillStyle = TINTA; ctx.font = '700 40px Poppins'; ctx.textAlign = 'left';
+      ctx.fillText('Guion de narración', -352, -212);
+      chip('Diapositiva 1', -352 + 460, -224, 24, '#eef1f8', AZUL, 3.6, 0.22);
+      ctx.strokeStyle = '#eceae3'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-352, -180); ctx.lineTo(352, -180); ctx.stroke();
+      // líneas del guion tecleadas
+      typed('Las plantas fabrican su alimento.', -352, -100, 36, 3.55, 4.15, TINTA, '400 36px Inter');
+      typed('Luz, agua y aire entran…', -352, -30, 36, 4.0, 4.5, GRIS, '400 36px Inter');
+      // botón aprobar → aprobado
+      if (apr > 0) {
+        sello('CADA PALABRA', -140, 180, VERDE, 4.75);
+        pill('✓ Aprobado', 60, 258, 30, VERDE, '#ffffff', 4.7);
+      } else pill('Aprobar guion', 60, 258, 30, TINTA, '#ffffff', 3.7);
+      ctx.restore();
+      // cursor viaja y hace clic
+      const c1 = seg(t, 4.15, 4.55);
+      if (c1 > 0) cursor(1150 + 480 * easeInOut(c1), 940 - 60 * easeInOut(c1), 4.55);
+    }
+  }
+
+  // ================= C: azul calendario + cronómetro (5.3-7.0) =================
+  if (enAzul) {
+    ctx.textAlign = 'left';
+    const hp = seg(t, 5.4, 5.75);
+    ctx.font = '800 120px Poppins'; ctx.fillStyle = '#ffffff';
+    const wk = seg(t, 5.85, 6.15);
+    ctx.save();
+    if (wk > 0) { ctx.globalAlpha = 1 - wk * 0.55; }
+    ctx.fillText('Semanas', 150, 280);
+    ctx.restore();
+    ctx.font = '800 76px Poppins';
+    ctx.globalAlpha = seg(t, 5.55, 5.8);
+    ctx.fillText('de trabajo', 790, 278); ctx.globalAlpha = 1;
+    // tachón rosa
+    if (wk > 0) { ctx.strokeStyle = ROSA; ctx.lineWidth = 14; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(140, 240);
+      ctx.quadraticCurveTo(420, 262, 140 + 480 * wk, 234); ctx.stroke(); }
+    // calendario 7x3 con X
+    const dias = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    for (let i = 0; i < 21; i++) {
+      const col = i % 7, row = Math.floor(i / 7);
+      const xx = 150 + col * 150, yy = 400 + row * 140;
+      const cp = seg(t, 5.5 + i * 0.022, 5.68 + i * 0.022);
+      if (cp > 0) { const s = easeOutBack(cp);
+        ctx.save(); ctx.translate(xx, yy); ctx.scale(s, s); ctx.globalAlpha = clamp(cp * 2, 0, 1);
+        ctx.fillStyle = 'rgba(255,255,255,0.16)';
+        ctx.beginPath(); ctx.roundRect(0, 0, 118, 108, 12); ctx.fill();
+        if (i < 13) { ctx.strokeStyle = ROSA; ctx.lineWidth = 12; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(30, 26); ctx.lineTo(88, 82); ctx.moveTo(88, 26); ctx.lineTo(30, 82); ctx.stroke(); }
+        ctx.restore(); ctx.globalAlpha = 1; }
+      if (row === 0) { ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '700 24px Poppins';
+        ctx.textAlign = 'center'; ctx.fillText(dias[col], xx + 59, yy - 18); }
+    }
+    // listo en minutos
+    const mp = seg(t, 6.25, 6.6);
+    if (mp > 0) { ctx.save(); ctx.translate(0, (1 - easeOutBack(mp)) * 120);
+      ctx.font = '800 96px Poppins'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left';
+      ctx.fillText('listo en', 150, 878);
+      ctx.fillText('minutos', 150, 972);
+      ctx.fillStyle = AMARILLO; ctx.beginPath(); ctx.arc(520, 948, 16, 0, 7); ctx.fill();
+      ctx.restore(); }
+    // cronómetro
+    const wp = seg(t, 5.6, 6.0);
+    if (wp > 0) { const s = easeOutBack(wp), ccx = 1450, ccy = 620;
+      ctx.save(); ctx.translate(ccx, ccy); ctx.scale(s, s);
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(-18, -330, 36, 40, 8); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 10;
+      ctx.beginPath(); ctx.arc(0, 0, 250, 0, Math.PI * 2); ctx.stroke();
+      const ap = seg(t, 6.1, 6.9);
+      ctx.strokeStyle = AMARILLO; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(0, 0, 250, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * 0.75 * easeOut(ap)); ctx.stroke();
+      // aguja + tiempo corriendo
+      const aa = -Math.PI / 2 + Math.PI * 2 * 0.75 * easeOut(ap);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 8;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(aa) * 190, Math.sin(aa) * 190); ctx.stroke();
+      const tot = 228 + easeOut(ap) * 45; // 03:48 → 04:33
+      const mm = Math.floor(tot / 60), ss = Math.floor(tot % 60);
+      ctx.fillStyle = '#ffffff'; ctx.font = '700 84px Poppins'; ctx.textAlign = 'center';
+      ctx.fillText(mm + ':' + String(ss).padStart(2, '0'), 0, 30);
+      ctx.restore(); }
+  }
+
+  // ================= D: CTA (7.0-9.0) =================
+  if (t >= 7.0) {
+    // logo: 3 barras pastel + wordmark
+    const lp = seg(t, 7.1, 7.45);
+    if (lp > 0) { const s = easeOutBack(lp);
+      const bars = [[VERDE, -66], [AZUL, 0], ['#f08bbd', 66]];
+      bars.forEach(([col, dx], i) => { const bp = seg(t, 7.1 + i * 0.07, 7.35 + i * 0.07);
+        if (bp > 0) { ctx.save(); ctx.translate(790 + dx, 285);
+          const b = easeOutBack(bp); ctx.translate(0, (1 - b) * -120); ctx.scale(b, b);
+          ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(-26, -70, 52, 140, 14); ctx.fill();
+          ctx.restore(); } });
+      ctx.font = '800 110px Poppins'; ctx.fillStyle = TINTA; ctx.textAlign = 'left';
+      const wp = seg(t, 7.3, 7.6);
+      ctx.save(); ctx.beginPath(); ctx.rect(860, 180, 700 * easeOut(wp), 160); ctx.clip();
+      ctx.fillText('NotaViva', 915, 325); ctx.restore();
+    }
+    // claim con tachado
+    const cp = seg(t, 7.6, 7.9);
+    if (cp > 0) { ctx.font = '700 64px Poppins'; ctx.textAlign = 'left';
+      ctx.globalAlpha = cp;
+      ctx.fillStyle = GRIS; ctx.fillText('Deja de enviar', 560, 560);
+      const w1 = ctx.measureText('Deja de enviar ').width;
+      ctx.fillStyle = GRIS; ctx.fillText('adjuntos.', 560 + w1, 560);
+      ctx.globalAlpha = 1;
+      const stp = seg(t, 7.95, 8.2);
+      if (stp > 0) { ctx.strokeStyle = ROJO; ctx.lineWidth = 10; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(560 + w1, 540);
+        ctx.lineTo(560 + w1 + ctx.measureText('adjuntos.').width * stp, 536); ctx.stroke(); }
+    }
+    const sp = seg(t, 8.05, 8.4);
+    if (sp > 0) { ctx.font = '800 76px Poppins'; ctx.textAlign = 'left';
+      ctx.save(); ctx.translate(0, (1 - easeOutBack(sp)) * 80); ctx.globalAlpha = clamp(sp * 1.4, 0, 1);
+      ctx.fillStyle = TINTA; ctx.fillText('Empieza a enviar', 560, 690);
+      const w2 = ctx.measureText('Empieza a enviar ').width;
+      // chip degradado ▶ videos.
+      const cp2 = seg(t, 8.25, 8.5);
+      if (cp2 > 0) { const s = easeOutBack(cp2);
+        ctx.save(); ctx.translate(560 + w2, 690); ctx.scale(s, s);
+        const g = ctx.createLinearGradient(0, -62, 330, 0);
+        g.addColorStop(0, AZUL); g.addColorStop(1, MAGENTA);
+        ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(0, -76, 330, 108, 22); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.moveTo(48, -46); ctx.lineTo(48, -6); ctx.lineTo(84, -26); ctx.closePath(); ctx.fill();
+        ctx.font = '800 56px Poppins'; ctx.fillText('videos.', 108, -8);
+        ctx.restore(); }
+      ctx.restore(); ctx.globalAlpha = 1; }
+    // confeti suave
+    const kp = 1 - seg(t, 8.95, 9.0) * seg(t, 8.35, 8.5);
+    if (kp > 0 && kp < 1) for (let i = 0; i < 26; i++) {
+      const a = hash1(i * 3.3) * Math.PI * 2, rr = (0.3 + hash1(i * 7.7) * 0.7) * easeOut(kp) * 500;
+      const cols = [AZUL, MAGENTA, VERDE, AMARILLO, ROJO];
+      ctx.save(); ctx.translate(960 + Math.cos(a) * rr, 640 + Math.sin(a) * rr * 0.8);
+      ctx.rotate(a * 2); ctx.globalAlpha = 1 - easeIn(kp);
+      ctx.fillStyle = cols[i % 5]; ctx.fillRect(-7, -3, 14, 6); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    // pill CTA + cursor
+    const pw = pill('Pruébalo gratis →', 760, 920, 34, AZUL, '#ffffff', 8.5);
+    if (pw > 0 && seg(t, 8.7, 9) > 0) cursor(760 + pw + 30, 890, 9);
+  }
+
+  // flash de corte
+  if (flash > 0) { ctx.fillStyle = `rgba(250,248,242,${clamp(flash, 0, 1)})`; ctx.fillRect(0, 0, W, H); }
+
+  // etiqueta de origen
+  ctx.fillStyle = 'rgba(139,142,150,0.9)'; ctx.font = '400 24px JBMono'; ctx.textAlign = 'left';
+  ctx.fillText('ESTILO: EXPLICADOR DE PRODUCTO · ORIGEN: PROMPT-MOTION/@SUDO_KIRAN', 36, 1046);
+
+  return cv.toDataURL('image/jpeg', 0.92);
+};
+window.draw({ t: 0 });
+</script></body></html>
