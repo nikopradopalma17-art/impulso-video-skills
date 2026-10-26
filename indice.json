@@ -203,8 +203,8 @@
     }
   ],
   "resumen": {
-    "total": 204,
-    "clonados": 101,
+    "total": 205,
+    "clonados": 102,
     "pendientes": 0,
     "externos": 103,
     "categorias": [
@@ -222,7 +222,7 @@
         "nombre": "Explainers y divulgación",
         "emoji": "🎓",
         "carpeta": "02-explainers",
-        "clonado": 26,
+        "clonado": 27,
         "pendiente": 0,
         "externo": 10
       },
@@ -645,6 +645,21 @@
       "seguridad": "safe",
       "lenguaje": "TypeScript",
       "licencia": "Apache-2.0"
+    },
+    {
+      "repo": "vincentsch/explainroo",
+      "url": "https://github.com/vincentsch/explainroo",
+      "carpeta": "02-explainers/vincentsch--explainroo",
+      "categoria_id": "explainer",
+      "categoria": "Explainers y divulgación",
+      "categoria_emoji": "🎓",
+      "estado": "clonado",
+      "stars": 648,
+      "descripcion": "Explainer videos and product demos made by your AI agent. Free and open source: a local voice (Kokoro), word timing (Whisper) and a canvas renderer turn a script into a narrated MP4.",
+      "descripcion_es": "Videos explicativos y demos de producto hechos por tu agente de IA. Libre y open source: voz local (Kokoro), timing de palabras (Whisper) y un renderizador de canvas convierten un guion en un MP4 narrado, con música y subtítulos. Trae 6 looks (paper, clean, chalk, blueprint, midnight, editorial) y README + AGENTS.md en español.",
+      "seguridad": "safe",
+      "lenguaje": "JavaScript",
+      "licencia": "MIT"
     },
     {
       "repo": "lemomo-ai/lemo-opuscar",

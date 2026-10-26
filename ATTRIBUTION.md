@@ -31,7 +31,8 @@ La columna **Licencia** refleja lo que reporta la API de GitHub en el momento de
 | [doublesq97-ui/su-card-to-video](https://github.com/doublesq97-ui/su-card-to-video) | doublesq97-ui | MIT | `01-frameworks/doublesq97-ui--su-card-to-video` | [doublesq97-ui/su-card-to-video](https://github.com/doublesq97-ui/su-card-to-video) |
 | [gloweaseco-leo/hyperdirector](https://github.com/gloweaseco-leo/hyperdirector) | gloweaseco-leo | Apache-2.0 | `01-frameworks/gloweaseco-leo--hyperdirector` | [gloweaseco-leo/hyperdirector](https://github.com/gloweaseco-leo/hyperdirector) |
 
-## 🎓 Explainers y divulgación — `02-explainers` (26 repos)
+## 🎓 Explainers y divulgación — `02-explainers` (27 repos)
+| [vincentsch/explainroo](https://github.com/vincentsch/explainroo) | Vincent Schmalbach | MIT | `02-explainers/vincentsch--explainroo` | [vincentsch/explainroo](https://github.com/vincentsch/explainroo) |
 
 | Repositorio | Autor | Licencia | Carpeta local | URL original |
 |---|---|---|---|---|
@@ -157,12 +158,13 @@ contienen skills y demos derivadas del motor **explainroo** de Vincent Schmalbac
   (`scripts/generar_anim_explicadores.mjs`) son adaptaciones propias de IMPULSO IA
   construidas con esos tokens; los GIFs de la galería (`brand/estilos/explicador-*.gif`)
   se renderizaron a partir de ellas.
-- El motor explainroo **no** se incluye en este repositorio: cada skill indica clonarlo
-  desde GitHub al usarla. Ejemplos vivos de cada look: [explainroo.com/videos](https://www.explainroo.com/videos/).
+- El motor viene incluido como clon superficial en `02-explainers/vincentsch--explainroo`
+  (sin historial `.git`), con `README.md` y `AGENTS.md` traducidos al español; el original
+  en inglés vive en GitHub. Ejemplos vivos de cada look: [explainroo.com/videos](https://www.explainroo.com/videos/).
 
 ## Repos indexados no clonados (103)
 
-El catálogo fuente lista **204 repos**; los **101** anteriores están clonados en este consolidado. Los **103 restantes** quedan fuera de la copia local — pertenecen a otras categorías del catálogo fuente (promo, story, avatar, craft, music…) o quedaron por debajo del umbral de 10 estrellas — y están **indexados solo con su URL** en [`indice.json`](indice.json) y en el landing `index.html`, sin carpeta local en este repo.
+El catálogo fuente lista **204 repos**; **102** están clonados en este consolidado (101 del catálogo fuente + explainroo, añadido por traer los looks explicadores). Los **103 restantes** quedan fuera de la copia local — pertenecen a otras categorías del catálogo fuente (promo, story, avatar, craft, music…) o quedaron por debajo del umbral de 10 estrellas — y están **indexados solo con su URL** en [`indice.json`](indice.json) y en el landing `index.html`, sin carpeta local en este repo.
 
 Puedes clonarlos por tu cuenta desde su URL original, o consultarlos directamente en el catálogo fuente: [zhuyansen/awesome-claude-video-skills](https://github.com/zhuyansen/awesome-claude-video-skills).
 

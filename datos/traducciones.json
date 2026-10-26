@@ -200,5 +200,6 @@
  "chenmisss/laoxu-video-script": "Skill con la metodología de Lao Xu para arrancar cuentas de creador: posicionamiento / selección de temas / guion «romper y construir» / diagnóstico en 5 dimensiones / cortar la verborrea repetitiva / librería de 112 motivos. Claude Code/Codex skill para lanzar cuentas desde cero.",
  "sharon-laicc/viral-video-decomposer": "Skill de Codex/Claude para desglosar shorts virales: análisis plano a plano, mecanismos detrás de los éxitos, blueprints de producción reutilizables y briefs de generación de video listos para IA.",
  "JohnHeibel/PDoomVideo": "Código fuente del video musical de Claude Opus 5.5 para «I'm Upping My P(doom)»",
- "ledbetterljoshua/functional-emotions-video": "Un video musical pintado a mano para «Functional Emotions», hecho por Claude Opus 5.5: renderer propio de pinceladas sobre GPU, storyboard y 7 agentes de capítulos en paralelo."
+ "ledbetterljoshua/functional-emotions-video": "Un video musical pintado a mano para «Functional Emotions», hecho por Claude Opus 5.5: renderer propio de pinceladas sobre GPU, storyboard y 7 agentes de capítulos en paralelo.",
+ "vincentsch/explainroo": "Videos explicativos y demos de producto hechos por tu agente de IA. Libre y open source: voz local (Kokoro), timing de palabras (Whisper) y un renderizador de canvas convierten un guion en un MP4 narrado, con música y subtítulos. Trae 6 looks (paper, clean, chalk, blueprint, midnight, editorial) y README + AGENTS.md en español."
 }

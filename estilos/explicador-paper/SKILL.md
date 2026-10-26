@@ -29,10 +29,11 @@ Este look NO es un canvas propio: lo produce el motor **explainroo** (MIT,
 `vincentsch/explainroo`), que convierte `script.md` (narración) + `scenes.js` (dibujo) en un
 MP4 narrado con música. Tu agente escribe ambos archivos; el motor hace el resto.
 
-**1. Preparar el motor (una vez por máquina):**
+**1. Preparar el motor (una vez por máquina)** — ya viene incluido en este catálogo
+(`02-explainers/vincentsch--explainroo`, clon superficial con README y AGENTS.md en español):
 ```bash
-git clone https://github.com/vincentsch/explainroo.git
-cd explainroo
+# Copia la carpeta del catálogo a tu espacio de trabajo (o clona el original de GitHub):
+cp -r 02-explainers/vincentsch--explainroo ~/explainroo && cd ~/explainroo
 npm install
 node bin/explainroo.js doctor --fetch   # verifica Node/ffmpeg/Chrome; baja modelos de voz (~400 MB)
 ```

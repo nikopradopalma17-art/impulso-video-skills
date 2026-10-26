@@ -61,8 +61,9 @@ pipeline completo de principio a fin.
 - Looks explicadores: temas y tokens derivados de
   [vincentsch/explainroo](https://github.com/vincentsch/explainroo) (MIT, Vincent
   Schmalbach); las demos `anim.html` y su generador son adaptaciones propias con
-  esos tokens. El motor NO está incluido en este repo: se clona desde GitHub al
-  usar la skill. Ejemplos vivos: [explainroo.com/videos](https://www.explainroo.com/videos/).
+  esos tokens. El motor viene incluido en `02-explainers/vincentsch--explainroo`
+  (clon superficial con `README.md` y `AGENTS.md` traducidos al español); el
+  original vive en github.com/vincentsch/explainroo. Ejemplos vivos: [explainroo.com/videos](https://www.explainroo.com/videos/).
 - Tipografías en `fuentes/`: Google Fonts bajo SIL Open Font License (Archivo
   Black, Alfa Slab One, Anton, Architects Daughter, Bangers, Baloo 2, Cabin
   Sketch, Caveat, Fredoka, Instrument Serif, Inter, JetBrains Mono, Kalam,
