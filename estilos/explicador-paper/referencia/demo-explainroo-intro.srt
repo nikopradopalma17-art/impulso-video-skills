@@ -1,0 +1,114 @@
+1
+00:00:00,350 --> 00:00:03,500
+A coding agent made this
+video with explainroo.
+
+2
+00:00:03,675 --> 00:00:05,045
+It didn't use a video model,
+
+3
+00:00:05,415 --> 00:00:07,785
+an API key or a video editor.
+
+4
+00:00:08,130 --> 00:00:10,780
+Everything you see is
+drawn with JavaScript.
+
+5
+00:00:12,410 --> 00:00:15,580
+explainroo is a free,
+open source kit for coding agents.
+
+6
+00:00:15,945 --> 00:00:17,535
+The agent writes two files.
+
+7
+00:00:17,910 --> 00:00:20,080
+The first one is the script for the voice.
+
+8
+00:00:20,425 --> 00:00:23,915
+The second one is a bit of
+JavaScript that draws the pictures.
+
+9
+00:00:25,083 --> 00:00:27,793
+A voice model called
+Kokoro reads the script.
+
+10
+00:00:28,093 --> 00:00:29,723
+It runs on your own computer.
+
+11
+00:00:30,098 --> 00:00:34,348
+Then Whisper listens to the recording
+and writes down the time of each word.
+
+12
+00:00:35,350 --> 00:00:38,980
+This way a picture can appear at
+the moment the voice mentions it.
+
+13
+00:00:39,170 --> 00:00:42,780
+The agent writes one line of code,
+and when the voice says database,
+
+14
+00:00:43,170 --> 00:00:44,380
+the database appears.
+
+15
+00:00:45,550 --> 00:00:47,820
+Chrome draws each frame in the background.
+
+16
+00:00:48,145 --> 00:00:49,995
+There are five looks to pick from,
+
+17
+00:00:50,265 --> 00:00:53,495
+and explainroo also makes the
+music and the sound effects.
+
+18
+00:00:54,550 --> 00:00:56,400
+The agent can't watch the video,
+
+19
+00:00:56,770 --> 00:00:59,760
+so explainroo turns it into
+things the agent can read.
+
+20
+00:01:00,055 --> 00:01:04,395
+It makes still pictures of each scene
+and contact sheets that show a scene over
+
+21
+00:01:04,395 --> 00:01:05,005
+time.
+
+22
+00:01:05,270 --> 00:01:10,480
+A check also finds text that is cut off,
+bad timing and words the voice got wrong.
+
+23
+00:01:11,483 --> 00:01:14,793
+One command turns all
+of it into an MP4 file.
+
+24
+00:01:16,983 --> 00:01:19,133
+explainroo is free and open source.
+
+25
+00:01:19,493 --> 00:01:22,443
+The code and these example
+videos are on GitHub.
+

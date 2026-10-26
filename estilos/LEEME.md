@@ -52,7 +52,10 @@ renderizable con Chrome headless + ffmpeg a mp4/GIF). En los estilos de
 producto, `referencia/demo-<estilo>.mp4` es el render de validación: míralo
 para saber exactamente qué esperar del estilo antes de renderizar. En los
 looks explicadores, el "motor" es explainroo y el `SKILL.md` documenta su
-pipeline completo de principio a fin.
+pipeline completo de principio a fin. Cinco de ellos incluyen además un
+**demo mp4 real** en `referencia/` (renderizado aquí con el motor incluido,
+uno narrado en español): míralo para saber qué produce cada look antes de
+empezar.
 
 ## Licencias
 

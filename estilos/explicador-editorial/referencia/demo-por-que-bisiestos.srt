@@ -1,0 +1,82 @@
+1
+00:00:00,350 --> 00:00:03,160
+Why does February
+sometimes get an extra day?
+
+2
+00:00:03,350 --> 00:00:06,880
+Our calendar needs a small
+adjustment to follow Earth's year.
+
+3
+00:00:07,850 --> 00:00:13,220
+Earth takes about 365.2422
+days to go around the Sun.
+
+4
+00:00:13,470 --> 00:00:16,660
+That fraction matters when we
+count whole days on a calendar.
+
+5
+00:00:17,817 --> 00:00:21,207
+A regular calendar year has 365 days.
+
+6
+00:00:21,537 --> 00:00:24,587
+So the calendar drifts by
+almost a quarter day each year.
+
+7
+00:00:24,807 --> 00:00:26,337
+The difference keeps building up.
+
+8
+00:00:27,317 --> 00:00:31,127
+Adding an extra day every four
+years fixes most of that drift.
+
+9
+00:00:31,462 --> 00:00:33,632
+The extra day is February 29.
+
+10
+00:00:34,783 --> 00:00:36,653
+But this adds a little too much time.
+
+11
+00:00:36,918 --> 00:00:41,428
+The calendar needs an occasional exception
+to keep that overcorrection small.
+
+12
+00:00:42,417 --> 00:00:43,627
+The Gregorian calendar,
+
+13
+00:00:44,057 --> 00:00:46,847
+introduced in 1582, makes that adjustment.
+
+14
+00:00:47,192 --> 00:00:52,002
+It skips leap days in century years,
+unless the year divides evenly by 400.
+
+15
+00:00:53,217 --> 00:00:56,747
+That rule explains why
+1900 was not a leap year.
+
+16
+00:00:56,962 --> 00:00:59,532
+But 2000 divided evenly by 400,
+
+17
+00:00:59,902 --> 00:01:01,292
+so it kept its leap day.
+
+18
+00:01:02,317 --> 00:01:06,707
+Leap years keep calendar dates close to
+Earth's yearly cycle through the seasons.
+

@@ -116,6 +116,11 @@ node bin/explainroo.js verify videos/<nombre>
 `window.DUR/ready/draw`, determinista): terminal que se teclea + chip con glow. La genera
 `scripts/generar_anim_explicadores.mjs` con los tokens reales.
 
+**Demo real incluido** (renderizado con el motor de este repo):
+`referencia/demo-merge-vs-rebase.mp4` — git merge vs rebase en vertical 9:16, 41 s, en
+inglés, subtítulos `.srt` incluidos. Proyecto fuente:
+`02-explainers/vincentsch--explainroo/examples/merge-vs-rebase`.
+
 Look del motor **explainroo** de Vincent Schmalbach — MIT
 (github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
 explainroo.com/videos/ (merge vs rebase, cache, callbacks → async/await, SSO en 4:5,

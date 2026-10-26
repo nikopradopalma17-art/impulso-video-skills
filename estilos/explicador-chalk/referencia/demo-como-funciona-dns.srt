@@ -1,0 +1,85 @@
+1
+00:00:00,350 --> 00:00:03,320
+You type example.com, and a page appears.
+
+2
+00:00:03,725 --> 00:00:06,235
+Computers don't find each
+other by name, though.
+
+3
+00:00:06,495 --> 00:00:08,525
+They use numbers called IP addresses.
+
+4
+00:00:09,783 --> 00:00:15,373
+So before the page can load, your browser
+needs the IP address of example.com.
+
+5
+00:00:16,383 --> 00:00:18,933
+First it checks if it
+already knows the answer.
+
+6
+00:00:19,223 --> 00:00:23,753
+The browser and your operating system
+both keep recent answers in a cache.
+
+7
+00:00:24,917 --> 00:00:28,327
+If neither of them knows it,
+the browser asks a resolver.
+
+8
+00:00:28,672 --> 00:00:31,382
+Your internet provider usually runs one,
+
+9
+00:00:31,592 --> 00:00:35,222
+and there are public ones like 1.1.1.1.
+
+10
+00:00:36,217 --> 00:00:38,307
+The resolver starts with a root server.
+
+11
+00:00:38,677 --> 00:00:40,647
+The root server doesn't know the address,
+
+12
+00:00:40,957 --> 00:00:43,247
+but it knows where the
+dot com servers are.
+
+13
+00:00:44,217 --> 00:00:46,647
+The dot com servers don't know it either.
+
+14
+00:00:46,862 --> 00:00:50,612
+They send the resolver to the
+name server of example.com.
+
+15
+00:00:51,650 --> 00:00:53,480
+That name server has the answer.
+
+16
+00:00:53,780 --> 00:00:55,910
+It sends the IP address back,
+
+17
+00:00:56,140 --> 00:00:59,250
+and the resolver saves it for
+the next time someone asks.
+
+18
+00:01:00,417 --> 00:01:02,887
+That makes four questions
+to find one address.
+
+19
+00:01:03,272 --> 00:01:05,522
+It usually takes a fraction of a second.
+

@@ -52,7 +52,10 @@ renderizable con Chrome headless + ffmpeg a mp4/GIF). En los estilos de
 producto, `referencia/demo-<estilo>.mp4` es el render de validación: míralo
 para saber exactamente qué esperar del estilo antes de renderizar. En los
 looks explicadores, el "motor" es explainroo y el `SKILL.md` documenta su
-pipeline completo de principio a fin.
+pipeline completo de principio a fin. Cinco de ellos incluyen además un
+**demo mp4 real** en `referencia/` (renderizado aquí con el motor incluido,
+uno narrado en español): míralo para saber qué produce cada look antes de
+empezar.
 
 ## Licencias
 
@@ -61,8 +64,9 @@ pipeline completo de principio a fin.
 - Looks explicadores: temas y tokens derivados de
   [vincentsch/explainroo](https://github.com/vincentsch/explainroo) (MIT, Vincent
   Schmalbach); las demos `anim.html` y su generador son adaptaciones propias con
-  esos tokens. El motor NO está incluido en este repo: se clona desde GitHub al
-  usar la skill. Ejemplos vivos: [explainroo.com/videos](https://www.explainroo.com/videos/).
+  esos tokens. El motor viene incluido en `02-explainers/vincentsch--explainroo`
+  (clon superficial con `README.md` y `AGENTS.md` traducidos al español); el
+  original vive en github.com/vincentsch/explainroo. Ejemplos vivos: [explainroo.com/videos](https://www.explainroo.com/videos/).
 - Tipografías en `fuentes/`: Google Fonts bajo SIL Open Font License (Archivo
   Black, Alfa Slab One, Anton, Architects Daughter, Bangers, Baloo 2, Cabin
   Sketch, Caveat, Fredoka, Instrument Serif, Inter, JetBrains Mono, Kalam,

@@ -113,6 +113,11 @@ node bin/explainroo.js verify videos/<nombre>
 `window.DUR/ready/draw`, determinista): círculo de tiza alrededor de la idea y flecha al
 ejemplo. La genera `scripts/generar_anim_explicadores.mjs` con los tokens reales.
 
+**Demo real incluido** (renderizado con el motor de este repo):
+`referencia/demo-como-funciona-dns.mp4` — «How DNS finds a website», 68 s, en inglés,
+subtítulos `.srt` incluidos. Proyecto fuente:
+`02-explainers/vincentsch--explainroo/examples/how-dns-works`.
+
 Look del motor **explainroo** de Vincent Schmalbach — MIT
 (github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
 explainroo.com/videos/ (DNS, área del círculo, nevera, años bisiestos en japonés).

@@ -113,6 +113,11 @@ node bin/explainroo.js verify videos/<nombre>
 `window.DUR/ready/draw`, determinista): kicker en versalitas, cita serif entre reglas y
 subrayado rojo. La genera `scripts/generar_anim_explicadores.mjs` con los tokens reales.
 
+**Demo real incluido** (renderizado con el motor de este repo):
+`referencia/demo-por-que-bisiestos.mp4` — «Why we have leap years», 69 s, en inglés,
+subtítulos `.srt` incluidos. Proyecto fuente:
+`02-explainers/vincentsch--explainroo/examples/leap-years`.
+
 Look del motor **explainroo** de Vincent Schmalbach — MIT
 (github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
 explainroo.com/videos/ (por qué existen los años bisiestos).

@@ -1,0 +1,81 @@
+1
+00:00:00,350 --> 00:00:01,580
+This is Unspar.
+
+2
+00:00:01,850 --> 00:00:05,600
+It writes articles for your website,
+like blog posts and guides.
+
+3
+00:00:06,750 --> 00:00:08,860
+First, you tell it what to write about.
+
+4
+00:00:09,160 --> 00:00:12,630
+Paste your website, choose what
+you want to make and add a topic.
+
+5
+00:00:12,955 --> 00:00:16,085
+Unspar looks at your site
+and drafts a few ideas.
+
+6
+00:00:17,183 --> 00:00:19,973
+A moment later,
+you have ideas to choose from.
+
+7
+00:00:20,198 --> 00:00:21,488
+You pick the one you like.
+
+8
+00:00:22,550 --> 00:00:24,860
+Before anything runs,
+you see what it costs.
+
+9
+00:00:25,325 --> 00:00:28,775
+When you queue it, the credits
+are set aside and the work starts.
+
+10
+00:00:29,883 --> 00:00:32,033
+Then its AI agents get to work.
+
+11
+00:00:32,313 --> 00:00:36,383
+They look up the topic, write the article
+in your voice and check the facts.
+
+12
+00:00:37,517 --> 00:00:39,747
+You decide what that voice sounds like.
+
+13
+00:00:39,902 --> 00:00:42,992
+Pick how formal it is and
+how the sentences flow.
+
+14
+00:00:44,083 --> 00:00:46,913
+When you're happy with it,
+Unspar puts it on your site.
+
+15
+00:00:47,213 --> 00:00:49,003
+It works with WordPress and Ghost.
+
+16
+00:00:50,150 --> 00:00:51,020
+Unspar.
+
+17
+00:00:51,300 --> 00:00:53,410
+Content that doesn't read like AI.
+
+18
+00:00:53,900 --> 00:00:56,370
+Try it for free at unspar.com.
+

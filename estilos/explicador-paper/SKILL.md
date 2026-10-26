@@ -118,6 +118,13 @@ node bin/explainroo.js verify videos/<nombre>           # loudness, frames negro
 visual, o re-renderízala con el motor de estilos. La genera
 `scripts/generar_anim_explicadores.mjs` a partir de los tokens reales.
 
+**Demos reales incluidos** (renderizados con el motor de este repo):
+`referencia/demo-por-que-el-cielo-es-azul.mp4` — «¿Por qué el cielo es azul?» narrado
+**en español** (voz `ef_dora`), 72 s, con subtítulos `.srt`. Y
+`referencia/demo-explainroo-intro.mp4` — cómo explainroo hace un video, en inglés, 86 s.
+Reprodúcelos para ver exactamente qué produce este look: voz, música, cámara y dibujo
+anclado a cada palabra. Proyectos fuente: `02-explainers/vincentsch--explainroo/examples/`.
+
 Look del motor **explainroo** de Vincent Schmalbach — MIT
 (github.com/vincentsch/explainroo). Tokens tomados de `engine/themes.js`. Ejemplos vivos
 del look: explainroo.com/videos/ (feedback, stand-ups, café, ¿por qué el cielo es azul?).

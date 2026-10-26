@@ -113,6 +113,11 @@ node bin/explainroo.js verify videos/<nombre>
 `window.DUR/ready/draw`, determinista): rectángulo acotado con cotas y cruz de centro.
 La genera `scripts/generar_anim_explicadores.mjs` con los tokens reales.
 
+**Demo**: este look no trae proyecto de ejemplo en el repo; los
+ejemplos vivos (qué es una API, cómo HTTPS guarda tu contraseña) solo están en
+[explainroo.com/videos](https://www.explainroo.com/videos/). El resto de looks sí trae
+demo mp4 renderizado en su carpeta.
+
 Look del motor **explainroo** de Vincent Schmalbach — MIT
 (github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
 explainroo.com/videos/ (qué es una API, cómo HTTPS guarda tu contraseña).

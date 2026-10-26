@@ -1,0 +1,49 @@
+1
+00:00:00,350 --> 00:00:02,120
+Your branch is behind main.
+
+2
+00:00:02,520 --> 00:00:05,350
+You can merge it, or you can rebase it.
+
+3
+00:00:06,317 --> 00:00:10,087
+A merge adds one new commit
+that joins the two histories.
+
+4
+00:00:11,250 --> 00:00:15,900
+A rebase takes your commits off your
+branch and adds them again on top of main,
+
+5
+00:00:16,310 --> 00:00:17,980
+one after the other.
+
+6
+00:00:18,917 --> 00:00:21,687
+These are new commits,
+so they get new hashes.
+
+7
+00:00:22,950 --> 00:00:26,680
+So don't rebase a branch that
+other people have already pulled.
+
+8
+00:00:27,025 --> 00:00:29,375
+Their copy still has the old commits.
+
+9
+00:00:30,583 --> 00:00:33,513
+A merge keeps the history
+the way it happened.
+
+10
+00:00:33,763 --> 00:00:36,073
+A rebase turns it into a straight line,
+
+11
+00:00:36,443 --> 00:00:37,933
+which is easier to read.
+

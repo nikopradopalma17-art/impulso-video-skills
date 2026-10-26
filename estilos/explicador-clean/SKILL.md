@@ -111,6 +111,15 @@ node bin/explainroo.js verify videos/<nombre>
 `window.DUR/ready/draw`, determinista): tarjetas que aparecen, chip de API y check verde.
 La genera `scripts/generar_anim_explicadores.mjs` con los tokens reales.
 
+**Demo real incluido** (renderizado con el motor de este repo):
+`referencia/demo-unspar-producto.mp4` — demo de producto REAL (Unspar): las pantallas de
+la app reconstruidas con sus colores y fuentes, cursor que hace clic y teclea, 59 s,
+subtítulos `.srt` incluidos. Proyecto fuente:
+`02-explainers/vincentsch--explainroo/examples/unspar-demo`. Más demos de producto
+(Vroni, ChatGPT, Claude, Gmail) solo en la web:
+[explainroo.com/videos/#product-demos](https://www.explainroo.com/videos/#product-demos) —
+sus proyectos no están en el repo.
+
 Look del motor **explainroo** de Vincent Schmalbach — MIT
 (github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
 explainroo.com/videos/ (pipeline de ventas, factura online, ticket de soporte, interés

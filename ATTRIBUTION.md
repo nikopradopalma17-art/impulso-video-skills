@@ -154,6 +154,10 @@ contienen skills y demos derivadas del motor **explainroo** de Vincent Schmalbac
 
 - Los tokens visuales (paletas, tipografías, fondos, entradas, transiciones, música)
   provienen de `engine/themes.js` del proyecto original.
+- Los demos mp4 de `referencia/` (p. ej. `demo-unspar-producto.mp4`) se renderizaron
+  localmente con el motor incluido a partir de los proyectos de ejemplo MIT del propio
+  explainroo (`examples/` del clon); los que solo existen en la web (Vroni, ChatGPT,
+  Claude, Gmail y los ejemplos blueprint) se enlazan a explainroo.com.
 - Las demos `referencia/anim.html` y su generador
   (`scripts/generar_anim_explicadores.mjs`) son adaptaciones propias de IMPULSO IA
   construidas con esos tokens; los GIFs de la galería (`brand/estilos/explicador-*.gif`)
