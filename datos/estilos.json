@@ -98,6 +98,66 @@
    "cuando": "Para lanzamientos de producto, demos antes/después y storytelling con testimonio visual (la curva que rompe el techo).",
    "referencia": "Animación de pelota clásica (squash & stretch) / papel kinético",
    "gif": "brand/estilos/pelota-animada.gif"
+  },
+  {
+   "id": "explicador-paper",
+   "grupo": "explicadores",
+   "nombre": "Paper (explainroo)",
+   "resumen": "El explicador amigable: todo se dibuja y se escribe a mano sobre papel crema mientras la voz narra.",
+   "detalle": "Papel #f7f3ea con grano, tinta en Kalam y un solo acento rojo. Formas e íconos se dibujan trazo a trazo con temblor humano, el texto se escribe con puntas de rotulador y las escenas cambian con brochazo. Música cálida y efectos de garabato: el look por defecto del motor explainroo y el más versátil para cualquier audiencia.",
+   "cuando": "tutoriales paso a paso, 'cómo funciona X', consejos y divulgación amable con voz en español.",
+   "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
+   "gif": "brand/estilos/explicador-paper.gif"
+  },
+  {
+   "id": "explicador-clean",
+   "grupo": "explicadores",
+   "nombre": "Clean (explainroo)",
+   "resumen": "Claridad de producto y negocio: tarjetas blancas con sombra suave, chips de acento azul y ritmo upbeat.",
+   "detalle": "Fondo gris azulado con patrón de puntos, tipografía Plus Jakarta Sans + Inter, esquinas amplias (radio 22) y sombras suaves. Todo entra con pop/rise, la transición desliza y la música es upbeat. El look SaaS por excelencia para procesos de negocio, demos y marketing B2B.",
+   "cuando": "demos de producto, pipelines y procesos de negocio, pagos, soporte, contenido B2B.",
+   "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
+   "gif": "brand/estilos/explicador-clean.gif"
+  },
+  {
+   "id": "explicador-chalk",
+   "grupo": "explicadores",
+   "nombre": "Chalk (explainroo)",
+   "resumen": "Dar clase con tiza viva: pizarra verde, círculos alrededor de la idea y flechas de tiza en Cabin Sketch.",
+   "detalle": "Pizarra #233d31 con manchas de borrado y grano, trazos rugosos con textura de tiza en tonos pastel, acento amarillo para LA idea. El texto se escribe, los diagramas se trazan y las escenas cambian como pasada de borrador. El look de enseñanza: ciencias, sistemas y lecciones en cualquier idioma.",
+   "cuando": "clases y ciencias, matemáticas, conceptos técnicos que se construyen con diagramas.",
+   "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
+   "gif": "brand/estilos/explicador-chalk.gif"
+  },
+  {
+   "id": "explicador-blueprint",
+   "grupo": "explicadores",
+   "nombre": "Blueprint (explainroo)",
+   "resumen": "El plano técnico: azul de ingeniería con grilla milimétrica, cotas con flechas y letra de arquitecto.",
+   "detalle": "Fondo #12508f con grilla menor/mayor, trazos finos casi precisos (roughness 0.55), cotas con flechas en ambos extremos y cruces de centro en amarillo. Tipografía Architects Daughter y transición de barrido firme. El look para explicar cómo encajan las piezas: APIs, TLS, redes, arquitectura.",
+   "cuando": "ingeniería e infraestructura, arquitectura de sistemas, cualquier explicación con capas y conexiones.",
+   "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
+   "gif": "brand/estilos/explicador-blueprint.gif"
+  },
+  {
+   "id": "explicador-midnight",
+   "grupo": "explicadores",
+   "nombre": "Midnight (explainroo)",
+   "resumen": "Developer tools con glow: navy casi negro, brillos teal/morado, terminal que se teclea y Space Grotesk.",
+   "detalle": "Fondo #0b1020 con dos glows radiales, tarjetas oscuras de borde luminoso, código con sintaxis VS Code y terminales que se escriben solos. Todo entra con pop/rise, la transición hace zoom y la música es electrónica calmada. El mejor look para audiencia dev, sobre todo en vertical (Shorts/TikTok/Reels).",
+   "cuando": "programación e infraestructura, demos de CLI y herramientas, seguridad para devs.",
+   "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
+   "gif": "brand/estilos/explicador-midnight.gif"
+  },
+  {
+   "id": "explicador-editorial",
+   "grupo": "explicadores",
+   "nombre": "Editorial (explainroo)",
+   "resumen": "El ensayo elegante: papel cálido, titular serif en Instrument Serif, reglas finas y rojo profundo.",
+   "detalle": "Papel #f5f1ea, contraste serif (Instrument Serif) + Inter, kickers en versalitas, paleta desaturada y un único acento rojo. Todo entra con rises y fades serenos, la transición es fade y la música calmada. El look de los temas que hay que pensar: historia, dinero, tiempo y decisiones.",
+   "cuando": "ensayos en video, historia y economía, 'por qué existe X' con tono contemplativo.",
+   "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
+   "gif": "brand/estilos/explicador-editorial.gif"
   }
  ]
 }

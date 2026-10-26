@@ -141,6 +141,12 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
 .estilos-note{margin:0 0 20px;font-family:var(--font-mono);font-size:.72rem;color:var(--muted)}
 .estilos-note::before{content:'▸ ';color:var(--accent)}
 .estilos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.estilos-sub{margin:34px 0 0;padding-top:24px;border-top:1px dashed var(--line)}
+.estilos-sub-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.estilos-sub-title{margin:0;font-size:clamp(1rem,1.9vw,1.2rem);font-weight:600;letter-spacing:.01em;color:var(--ink)}
+.estilos-sub-badge{font-family:var(--font-mono);font-size:.68rem;color:var(--amber);border:1px solid rgba(255,209,102,.4);border-radius:999px;padding:3px 10px;background:rgba(255,209,102,.07);white-space:nowrap}
+.estilos-sub-note{margin:8px 0 18px;max-width:720px;font-family:var(--font-serif);font-style:italic;font-size:.94rem;color:var(--muted)}
+.estilos-sub .estilos-grid{margin-top:0}
 .estilo-card{gap:12px}
 .estilo-media{position:relative;aspect-ratio:16/9;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel-2)}
 .estilo-media img{width:100%;height:100%;object-fit:cover;display:block}
@@ -271,7 +277,7 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
       <span class="gcount" id="estilos-count">—</span>
     </header>
     <p class="estilos-lede">Elige el estilo que quieres replicar: cada miniatura está animada con el lenguaje visual real del estilo.</p>
-    <p class="estilos-note">Estos estilos se producen con el motor de estilos de IMPULSO IA — pídelos por su nombre en tu brief.</p>
+    <p class="estilos-note">Los primeros 11 se producen con el motor de estilos de IMPULSO IA — pídelos por su nombre en tu brief. Los 6 looks explicadores usan el motor explainroo (MIT).</p>
     <div class="estilos-grid" id="estilos-grid"></div>
   </section>
 
@@ -739,10 +745,30 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
     }
     var count = $id('estilos-count');
     if (count) { count.textContent = estilos.length + (estilos.length === 1 ? ' estilo' : ' estilos'); }
+    var propios = estilos.filter(function (s) { return s.grupo !== 'explicadores'; });
+    var explicadores = estilos.filter(function (s) { return s.grupo === 'explicadores'; });
     var grid = $id('estilos-grid');
     var frag = document.createDocumentFragment();
-    estilos.forEach(function (s) { frag.appendChild(makeEstiloCard(s)); });
+    propios.forEach(function (s) { frag.appendChild(makeEstiloCard(s)); });
     grid.appendChild(frag);
+    if (explicadores.length && grid.parentNode) {
+      var sub = el('div', 'estilos-sub');
+      sub.id = 'estilos-explicadores';
+      var head = el('header', 'estilos-sub-head');
+      var h3 = el('h3', 'estilos-sub-title', 'Estilos explicadores · looks del motor explainroo');
+      h3.id = 'estilos-explicadores-title';
+      head.appendChild(h3);
+      head.appendChild(el('span', 'estilos-sub-badge', 'MIT · clona, pide y narra'));
+      sub.appendChild(head);
+      sub.appendChild(el('p', 'estilos-sub-note',
+        'Seis looks para videos explicativos completos y narrados (voz + música + subtítulos): copia la skill del look, clona explainroo y pídele el video a tu agente por su nombre.'));
+      var grid2 = el('div', 'estilos-grid');
+      var frag2 = document.createDocumentFragment();
+      explicadores.forEach(function (s) { frag2.appendChild(makeEstiloCard(s)); });
+      grid2.appendChild(frag2);
+      sub.appendChild(grid2);
+      grid.parentNode.insertBefore(sub, grid.nextSibling);
+    }
   }
 
   function visibleRepos() {

@@ -144,6 +144,22 @@ Cada subcarpeta incluye la skill (`SKILL.md`), la maquinaria de render validada
 - Estilos y documentación: © IMPULSO IA — uso y adaptación libres con atribución.
 - Tipografías: Google Fonts bajo SIL Open Font License (OFL) — redistribuibles.
 
+### Looks explicadores de explainroo (`estilos/explicador-*`)
+
+Las 6 carpetas `estilos/explicador-{paper,clean,chalk,blueprint,midnight,editorial}`
+contienen skills y demos derivadas del motor **explainroo** de Vincent Schmalbach —
+[github.com/vincentsch/explainroo](https://github.com/vincentsch/explainroo), licencia
+**MIT**. Concretamente:
+
+- Los tokens visuales (paletas, tipografías, fondos, entradas, transiciones, música)
+  provienen de `engine/themes.js` del proyecto original.
+- Las demos `referencia/anim.html` y su generador
+  (`scripts/generar_anim_explicadores.mjs`) son adaptaciones propias de IMPULSO IA
+  construidas con esos tokens; los GIFs de la galería (`brand/estilos/explicador-*.gif`)
+  se renderizaron a partir de ellas.
+- El motor explainroo **no** se incluye en este repositorio: cada skill indica clonarlo
+  desde GitHub al usarla. Ejemplos vivos de cada look: [explainroo.com/videos](https://www.explainroo.com/videos/).
+
 ## Repos indexados no clonados (103)
 
 El catálogo fuente lista **204 repos**; los **101** anteriores están clonados en este consolidado. Los **103 restantes** quedan fuera de la copia local — pertenecen a otras categorías del catálogo fuente (promo, story, avatar, craft, music…) o quedaron por debajo del umbral de 10 estrellas — y están **indexados solo con su URL** en [`indice.json`](indice.json) y en el landing `index.html`, sin carpeta local en este repo.

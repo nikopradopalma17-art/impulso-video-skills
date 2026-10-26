@@ -17,13 +17,17 @@
 
 ---
 
-Los mejores repos open-source de skills de video para agentes de código, consolidados en un solo lugar. **Es todo lo que necesitas para la creación y edición de contenido de video: en 1 solo lugar.** Frameworks de producción completa, edición automática, explicadores animados, shorts virales, motion graphics y 11 estilos de diseño exclusivos con su GIF animado — todo en español y listo para que tu agente produzca hoy mismo: miras el estilo, copias la skill y a crear.
+Los mejores repos open-source de skills de video para agentes de código, consolidados en un solo lugar. **Es todo lo que necesitas para la creación y edición de contenido de video: en 1 solo lugar.** Frameworks de producción completa, edición automática, explicadores animados, shorts virales, motion graphics y 17 estilos de diseño con su GIF animado — 11 exclusivos de IMPULSO IA + 6 looks explicadores del motor [explainroo](https://github.com/vincentsch/explainroo) (MIT) — todo en español y listo para que tu agente produzca hoy mismo: miras el estilo, copias la skill y a crear.
 
 Son **101 repos (~2.4 GB)** de frameworks, explainers, edición, shorts y motion graphics. Cada skill viene con sus ejemplos, docs y scripts propios: cópiala al directorio de skills de tu agente (Claude Code, Codex, ZCode, Cursor…) y a producir. Clones superficiales (`--depth 1`), sin historial git: solo el contenido útil.
 
 Sin humo: no vendemos diapositivas, construimos resultados. Este catálogo existe para que cualquier equipo monte su pipeline de video con agentes en una tarde, no en un trimestre.
 
-**¿No sabes qué estilo usar?** Abre el landing: la **Galería de estilos** (sección 00) muestra cada lenguaje visual de IMPULSO IA animado en un GIF — *pizarra blanca, pizarra negra, ciencia animada, gráfico de datos, isométrico, Bauhaus, linograbado, cuaderno cosmos, explicador de producto, métricas de producto y pelota animada* — con la explicación de qué hace a cada uno y cuándo usarlo. Y no es solo para mirar: cada tarjeta tiene el botón **"📋 Copiar SKILL.md"** — la skill completa lista para pegar en `~/.claude/skills/` o en el prompt de tu agente, con sus fuentes incluidas (Google Fonts, SIL OFL). La carpeta [`estilos/`](estilos/LEEME.md) contiene las 11 skills completas con su maquinaria de render validada (los 4 estilos de producto incluyen su demo en mp4). Las descripciones del catálogo están traducidas al español.
+**¿No sabes qué estilo usar?** Abre el landing: la **Galería de estilos** (sección 00) muestra cada lenguaje visual animado en un GIF — *pizarra blanca, pizarra negra, ciencia animada, gráfico de datos, isométrico, Bauhaus, linograbado, cuaderno cosmos, explicador de producto, métricas de producto y pelota animada* — con la explicación de qué hace a cada uno y cuándo usarlo. Y no es solo para mirar: cada tarjeta tiene el botón **"📋 Copiar SKILL.md"** — la skill completa lista para pegar en `~/.claude/skills/` o en el prompt de tu agente, con sus fuentes incluidas (Google Fonts, SIL OFL).
+
+**¿Quieres un explicativo completo con voz y música?** El apartado **Estilos explicadores** de la galería trae los 6 looks del motor [explainroo](https://github.com/vincentsch/explainroo) (MIT): *paper* (amigable, se dibuja a mano), *clean* (producto y negocio), *chalk* (enseñanza en pizarra), *blueprint* (plano de ingeniería), *midnight* (developer tools con glow) y *editorial* (ensayos en serif). Cada skill documenta el pipeline completo — clonar explainroo, `init --theme <look> --language es`, escribir `script.md` y `scenes.js`, voz local en español (`ef_dora`), render con subtítulos y portada — para que tu agente produzca el video narrado de principio a fin. Ejemplos vivos de cada look: [explainroo.com/videos](https://www.explainroo.com/videos/).
+
+La carpeta [`estilos/`](estilos/LEEME.md) contiene las 17 skills completas: las 11 del motor IMPULSO IA con su maquinaria de render validada (los 4 estilos de producto incluyen su demo en mp4) y los 6 looks explicadores con su demo de galería + pipeline explainroo. Las descripciones del catálogo están traducidas al español.
 
 ---
 
@@ -37,10 +41,10 @@ impulso-video-skills/
 ├── 04-shorts/       📱  11 repos ·  285 MB   Shorts y social
 ├── 05-motion/       🎞  10 repos ·  185 MB   Motion graphics
 ├── brand/                        Logos IMPULSO IA + GIFs de la galería de estilos
-├── estilos/                      Las 11 skills de estilo completas (SKILL.md + anim.html + demos mp4 + fuentes) para copiar y pegar
+├── estilos/                      Las 17 skills de estilo completas (11 motor IMPULSO IA + 6 looks explicadores explainroo) para copiar y pegar
 ├── datos/                        traducciones.json (ES) + estilos.json (metadatos de la galería)
 ├── docs/                         Sitio para GitHub Pages (/docs) + fuente/ con el catálogo original
-├── scripts/                      clonar_repos.py · generar_indice.py · preparar_pages.py · importar_estilos.py
+├── scripts/                      clonar_repos.py · generar_indice.py · preparar_pages.py · importar_estilos.py · generar_anim_explicadores.mjs
 ├── index.html                    Landing navegable del catálogo
 ├── indice.js                     Datos del índice para el landing
 └── indice.json                   Índice maestro: 204 repos (101 clonados + 103 externos)
