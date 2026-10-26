@@ -70,7 +70,13 @@
    "detalle": "Dos mundos en una escena: papel con grano y doodles de tinta salmón que se transforma, por un zoom continuo, en un cosmos índigo con estrellas titilantes, órbitas de libros pastel y un prisma que refracta un arcoíris. Al regresar, el documento ya es una escena viva y llega el logo. El movimiento alterna la intimidad del cuaderno con la escala onírica del universo.",
    "cuando": "Para openers de marca, transformaciones 'antes → después' y momentos mágicos: narrar cómo una idea en papel se convierte en un mundo entero.",
    "referencia": "Showreel de marca tipo DistilBook / boceto que cobra vida",
-   "gif": "brand/estilos/cuaderno-cosmos.gif"
+   "gif": "brand/estilos/cuaderno-cosmos.gif",
+   "demos": [
+    {
+     "f": "demo-cuaderno-cosmos.mp4",
+     "t": "Demo de validación · 9 s"
+    }
+   ]
   },
   {
    "id": "explicador-producto",
@@ -79,7 +85,13 @@
    "detalle": "Crema con dot grid, mockups de documentos flotantes y un flujo que se completa solo: chips numerados, guion que se teclea, botón que se aprueba con sello. Una escena azul full-bleed con calendario tachado y cronómetro promete velocidad, y el CTA aterriza con tachado rojo y chip degradado. Calidez comercial sin caer en plantilla genérica.",
    "cuando": "Para demos de producto, lanzamientos y explicadores de flujo de trabajo: problema → flujo → pago en una sola escena.",
    "referencia": "Explainers de producto SaaS tipo DistilBook",
-   "gif": "brand/estilos/explicador-producto.gif"
+   "gif": "brand/estilos/explicador-producto.gif",
+   "demos": [
+    {
+     "f": "demo-explicador-producto.mp4",
+     "t": "Demo de validación · 9 s"
+    }
+   ]
   },
   {
    "id": "metricas-producto",
@@ -88,7 +100,13 @@
    "detalle": "Escenarios navy y crema alternos con retícula de puntos y chrome de cámara (brackets, timecode). Contadores odómetro que ruedan, gauge radial con ticks que aterriza en beat, una palabra-concepto gigante sobre amarillo pleno y un gráfico que se dibuja con tooltip. Regla de oro: UNA cifra protagonista por escena, y siempre aterriza exacta.",
    "cuando": "Para showreels de SaaS, kickers de métricas, informes de crecimiento y cierres de producto: comunicar facturación, uso de plataforma o crecimiento con credibilidad técnica.",
    "referencia": "Showreel de métricas tipo Flexprice / HUD de datos fintech",
-   "gif": "brand/estilos/metricas-producto.gif"
+   "gif": "brand/estilos/metricas-producto.gif",
+   "demos": [
+    {
+     "f": "demo-metricas-producto.mp4",
+     "t": "Demo de validación · 9 s"
+    }
+   ]
   },
   {
    "id": "pelota-animada",
@@ -97,7 +115,13 @@
    "detalle": "Papel cálido con grano y una pelota teal protagonista con física real: caída, rebotes decrecientes, squash & stretch y onion-skin. Recorre documentos flat-lay con anotaciones manuscritas terracota y flechas, corta a oscuro y deja que la tipografía cinética condensada con sombras riso estampe la promesa. La pelota ES el mensaje: el usuario que choca contra el trabajo manual y lo supera.",
    "cuando": "Para lanzamientos de producto, demos antes/después y storytelling con testimonio visual (la curva que rompe el techo).",
    "referencia": "Animación de pelota clásica (squash & stretch) / papel kinético",
-   "gif": "brand/estilos/pelota-animada.gif"
+   "gif": "brand/estilos/pelota-animada.gif",
+   "demos": [
+    {
+     "f": "demo-pelota-animada.mp4",
+     "t": "Demo de validación · 9 s"
+    }
+   ]
   },
   {
    "id": "explicador-paper",
@@ -107,7 +131,17 @@
    "detalle": "Papel #f7f3ea con grano, tinta en Kalam y un solo acento rojo. Formas e íconos se dibujan trazo a trazo con temblor humano, el texto se escribe con puntas de rotulador y las escenas cambian con brochazo. Música cálida y efectos de garabato: el look por defecto del motor explainroo y el más versátil para cualquier audiencia.",
    "cuando": "tutoriales paso a paso, 'cómo funciona X', consejos y divulgación amable con voz en español.",
    "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
-   "gif": "brand/estilos/explicador-paper.gif"
+   "gif": "brand/estilos/explicador-paper.gif",
+   "demos": [
+    {
+     "f": "demo-por-que-el-cielo-es-azul.mp4",
+     "t": "¿Por qué el cielo es azul? · ES · 72 s"
+    },
+    {
+     "f": "demo-explainroo-intro.mp4",
+     "t": "Cómo funciona explainroo · EN · 86 s"
+    }
+   ]
   },
   {
    "id": "explicador-clean",
@@ -117,7 +151,13 @@
    "detalle": "Fondo gris azulado con patrón de puntos, tipografía Plus Jakarta Sans + Inter, esquinas amplias (radio 22) y sombras suaves. Todo entra con pop/rise, la transición desliza y la música es upbeat. El look SaaS por excelencia para procesos de negocio, demos y marketing B2B.",
    "cuando": "demos de producto, pipelines y procesos de negocio, pagos, soporte, contenido B2B.",
    "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
-   "gif": "brand/estilos/explicador-clean.gif"
+   "gif": "brand/estilos/explicador-clean.gif",
+   "demos": [
+    {
+     "f": "demo-unspar-producto.mp4",
+     "t": "Demo de producto Unspar · EN · 59 s"
+    }
+   ]
   },
   {
    "id": "explicador-chalk",
@@ -127,7 +167,13 @@
    "detalle": "Pizarra #233d31 con manchas de borrado y grano, trazos rugosos con textura de tiza en tonos pastel, acento amarillo para LA idea. El texto se escribe, los diagramas se trazan y las escenas cambian como pasada de borrador. El look de enseñanza: ciencias, sistemas y lecciones en cualquier idioma.",
    "cuando": "clases y ciencias, matemáticas, conceptos técnicos que se construyen con diagramas.",
    "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
-   "gif": "brand/estilos/explicador-chalk.gif"
+   "gif": "brand/estilos/explicador-chalk.gif",
+   "demos": [
+    {
+     "f": "demo-como-funciona-dns.mp4",
+     "t": "Cómo encuentra el DNS un sitio · EN · 68 s"
+    }
+   ]
   },
   {
    "id": "explicador-blueprint",
@@ -147,7 +193,13 @@
    "detalle": "Fondo #0b1020 con dos glows radiales, tarjetas oscuras de borde luminoso, código con sintaxis VS Code y terminales que se escriben solos. Todo entra con pop/rise, la transición hace zoom y la música es electrónica calmada. El mejor look para audiencia dev, sobre todo en vertical (Shorts/TikTok/Reels).",
    "cuando": "programación e infraestructura, demos de CLI y herramientas, seguridad para devs.",
    "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
-   "gif": "brand/estilos/explicador-midnight.gif"
+   "gif": "brand/estilos/explicador-midnight.gif",
+   "demos": [
+    {
+     "f": "demo-merge-vs-rebase.mp4",
+     "t": "git merge vs rebase · EN · 9:16 · 41 s"
+    }
+   ]
   },
   {
    "id": "explicador-editorial",
@@ -157,7 +209,13 @@
    "detalle": "Papel #f5f1ea, contraste serif (Instrument Serif) + Inter, kickers en versalitas, paleta desaturada y un único acento rojo. Todo entra con rises y fades serenos, la transición es fade y la música calmada. El look de los temas que hay que pensar: historia, dinero, tiempo y decisiones.",
    "cuando": "ensayos en video, historia y economía, 'por qué existe X' con tono contemplativo.",
    "referencia": "look del motor explainroo (MIT) · ejemplos en explainroo.com/videos",
-   "gif": "brand/estilos/explicador-editorial.gif"
+   "gif": "brand/estilos/explicador-editorial.gif",
+   "demos": [
+    {
+     "f": "demo-por-que-bisiestos.mp4",
+     "t": "Por qué hay años bisiestos · EN · 69 s"
+    }
+   ]
   }
  ]
 }

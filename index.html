@@ -191,6 +191,38 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
   transition:color var(--t),border-color var(--t);
 }
 .estilo-link-gh:hover{color:var(--accent);border-color:var(--accent)}
+/* botón de demo en video */
+.estilo-btn-demo{
+  display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;
+  font-family:var(--font-mono);font-size:.74rem;font-weight:600;color:var(--amber);
+  background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.55);border-radius:10px;
+  padding:8px 12px;cursor:pointer;text-align:left;
+  transition:background var(--t),border-color var(--t),color var(--t),transform var(--t);
+}
+.estilo-btn-demo:hover{background:rgba(255,209,102,.2);color:#ffe2a1}
+.estilo-btn-demo:active{transform:translateY(1px)}
+/* reproductor de demo: modal */
+.demo-fallback{
+  position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;
+  padding:16px;background:rgba(0,8,26,.85);
+}
+.demo-fallback-box{
+  display:flex;flex-direction:column;gap:10px;width:min(1020px,100%);
+  padding:14px;background:var(--bg);border:1px solid var(--line-strong);border-radius:14px;
+  box-shadow:0 18px 50px rgba(0,6,20,.65);
+}
+.demo-fallback-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.demo-fallback-title{margin:0;font-size:.95rem;font-weight:600;overflow-wrap:anywhere}
+.demo-fallback-close{
+  flex:0 0 auto;font-family:var(--font-mono);font-size:.72rem;font-weight:600;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 11px;cursor:pointer;
+  transition:color var(--t),border-color var(--t);
+}
+.demo-fallback-close:hover{color:var(--accent);border-color:var(--accent)}
+.demo-fallback-note{margin:0;font-family:var(--font-mono);font-size:.7rem;color:var(--muted)}
+.demo-fallback-box video{
+  width:100%;max-height:74vh;border-radius:10px;background:#000;display:block;
+}
 /* microcopía dentro del panel (solo visible con el acordeón abierto) */
 .estilo-tip{margin:10px 0 0;font-family:var(--font-mono);font-size:.68rem;color:var(--muted)}
 .estilo-tip::before{content:'▸ ';color:var(--accent)}
@@ -639,6 +671,20 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
       card.appendChild(acciones);
     }
 
+    if (s.demos && s.demos.length) {
+      var demos = el('div', 'estilo-acciones');
+      s.demos.forEach(function (d) {
+        var bd = el('button', 'estilo-btn-demo');
+        bd.type = 'button';
+        bd.appendChild(document.createTextNode('▶ ' + (d.t || 'Ver demo')));
+        bd.title = 'Reproducir el video de demostración de este estilo';
+        bd.setAttribute('aria-label', 'Ver el demo en video del estilo ' + (s.nombre || s.id));
+        bd.addEventListener('click', function () { abrirDemo(demoUrl(s, d), d.t || 'Demo'); });
+        demos.appendChild(bd);
+      });
+      card.appendChild(demos);
+    }
+
     btn.addEventListener('click', function () {
       var estabaAbierto = btn.getAttribute('aria-expanded') === 'true';
       closeEstiloPanels();
@@ -736,6 +782,71 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
     showSkillFallback(btn, texto);
   }
 
+  /* ---------- reproductor de demos en video ---------- */
+
+  function demoUrl(s, d) {
+    var base = webRepoTree();
+    var ruta = String(s.ruta || ('estilos/' + s.id)).replace(/\/+$/, '');
+    var rel = encodeURI(ruta + '/referencia/' + d.f);
+    if (base) {
+      var raw = base.replace('github.com', 'raw.githubusercontent.com').replace('/tree/', '/');
+      return raw + '/' + rel;
+    }
+    return rel;
+  }
+
+  function demoEsc(ev) {
+    if (ev.key === 'Escape') { cerrarDemo(); }
+  }
+
+  function cerrarDemo() {
+    var overlay = document.querySelector('.demo-fallback');
+    if (!overlay) { return; }
+    var v = overlay.querySelector('video');
+    if (v) { try { v.pause(); } catch (e) {} }
+    document.removeEventListener('keydown', demoEsc, true);
+    if (overlay.parentNode) { overlay.parentNode.removeChild(overlay); }
+  }
+
+  function abrirDemo(url, titulo) {
+    cerrarDemo();
+    cerrarSkillFallback();
+    var overlay = el('div', 'demo-fallback');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Reproductor de demo');
+
+    var box = el('div', 'demo-fallback-box');
+    var head = el('div', 'demo-fallback-head');
+    var t = el('p', 'demo-fallback-title', titulo);
+    head.appendChild(t);
+    var cerrar = el('button', 'demo-fallback-close', '✕ Cerrar');
+    cerrar.type = 'button';
+    cerrar.setAttribute('aria-label', 'Cerrar el reproductor de demo');
+    head.appendChild(cerrar);
+    box.appendChild(head);
+
+    var v = document.createElement('video');
+    v.controls = true;
+    v.autoplay = true;
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'metadata';
+    v.src = url;
+    v.setAttribute('aria-label', 'Video de demostración');
+    box.appendChild(v);
+
+    box.appendChild(el('p', 'demo-fallback-note', '▶ Arranca silenciado: activa el sonido en el reproductor.'));
+
+    overlay.appendChild(box);
+    overlay.addEventListener('click', function (ev) {
+      if (ev.target === overlay) { cerrarDemo(); }
+    });
+    cerrar.addEventListener('click', cerrarDemo);
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', demoEsc, true);
+  }
+
   function buildEstilos() {
     var sec = $id('estilos');
     var estilos = (DATA && DATA.estilos) ? DATA.estilos : [];
@@ -761,7 +872,7 @@ a.badge:hover{filter:brightness(1.2);border-color:currentColor}
       head.appendChild(el('span', 'estilos-sub-badge', 'MIT · clona, pide y narra'));
       sub.appendChild(head);
       sub.appendChild(el('p', 'estilos-sub-note',
-        'Seis looks para videos explicativos completos y narrados (voz + música + subtítulos): copia la skill del look, clona explainroo y pídele el video a tu agente por su nombre.'));
+        'Seis looks para videos explicativos completos y narrados (voz + música + subtítulos): copia la skill del look, usa el motor incluido en este repo (02-explainers/vincentsch--explainroo, con docs en español) y pídele el video a tu agente por su nombre. El botón ▶ reproduce un video real del look.'));
       var grid2 = el('div', 'estilos-grid');
       var frag2 = document.createDocumentFragment();
       explicadores.forEach(function (s) { frag2.appendChild(makeEstiloCard(s)); });
