@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>look chalk · demo galería (explainroo, MIT)</title>
+<title>look chalk · demo galería · impulso ia</title>
 <style>
 @font-face{font-family:'Cabin Sketch';font-weight:700;src:url('../../fuentes/cabin-sketch-700.ttf') format('truetype');}
 @font-face{font-family:'Patrick Hand';font-weight:400;src:url('../../fuentes/patrick-hand-400.ttf') format('truetype');}
@@ -15,7 +15,7 @@ canvas{display:block}
 <canvas id="c" width="1920" height="1080"></canvas>
 <script>
 "use strict";
-/* Demo de galería del look "chalk" — tokens del tema explainroo (MIT).
+/* Demo de galería del look "chalk" — tokens del tema del motor de explicativos incluido.
    Contrato del motor de estilos: window.DUR / window.ready / window.draw({t}) pura. */
 const LOOK = {"name":"chalk","dur":4.6,"background":"chalk","dark":true,"bg":"#233d31","ink":"#f2f0e6","muted":"#a9b8ae","surface":"#2b4a3c","accent":"yellow","colors":{"red":"#f28b82","orange":"#f7b267","yellow":"#f6e27f","green":"#a8e6a1","teal":"#84dcc6","blue":"#9fd3ef","purple":"#c7aef2","pink":"#f6a8bf","gray":"#c9d1cb","ink":"#f2f0e6"},"displayFont":{"family":"Cabin Sketch","weight":700},"bodyFont":{"family":"Patrick Hand","weight":400},"stroke":{"rough":true,"roughness":1.35,"width":5,"texture":"chalk"},"radius":12,"shadow":null,"enter":{"shape":"draw","text":"write","title":"write"},"transition":"brush","title":"chalk","tagline":"dar clase con tiza viva","titleGlow":null,"monoFont":{"family":"JetBrains Mono","weight":400}};
 
@@ -54,7 +54,7 @@ function F(role,size){
   return f.weight+' '+Math.round(size*100)/100+'px "'+f.family+'", sans-serif';
 }
 
-/* ---------- fondo (puerto de makeBackground de explainroo, semilla fija) ---------- */
+/* ---------- fondo (textura del tema, semilla fija) ---------- */
 function makeBackground(){
   const W=1920,H=1080,c=document.createElement('canvas');c.width=W;c.height=H;
   const g=c.getContext('2d'),rand=mulberry32(7919+LOOK.name.length);
@@ -217,7 +217,7 @@ function drawContent(ctx,t){
     ctx.restore()});
   /* crédito */
   const pc2=seg(t,3.9,4.25);
-  if(pc2>0)T.fade(ctx,'look "'+L.name+'" · motor explainroo (MIT) · impulso.video-skills',W/2,H-u*3.2,F('body',u*1.7),L.muted,pc2);
+  if(pc2>0)T.fade(ctx,'look "'+L.name+'" · impulso ia · video-skills',W/2,H-u*3.2,F('body',u*1.7),L.muted,pc2);
 }
 
 /* transición de cierre del look -> bucle del GIF */

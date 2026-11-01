@@ -19,12 +19,6 @@
   <a href="AGENTS.md">AGENTS.md</a>
 </p>
 
-> **Réplica en español** del README de [vincentsch/explainroo](https://github.com/vincentsch/explainroo)
-> (MIT, Vincent Schmalbach), incluida en el catálogo IMPULSO IA. El original en inglés
-> vive en GitHub; este clon traduce README y AGENTS.md para que todo el flujo se lea en
-> español. Las skills de los 6 looks están en [`estilos/explicador-*`](../../estilos/LEEME.md)
-> del repositorio del catálogo.
-
 https://github.com/user-attachments/assets/6dd5dc32-c975-4e0e-8cd4-2ef3ccc11e61
 
 <p align="center">

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>look blueprint · demo galería (explainroo, MIT)</title>
+<title>look blueprint · demo galería · impulso ia</title>
 <style>
 @font-face{font-family:'Architects Daughter';font-weight:400;src:url('../../fuentes/architects-daughter-400.ttf') format('truetype');}
 @font-face{font-family:'JetBrains Mono';font-weight:400;src:url('../../fuentes/jetbrains-mono-400.ttf') format('truetype');}
@@ -14,7 +14,7 @@ canvas{display:block}
 <canvas id="c" width="1920" height="1080"></canvas>
 <script>
 "use strict";
-/* Demo de galería del look "blueprint" — tokens del tema explainroo (MIT).
+/* Demo de galería del look "blueprint" — tokens del tema del motor de explicativos incluido.
    Contrato del motor de estilos: window.DUR / window.ready / window.draw({t}) pura. */
 const LOOK = {"name":"blueprint","dur":4.6,"background":"grid","dark":true,"bg":"#12508f","ink":"#f1f7ff","muted":"#a9cbef","surface":"#185c9f","accent":"yellow","colors":{"red":"#ff8a80","orange":"#ffbd70","yellow":"#ffd866","green":"#a3f0b8","teal":"#8ff0e4","blue":"#9fd6ff","purple":"#d0b8ff","pink":"#ffb3d1","gray":"#c3daf2","ink":"#f1f7ff"},"displayFont":{"family":"Architects Daughter","weight":400},"bodyFont":{"family":"Architects Daughter","weight":400},"stroke":{"rough":true,"roughness":0.55,"width":3.5},"radius":6,"shadow":null,"enter":{"shape":"draw","text":"write","title":"write"},"transition":"wipe","title":"blueprint","tagline":"el plano técnico de tu idea","titleGlow":null,"monoFont":{"family":"JetBrains Mono","weight":400}};
 
@@ -60,7 +60,7 @@ function F(role,size){
   return f.weight+' '+Math.round(size*100)/100+'px "'+f.family+'", sans-serif';
 }
 
-/* ---------- fondo (puerto de makeBackground de explainroo, semilla fija) ---------- */
+/* ---------- fondo (textura del tema, semilla fija) ---------- */
 function makeBackground(){
   const W=1920,H=1080,c=document.createElement('canvas');c.width=W;c.height=H;
   const g=c.getContext('2d'),rand=mulberry32(7919+LOOK.name.length);
@@ -223,7 +223,7 @@ function drawContent(ctx,t){
     ctx.restore()});
   /* crédito */
   const pc2=seg(t,3.9,4.25);
-  if(pc2>0)T.fade(ctx,'look "'+L.name+'" · motor explainroo (MIT) · impulso.video-skills',W/2,H-u*3.2,F('body',u*1.7),L.muted,pc2);
+  if(pc2>0)T.fade(ctx,'look "'+L.name+'" · impulso ia · video-skills',W/2,H-u*3.2,F('body',u*1.7),L.muted,pc2);
 }
 
 /* transición de cierre del look -> bucle del GIF */

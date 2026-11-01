@@ -1,9 +1,9 @@
 ---
 name: video-estilo-explicador-clean
-description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK CLEAN del motor explainroo — interfaz clara estilo SaaS: fondo gris azulado con puntos, tarjetas blancas con sombra suave que aparecen con pop/rise, tipografía Plus Jakarta Sans + Inter, acento azul. Úsalo SIEMPRE que el usuario pida "look clean", "estilo limpio explainroo", "explicativo de producto/negocio", "video corporativo claro narrado" o un explainer B2B de 45 a 120 s — aunque no mencione "clean".
+description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK CLEAN del motor de explicativos IMPULSO IA — interfaz clara estilo SaaS: fondo gris azulado con puntos, tarjetas blancas con sombra suave que aparecen con pop/rise, tipografía Plus Jakarta Sans + Inter, acento azul. Úsalo SIEMPRE que el usuario pida "look clean", "estilo limpio", "explicativo de producto/negocio", "video corporativo claro narrado" o un explainer B2B de 45 a 120 s — aunque no mencione "clean".
 ---
 
-# Look Clean (explainroo) — claridad de producto y negocio
+# Look Clean — claridad de producto y negocio
 
 ## Qué es y cuándo usarlo
 Video explicativo **completo y narrado** (45–120 s) con la estética de las buenas
@@ -24,15 +24,16 @@ marketing B2B, explicaciones de finanzas cotidianas.
 - *"Look clean, tema baterías de celular, para Shorts"* → ciclos de carga como tarjetas con
   pop, 1:01, 9:16.
 
-## Cómo se replica: el motor explainroo (contrato técnico)
-Este look lo produce el motor **explainroo** (MIT, `vincentsch/explainroo`): convierte
+## Cómo se replica: el motor de explicativos (contrato técnico)
+Este look lo produce el **motor de explicativos** incluido en este repo
+(`02-explainers/motor-explicador`): convierte
 `script.md` (narración) + `scenes.js` (dibujo) en un MP4 narrado con música.
 
 **1. Preparar el motor (una vez por máquina)** — ya viene incluido en este catálogo
-(`02-explainers/vincentsch--explainroo`, clon superficial con README y AGENTS.md en español):
+(`02-explainers/motor-explicador`, con README y AGENTS.md en español):
 ```bash
-# Copia la carpeta del catálogo a tu espacio de trabajo (o clona el original de GitHub):
-cp -r 02-explainers/vincentsch--explainroo ~/explainroo && cd ~/explainroo
+# Copia la carpeta del catálogo a tu espacio de trabajo:
+cp -r 02-explainers/motor-explicador ~/motor && cd ~/motor
 npm install
 node bin/explainroo.js doctor --fetch   # verifica Node/ffmpeg/Chrome; baja modelos de voz (~400 MB)
 ```
@@ -115,12 +116,9 @@ La genera `scripts/generar_anim_explicadores.mjs` con los tokens reales.
 `referencia/demo-unspar-producto.mp4` — demo de producto REAL (Unspar): las pantallas de
 la app reconstruidas con sus colores y fuentes, cursor que hace clic y teclea, 59 s,
 subtítulos `.srt` incluidos. Proyecto fuente:
-`02-explainers/vincentsch--explainroo/examples/unspar-demo`. Más demos de producto
-(Vroni, ChatGPT, Claude, Gmail) solo en la web:
-[explainroo.com/videos/#product-demos](https://www.explainroo.com/videos/#product-demos) —
-sus proyectos no están en el repo.
+`02-explainers/motor-explicador/examples/unspar-demo`. Otros demos de producto (Vroni, ChatGPT,
+Claude, Gmail) no están incluidos en el catálogo.
 
-Look del motor **explainroo** de Vincent Schmalbach — MIT
-(github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
-explainroo.com/videos/ (pipeline de ventas, factura online, ticket de soporte, interés
-compuesto, baterías).
+Look producido con el **motor de explicativos** incluido en este catálogo
+(`02-explainers/motor-explicador`; licencia y avisos dentro de esa carpeta). El botón
+▶ de la galería reproduce un video real renderizado con este look.

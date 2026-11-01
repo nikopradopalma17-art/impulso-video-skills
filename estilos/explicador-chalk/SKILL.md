@@ -1,9 +1,9 @@
 ---
 name: video-estilo-explicador-chalk
-description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK CHALK del motor explainroo — pizarra verde oscuro con textura de tiza, trazos de tiza con temblor en Cabin Sketch, encerrar ideas en círculos amarillos y conectar con flechas de tiza. Úsalo SIEMPRE que el usuario pida "look chalk", "estilo pizarra explainroo", "clase magistral en pizarra narrada", "explicativo de enseñanza con tiza" o un explainer didáctico de 45 a 120 s — aunque no mencione "chalk".
+description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK CHALK del motor de explicativos IMPULSO IA — pizarra verde oscuro con textura de tiza, trazos de tiza con temblor en Cabin Sketch, encerrar ideas en círculos amarillos y conectar con flechas de tiza. Úsalo SIEMPRE que el usuario pida "look chalk", "estilo pizarra", "clase magistral en pizarra narrada", "explicativo de enseñanza con tiza" o un explainer didáctico de 45 a 120 s — aunque no mencione "chalk".
 ---
 
-# Look Chalk (explainroo) — dar clase con tiza viva
+# Look Chalk — dar clase con tiza viva
 
 ## Qué es y cuándo usarlo
 Video explicativo **completo y narrado** (45–120 s) que reproduce la experiencia de una
@@ -25,15 +25,16 @@ idioma (hay ejemplos oficiales en japonés y chino).
 - *"Look chalk para explicar por qué la masa madre hace subir el pan"* → levadura + gluten
   + horno trazados con tiza, 0:56, 9:16.
 
-## Cómo se replica: el motor explainroo (contrato técnico)
-Este look lo produce el motor **explainroo** (MIT, `vincentsch/explainroo`): convierte
+## Cómo se replica: el motor de explicativos (contrato técnico)
+Este look lo produce el **motor de explicativos** incluido en este repo
+(`02-explainers/motor-explicador`): convierte
 `script.md` (narración) + `scenes.js` (dibujo) en un MP4 narrado con música.
 
 **1. Preparar el motor (una vez por máquina)** — ya viene incluido en este catálogo
-(`02-explainers/vincentsch--explainroo`, clon superficial con README y AGENTS.md en español):
+(`02-explainers/motor-explicador`, con README y AGENTS.md en español):
 ```bash
-# Copia la carpeta del catálogo a tu espacio de trabajo (o clona el original de GitHub):
-cp -r 02-explainers/vincentsch--explainroo ~/explainroo && cd ~/explainroo
+# Copia la carpeta del catálogo a tu espacio de trabajo:
+cp -r 02-explainers/motor-explicador ~/motor && cd ~/motor
 npm install
 node bin/explainroo.js doctor --fetch   # verifica Node/ffmpeg/Chrome; baja modelos de voz (~400 MB)
 ```
@@ -116,8 +117,8 @@ ejemplo. La genera `scripts/generar_anim_explicadores.mjs` con los tokens reales
 **Demo real incluido** (renderizado con el motor de este repo):
 `referencia/demo-como-funciona-dns.mp4` — «How DNS finds a website», 68 s, en inglés,
 subtítulos `.srt` incluidos. Proyecto fuente:
-`02-explainers/vincentsch--explainroo/examples/how-dns-works`.
+`02-explainers/motor-explicador/examples/how-dns-works`.
 
-Look del motor **explainroo** de Vincent Schmalbach — MIT
-(github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
-explainroo.com/videos/ (DNS, área del círculo, nevera, años bisiestos en japonés).
+Look producido con el **motor de explicativos** incluido en este catálogo
+(`02-explainers/motor-explicador`; licencia y avisos dentro de esa carpeta). El botón
+▶ de la galería reproduce un video real renderizado con este look.

@@ -1,9 +1,9 @@
 ---
 name: video-estilo-explicador-midnight
-description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK MIDNIGHT del motor explainroo — modo oscuro de developer tools: fondo navy casi negro con brillos teal/morado, tarjetas con glow, terminal que se teclea, Space Grotesk. Úsalo SIEMPRE que el usuario pida "look midnight", "estilo dark/dev explainroo", "explicativo de programación con terminal narrada", "video oscuro con neón suave" o un explainer para desarrolladores de 45 a 120 s — aunque no mencione "midnight".
+description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK MIDNIGHT del motor de explicativos IMPULSO IA — modo oscuro de developer tools: fondo navy casi negro con brillos teal/morado, tarjetas con glow, terminal que se teclea, Space Grotesk. Úsalo SIEMPRE que el usuario pida "look midnight", "estilo dark/dev", "explicativo de programación con terminal narrada", "video oscuro con neón suave" o un explainer para desarrolladores de 45 a 120 s — aunque no mencione "midnight".
 ---
 
-# Look Midnight (explainroo) — developer tools con glow
+# Look Midnight — developer tools con glow
 
 ## Qué es y cuándo usarlo
 Video explicativo **completo y narrado** (45–120 s) con la estética del IDE en modo oscuro:
@@ -24,15 +24,16 @@ herramientas, seguridad para devs, contenido técnico en Shorts/TikTok/Reels.
 - *"Look midnight para callbacks → async/await"* → pirámide de callbacks que se aplana en
   await, 1:07, 16:9.
 
-## Cómo se replica: el motor explainroo (contrato técnico)
-Este look lo produce el motor **explainroo** (MIT, `vincentsch/explainroo`): convierte
+## Cómo se replica: el motor de explicativos (contrato técnico)
+Este look lo produce el **motor de explicativos** incluido en este repo
+(`02-explainers/motor-explicador`): convierte
 `script.md` (narración) + `scenes.js` (dibujo) en un MP4 narrado con música.
 
 **1. Preparar el motor (una vez por máquina)** — ya viene incluido en este catálogo
-(`02-explainers/vincentsch--explainroo`, clon superficial con README y AGENTS.md en español):
+(`02-explainers/motor-explicador`, con README y AGENTS.md en español):
 ```bash
-# Copia la carpeta del catálogo a tu espacio de trabajo (o clona el original de GitHub):
-cp -r 02-explainers/vincentsch--explainroo ~/explainroo && cd ~/explainroo
+# Copia la carpeta del catálogo a tu espacio de trabajo:
+cp -r 02-explainers/motor-explicador ~/motor && cd ~/motor
 npm install
 node bin/explainroo.js doctor --fetch   # verifica Node/ffmpeg/Chrome; baja modelos de voz (~400 MB)
 ```
@@ -119,9 +120,8 @@ node bin/explainroo.js verify videos/<nombre>
 **Demo real incluido** (renderizado con el motor de este repo):
 `referencia/demo-merge-vs-rebase.mp4` — git merge vs rebase en vertical 9:16, 41 s, en
 inglés, subtítulos `.srt` incluidos. Proyecto fuente:
-`02-explainers/vincentsch--explainroo/examples/merge-vs-rebase`.
+`02-explainers/motor-explicador/examples/merge-vs-rebase`.
 
-Look del motor **explainroo** de Vincent Schmalbach — MIT
-(github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
-explainroo.com/videos/ (merge vs rebase, cache, callbacks → async/await, SSO en 4:5,
-gestor de contraseñas en TikTok).
+Look producido con el **motor de explicativos** incluido en este catálogo
+(`02-explainers/motor-explicador`; licencia y avisos dentro de esa carpeta). El botón
+▶ de la galería reproduce un video real renderizado con este look.

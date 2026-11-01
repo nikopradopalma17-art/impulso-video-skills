@@ -1,9 +1,9 @@
 ---
 name: video-estilo-explicador-blueprint
-description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK BLUEPRINT del motor explainroo — plano de ingeniería: azul técnico con grilla milimétrica, trazos finos a mano en Architects Daughter, cotas con flechas, acento amarillo. Úsalo SIEMPRE que el usuario pida "look blueprint", "estilo plano técnico explainroo", "explicativo de ingeniería/arquitectura narrado" o un explainer técnico de sistemas e infraestructura de 45 a 120 s — aunque no mencione "blueprint".
+description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK BLUEPRINT del motor de explicativos IMPULSO IA — plano de ingeniería: azul técnico con grilla milimétrica, trazos finos a mano en Architects Daughter, cotas con flechas, acento amarillo. Úsalo SIEMPRE que el usuario pida "look blueprint", "estilo plano técnico", "explicativo de ingeniería/arquitectura narrado" o un explainer técnico de sistemas e infraestructura de 45 a 120 s — aunque no mencione "blueprint".
 ---
 
-# Look Blueprint (explainroo) — el plano técnico de tu idea
+# Look Blueprint — el plano técnico de tu idea
 
 ## Qué es y cuándo usarlo
 Video explicativo **completo y narrado** (45–120 s) con el lenguaje del plano de ingeniería:
@@ -24,15 +24,16 @@ explicación donde importen dimensiones, capas y conexiones.
 - *"Blueprint para explicar la topología de nuestra red"* → routers y segmentos como plano
   con cruces de eje, 16:9 o LinkedIn 4:5.
 
-## Cómo se replica: el motor explainroo (contrato técnico)
-Este look lo produce el motor **explainroo** (MIT, `vincentsch/explainroo`): convierte
+## Cómo se replica: el motor de explicativos (contrato técnico)
+Este look lo produce el **motor de explicativos** incluido en este repo
+(`02-explainers/motor-explicador`): convierte
 `script.md` (narración) + `scenes.js` (dibujo) en un MP4 narrado con música.
 
 **1. Preparar el motor (una vez por máquina)** — ya viene incluido en este catálogo
-(`02-explainers/vincentsch--explainroo`, clon superficial con README y AGENTS.md en español):
+(`02-explainers/motor-explicador`, con README y AGENTS.md en español):
 ```bash
-# Copia la carpeta del catálogo a tu espacio de trabajo (o clona el original de GitHub):
-cp -r 02-explainers/vincentsch--explainroo ~/explainroo && cd ~/explainroo
+# Copia la carpeta del catálogo a tu espacio de trabajo:
+cp -r 02-explainers/motor-explicador ~/motor && cd ~/motor
 npm install
 node bin/explainroo.js doctor --fetch   # verifica Node/ffmpeg/Chrome; baja modelos de voz (~400 MB)
 ```
@@ -113,11 +114,10 @@ node bin/explainroo.js verify videos/<nombre>
 `window.DUR/ready/draw`, determinista): rectángulo acotado con cotas y cruz de centro.
 La genera `scripts/generar_anim_explicadores.mjs` con los tokens reales.
 
-**Demo**: este look no trae proyecto de ejemplo en el repo; los
-ejemplos vivos (qué es una API, cómo HTTPS guarda tu contraseña) solo están en
-[explainroo.com/videos](https://www.explainroo.com/videos/). El resto de looks sí trae
-demo mp4 renderizado en su carpeta.
+**Demo**: este look no trae proyecto de ejemplo en el motor incluido; la miniatura
+animada de la galería y su `anim.html` muestran su lenguaje visual. Los demás looks
+sí traen demo mp4 renderizado en su carpeta.
 
-Look del motor **explainroo** de Vincent Schmalbach — MIT
-(github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
-explainroo.com/videos/ (qué es una API, cómo HTTPS guarda tu contraseña).
+Look producido con el **motor de explicativos** incluido en este catálogo
+(`02-explainers/motor-explicador`; licencia y avisos dentro de esa carpeta). El botón
+▶ de la galería reproduce un video real renderizado con este look.

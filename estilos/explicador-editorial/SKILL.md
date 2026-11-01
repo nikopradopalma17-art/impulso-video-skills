@@ -1,9 +1,9 @@
 ---
 name: video-estilo-explicador-editorial
-description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK EDITORIAL del motor explainroo — ensayo impreso: papel cálido, titular serif en Instrument Serif, reglas finas, paleta desaturada con rojo profundo, ritmo sereno con fades. Úsalo SIEMPRE que el usuario pida "look editorial", "estilo ensayo/revista explainroo", "explicativo elegante narrado de historia o dinero" o un video contemplativo de 45 a 120 s sobre un tema serio — aunque no mencione "editorial".
+description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK EDITORIAL del motor de explicativos IMPULSO IA — ensayo impreso: papel cálido, titular serif en Instrument Serif, reglas finas, paleta desaturada con rojo profundo, ritmo sereno con fades. Úsalo SIEMPRE que el usuario pida "look editorial", "estilo ensayo/revista", "explicativo elegante narrado de historia o dinero" o un video contemplativo de 45 a 120 s sobre un tema serio — aunque no mencione "editorial".
 ---
 
-# Look Editorial (explainroo) — el ensayo elegante en serif
+# Look Editorial — el ensayo elegante en serif
 
 ## Qué es y cuándo usarlo
 Video explicativo **completo y narrado** (45–120 s) con la sobriedad de un buen ensayo
@@ -24,15 +24,16 @@ elegancia serene el argumento.
 - *"Un ensayo en video sobre por qué fracasan las resoluciones de año nuevo"* → titular
   serif + tres razones numeradas con ritmo sereno, 1:20.
 
-## Cómo se replica: el motor explainroo (contrato técnico)
-Este look lo produce el motor **explainroo** (MIT, `vincentsch/explainroo`): convierte
+## Cómo se replica: el motor de explicativos (contrato técnico)
+Este look lo produce el **motor de explicativos** incluido en este repo
+(`02-explainers/motor-explicador`): convierte
 `script.md` (narración) + `scenes.js` (dibujo) en un MP4 narrado con música.
 
 **1. Preparar el motor (una vez por máquina)** — ya viene incluido en este catálogo
-(`02-explainers/vincentsch--explainroo`, clon superficial con README y AGENTS.md en español):
+(`02-explainers/motor-explicador`, con README y AGENTS.md en español):
 ```bash
-# Copia la carpeta del catálogo a tu espacio de trabajo (o clona el original de GitHub):
-cp -r 02-explainers/vincentsch--explainroo ~/explainroo && cd ~/explainroo
+# Copia la carpeta del catálogo a tu espacio de trabajo:
+cp -r 02-explainers/motor-explicador ~/motor && cd ~/motor
 npm install
 node bin/explainroo.js doctor --fetch   # verifica Node/ffmpeg/Chrome; baja modelos de voz (~400 MB)
 ```
@@ -116,8 +117,8 @@ subrayado rojo. La genera `scripts/generar_anim_explicadores.mjs` con los tokens
 **Demo real incluido** (renderizado con el motor de este repo):
 `referencia/demo-por-que-bisiestos.mp4` — «Why we have leap years», 69 s, en inglés,
 subtítulos `.srt` incluidos. Proyecto fuente:
-`02-explainers/vincentsch--explainroo/examples/leap-years`.
+`02-explainers/motor-explicador/examples/leap-years`.
 
-Look del motor **explainroo** de Vincent Schmalbach — MIT
-(github.com/vincentsch/explainroo). Tokens de `engine/themes.js`. Ejemplos vivos:
-explainroo.com/videos/ (por qué existen los años bisiestos).
+Look producido con el **motor de explicativos** incluido en este catálogo
+(`02-explainers/motor-explicador`; licencia y avisos dentro de esa carpeta). El botón
+▶ de la galería reproduce un video real renderizado con este look.

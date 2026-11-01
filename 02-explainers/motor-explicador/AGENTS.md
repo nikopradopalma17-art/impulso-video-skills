@@ -1,8 +1,5 @@
 # explainroo para agentes de código
 
-> **Réplica en español** del `AGENTS.md` de [vincentsch/explainroo](https://github.com/vincentsch/explainroo)
-> (MIT). Si algo aquí no cuadra con el comportamiento del motor, manda el original en inglés.
-
 Este archivo te dice a ti, el agente de código, cómo hacer un video con explainroo.
 El usuario normalmente te da un tema, y a veces una duración o un estilo. Tú escribes
 las palabras y las imágenes. explainroo hace el video.

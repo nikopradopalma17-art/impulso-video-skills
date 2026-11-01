@@ -1,15 +1,14 @@
 ---
 name: video-estilo-explicador-paper
-description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK PAPER del motor explainroo — papel crema con grano, trazo a mano alzada en Kalam, todo se DIBUJA y se ESCRIBE mientras la voz narra, transición de brochazo. Úsalo SIEMPRE que el usuario pida "look paper", "estilo papel explainroo", "explicativo amigable dibujado a mano con narración", "video tipo cuaderno que se dibuja solo" o un explainer narrado de 45 a 120 s con calidez artesanal — aunque no mencione "paper".
+description: Genera un VIDEO EXPLICATIVO COMPLETO (narrado con voz, música y efectos) en LOOK PAPER del motor de explicativos IMPULSO IA — papel crema con grano, trazo a mano alzada en Kalam, todo se DIBUJA y se ESCRIBE mientras la voz narra, transición de brochazo. Úsalo SIEMPRE que el usuario pida "look paper", "estilo papel", "explicativo amigable dibujado a mano con narración", "video tipo cuaderno que se dibuja solo" o un explainer narrado de 45 a 120 s con calidez artesanal — aunque no mencione "paper".
 ---
 
-# Look Paper (explainroo) — el explicador amigable que se dibuja a mano
+# Look Paper — el explicador amigable que se dibuja a mano
 
 ## Qué es y cuándo usarlo
 Video explicativo **completo y narrado** (45–120 s) donde todo se dibuja a mano sobre papel
 crema con grano: el título se escribe con rotulador, las formas aparecen trazo a trazo con
-temblor humano y los pasos se conectan con flechas garabateadas. Es el look **por defecto de
-explainroo** y el más versátil: cae bien en cualquier audiencia. La voz (Kokoro local o
+temblor humano y los pasos se conectan con flechas garabateadas. Es el look **por defecto del motor** y el más versátil: cae bien en cualquier audiencia. La voz (Kokoro local o
 ElevenLabs) marca el tiempo de cada dibujo palabra por palabra, con música cálida y efectos
 de garabato. Produce MP4 + subtítulos (.srt/.vtt) + portada, en horizontal, vertical o cuadrado.
 
@@ -21,19 +20,19 @@ científica amable, cualquier tema que se construya en pantalla mientras se expl
   se dibujan y numeran en círculos rojos, 56 s, formato cuadrado para feed.
 - *"Un explicativo de 70 s en estilo papel sobre cómo arrancar un auto con cables"* → pasos
   con el orden de los cables dibujado trazo a trazo, flechas de brochazo entre pasos.
-- *"Video narrado dibujado a mano de cómo explainroo hace un video"* → el propio ejemplo
+- *"Video narrado dibujado a mano de cómo se produce un video narrado de principio a fin"* → el propio ejemplo
   oficial del look (1:26, 16:9): script → escenas → voz → MP4.
 
-## Cómo se replica: el motor explainroo (contrato técnico)
-Este look NO es un canvas propio: lo produce el motor **explainroo** (MIT,
-`vincentsch/explainroo`), que convierte `script.md` (narración) + `scenes.js` (dibujo) en un
+## Cómo se replica: el motor de explicativos (contrato técnico)
+Este look NO es un canvas propio: lo produce el **motor de explicativos**
+incluido en este repo (`02-explainers/motor-explicador`), que convierte `script.md` (narración) + `scenes.js` (dibujo) en un
 MP4 narrado con música. Tu agente escribe ambos archivos; el motor hace el resto.
 
 **1. Preparar el motor (una vez por máquina)** — ya viene incluido en este catálogo
-(`02-explainers/vincentsch--explainroo`, clon superficial con README y AGENTS.md en español):
+(`02-explainers/motor-explicador`, con README y AGENTS.md en español):
 ```bash
-# Copia la carpeta del catálogo a tu espacio de trabajo (o clona el original de GitHub):
-cp -r 02-explainers/vincentsch--explainroo ~/explainroo && cd ~/explainroo
+# Copia la carpeta del catálogo a tu espacio de trabajo:
+cp -r 02-explainers/motor-explicador ~/motor && cd ~/motor
 npm install
 node bin/explainroo.js doctor --fetch   # verifica Node/ffmpeg/Chrome; baja modelos de voz (~400 MB)
 ```
@@ -121,10 +120,10 @@ visual, o re-renderízala con el motor de estilos. La genera
 **Demos reales incluidos** (renderizados con el motor de este repo):
 `referencia/demo-por-que-el-cielo-es-azul.mp4` — «¿Por qué el cielo es azul?» narrado
 **en español** (voz `ef_dora`), 72 s, con subtítulos `.srt`. Y
-`referencia/demo-explainroo-intro.mp4` — cómo explainroo hace un video, en inglés, 86 s.
+`referencia/demo-como-se-hace-un-video.mp4` — el proceso completo de producción, en inglés, 86 s.
 Reprodúcelos para ver exactamente qué produce este look: voz, música, cámara y dibujo
-anclado a cada palabra. Proyectos fuente: `02-explainers/vincentsch--explainroo/examples/`.
+anclado a cada palabra. Proyectos fuente incluidos: `02-explainers/motor-explicador/examples/`.
 
-Look del motor **explainroo** de Vincent Schmalbach — MIT
-(github.com/vincentsch/explainroo). Tokens tomados de `engine/themes.js`. Ejemplos vivos
-del look: explainroo.com/videos/ (feedback, stand-ups, café, ¿por qué el cielo es azul?).
+Look producido con el **motor de explicativos** incluido en este catálogo
+(`02-explainers/motor-explicador`; licencia y avisos dentro de esa carpeta). El botón
+▶ de la galería reproduce un video real renderizado con este look.

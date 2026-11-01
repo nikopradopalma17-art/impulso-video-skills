@@ -2,7 +2,7 @@
 
 17 estilos de diseño de video listos para copiar y pegar en tu agente de código
 (Claude Code, Codex, ZCode...): **11 del motor de estilos IMPULSO IA** y **6 looks
-explicadores del motor explainroo (MIT)**. Cada carpeta ES la skill:
+explicadores del motor de explicativos incluido en el repo**. Cada carpeta ES la skill:
 
 ```
 estilos/<estilo>/
@@ -26,15 +26,15 @@ estilos/fuentes/          <- tipografías (Google Fonts, SIL OFL)
    máquina sin descargar nada más.
 3. El landing del repo tiene un botón "Copiar SKILL.md" por estilo.
 
-### Looks explicadores · motor explainroo (6: paper, clean, chalk, blueprint, midnight, editorial)
+### Looks explicadores · motor de explicativos incluido (6: paper, clean, chalk, blueprint, midnight, editorial)
 Estos looks producen **videos explicativos completos y narrados** (voz + música +
 subtítulos + portada, 45–120 s, en español con la voz local `ef_dora`):
 
 1. Copia la skill del look (o pégala como prompt) y pídele a tu agente un
    explicativo "en look paper/chalk/…" sobre tu tema.
-2. El agente clona el motor la primera vez:
-   `git clone https://github.com/vincentsch/explainroo.git && npm install &&
-   node bin/explainroo.js doctor --fetch`.
+2. Prepara el motor incluido (una vez):
+   `cp -r 02-explainers/motor-explicador ~/motor && cd ~/motor`
+   `npm install && node bin/explainroo.js doctor --fetch`.
 3. Sigue el pipeline del `SKILL.md`: `init --theme <look> --language es`, escribe
    `script.md` (narración) y `scenes.js` (escenas), `voice` → `check` → `still` →
    `render` → `verify`.
@@ -51,7 +51,7 @@ del `anim.html` (canvas 1920x1080, `window.draw({t})` pura y determinista,
 renderizable con Chrome headless + ffmpeg a mp4/GIF). En los estilos de
 producto, `referencia/demo-<estilo>.mp4` es el render de validación: míralo
 para saber exactamente qué esperar del estilo antes de renderizar. En los
-looks explicadores, el "motor" es explainroo y el `SKILL.md` documenta su
+looks explicadores, el "motor" es el de explicativos incluido y el `SKILL.md` documenta su
 pipeline completo de principio a fin. Cinco de ellos incluyen además un
 **demo mp4 real** en `referencia/` (renderizado aquí con el motor incluido,
 uno narrado en español): míralo para saber qué produce cada look antes de
@@ -61,12 +61,10 @@ empezar.
 
 - Estilos y documentación del motor IMPULSO IA: © IMPULSO IA (Nikolas Prado) —
   úsalos, adáptalos y redistribúyelos con atribución.
-- Looks explicadores: temas y tokens derivados de
-  [vincentsch/explainroo](https://github.com/vincentsch/explainroo) (MIT, Vincent
-  Schmalbach); las demos `anim.html` y su generador son adaptaciones propias con
-  esos tokens. El motor viene incluido en `02-explainers/vincentsch--explainroo`
-  (clon superficial con `README.md` y `AGENTS.md` traducidos al español); el
-  original vive en github.com/vincentsch/explainroo. Ejemplos vivos: [explainroo.com/videos](https://www.explainroo.com/videos/).
+- Looks explicadores: skills, demos GIF/mp4, tokens y documentación en español
+  © IMPULSO IA. Se producen con el motor de explicativos incluido en
+  `02-explainers/motor-explicador` (código abierto; licencia y avisos dentro de
+  esa carpeta).
 - Tipografías en `fuentes/`: Google Fonts bajo SIL Open Font License (Archivo
   Black, Alfa Slab One, Anton, Architects Daughter, Bangers, Baloo 2, Cabin
   Sketch, Caveat, Fredoka, Instrument Serif, Inter, JetBrains Mono, Kalam,

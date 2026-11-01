@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Genera los 6 anim.html de galería para los looks de explainroo
+// Genera los 6 anim.html de galería para los looks explicadores de IMPULSO IA
 // (estilos/explicador-*/referencia/anim.html) a partir de los tokens REALES
-// del tema (engine/themes.js de vincentsch/explainroo, MIT).
+// del tema del motor de explicativos incluido en el repo.
 //
 // Cada anim.html cumple el contrato del motor de estilos IMPULSO IA:
 //   canvas #c 1920x1080 · window.DUR · window.ready (fuentes+fondo) ·
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const BASE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /* ---------------------------------------------------------------------------
- * Tokens tomados literalmente de engine/themes.js (explainroo, MIT).
+ * Tokens tomados literalmente del tema del motor de explicativos incluido.
  * Solo se añaden campos de demo (título, tagline, fuentes-ttf, duración).
  * ------------------------------------------------------------------------ */
 const LOOKS = [
@@ -232,7 +232,7 @@ const DIAGRAMS = {
       ctx.fillStyle = '#34d399'; ctx.beginPath(); ctx.arc(tx+u*5.0, ty+u*1.2, u*0.55, 0, 7); ctx.fill();
       ctx.restore();
       const ptype = seg(t, 1.9, 3.3);
-      T.typeOn(ctx, '$ npx explainroo init demo', tx + u*2.2, y + u*2.6, F('mono', u*2.6), '#e2e8f0', ptype,
+      T.typeOn(ctx, '$ impulso video init demo', tx + u*2.2, y + u*2.6, F('mono', u*2.6), '#e2e8f0', ptype,
         { cursor: Math.floor(t * 2.4) % 2 === 0, cursorColor: '#22d3ee' });
     }
     const pc = seg(t, 3.35, 3.85);
@@ -288,7 +288,7 @@ function html(look, diagramSrc) {
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>look ${look.name} · demo galería (explainroo, MIT)</title>
+<title>look ${look.name} · demo galería · impulso ia</title>
 <style>
 ${fontFaceCss(look)}
 @font-face{font-family:'JetBrains Mono';font-weight:400;src:url('../../fuentes/jetbrains-mono-400.ttf') format('truetype');}
@@ -300,7 +300,7 @@ canvas{display:block}
 <canvas id="c" width="1920" height="1080"></canvas>
 <script>
 "use strict";
-/* Demo de galería del look "${look.name}" — tokens del tema explainroo (MIT).
+/* Demo de galería del look "${look.name}" — tokens del tema del motor de explicativos incluido.
    Contrato del motor de estilos: window.DUR / window.ready / window.draw({t}) pura. */
 const LOOK = ${JSON.stringify(L, null, 0)};
 
@@ -327,7 +327,7 @@ function F(role,size){
   return f.weight+' '+Math.round(size*100)/100+'px "'+f.family+'", sans-serif';
 }
 
-/* ---------- fondo (puerto de makeBackground de explainroo, semilla fija) ---------- */
+/* ---------- fondo (textura del tema, semilla fija) ---------- */
 function makeBackground(){
   const W=1920,H=1080,c=document.createElement('canvas');c.width=W;c.height=H;
   const g=c.getContext('2d'),rand=mulberry32(7919+LOOK.name.length);
@@ -490,7 +490,7 @@ function drawContent(ctx,t){
     ctx.restore()});
   /* crédito */
   const pc2=seg(t,3.9,4.25);
-  if(pc2>0)T.fade(ctx,'look "'+L.name+'" · motor explainroo (MIT) · impulso.video-skills',W/2,H-u*3.2,F('body',u*1.7),L.muted,pc2);
+  if(pc2>0)T.fade(ctx,'look "'+L.name+'" · impulso ia · video-skills',W/2,H-u*3.2,F('body',u*1.7),L.muted,pc2);
 }
 
 /* transición de cierre del look -> bucle del GIF */

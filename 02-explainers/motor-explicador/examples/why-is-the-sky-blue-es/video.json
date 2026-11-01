@@ -11,5 +11,6 @@
   "language": "es",
   "sfx": "minimal",
   "transition": "fade",
-  "cover": "pregunta@end"
+  "cover": "pregunta@end",
+  "watermark": false
 }
